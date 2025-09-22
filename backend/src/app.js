@@ -23,15 +23,15 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: config.CORS_ORIGIN,
-  credentials: true
+    origin: config.CORS_ORIGIN,
+    credentials: true
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
 });
 app.use(limiter);
 
@@ -51,12 +51,12 @@ app.use(morgan('combined', { stream: logger.stream }));
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: config.NODE_ENV,
-    version: process.env.npm_package_version || '1.0.0'
-  });
+    res.status(200).json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        environment: config.NODE_ENV,
+        version: process.env.npm_package_version || '1.0.0'
+    });
 });
 
 // API routes

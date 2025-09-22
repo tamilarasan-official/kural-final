@@ -8,11 +8,11 @@ const router = express.Router();
 router.use(protect);
 
 router.route('/')
-  .get(authorize('admin'), getUsers);
+    .get(authorize('admin'), getUsers);
 
 router.route('/:id')
-  .get(getUser)
-  .put(updateUser)
-  .delete(authorize('admin'), deleteUser);
+    .get(getUser)
+    .put(updateUser)
+    .delete(authorize('admin'), deleteUser);
 
 module.exports = router;
