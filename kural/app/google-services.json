@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "888013124085",
+    "project_id": "kural-4f1f5",
+    "storage_bucket": "kural-4f1f5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:888013124085:android:07ea8d8b0e548b6e1bb0bc",
+        "android_client_info": {
+          "package_name": "com.kuralapp.kural"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFuFrmrMWvxKBHwgYtF2lPrGKGkW6BplM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

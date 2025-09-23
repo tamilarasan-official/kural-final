@@ -1,11 +1,58 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { db } from '../../services/api/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function LoginScreen() {
-  const router = useRouter();
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = async () => {
+    const trimmedMobile = mobile.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedMobile || !trimmedPassword) {
+      Alert.alert('Missing info', 'Please enter mobile number and password.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      // First try with mobile as Number (if Firestore stored as number)
+      let q = query(
+        collection(db, 'kural app'),
+        where('Mobile number', '==', Number(trimmedMobile)),
+        where('Password', '==', trimmedPassword)
+      );
+      let querySnapshot = await getDocs(q);
+
+      // If nothing found, try with mobile as String (if stored as string)
+      if (querySnapshot.empty) {
+        q = query(
+          collection(db, 'kural app'),
+          where('Mobile number', '==', trimmedMobile),
+          where('Password', '==', trimmedPassword)
+        );
+        querySnapshot = await getDocs(q);
+      }
+
+      if (!querySnapshot.empty) {
+        // Auth success → go to tabs
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Login Failed', 'Invalid mobile number or password');
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Error', (error as Error).message ?? 'Something went wrong');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -33,11 +80,11 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
         />
-        <TouchableOpacity>
+        <TouchableOpacity style={styles.recoverContainer}>
           <Text style={styles.recover}>Recover Password?</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton}>
-          <Text style={styles.loginText}>Login</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={submitting}>
+          <Text style={styles.loginText}>{submitting ? 'Logging in…' : 'Login'}</Text>
         </TouchableOpacity>
         <Text style={styles.orText}>Or Sign in with your mobile number</Text>
         <TouchableOpacity style={styles.otpButton}>
@@ -47,10 +94,6 @@ export default function LoginScreen() {
     </View>
   );
 }
-
-// Hide tab bar for this screen (Expo Router v2+)
-// Add this to your layout file if needed:
-// export const unstable_settings = { initialRouteName: 'login', tabBarVisible: false };
 
 const styles = StyleSheet.create({
   container: {
@@ -66,14 +109,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 40,
     marginBottom: 32,
-    ...Platform.select({
-      android: { elevation: 4 },
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 },
-    }),
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   logo: {
-    width: 180,
-    height: 180,
+    width: 300,
+    height: 280,
     resizeMode: 'contain',
   },
   formContainer: {
@@ -97,11 +141,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  recover: {
-    alignSelf: 'flex-end',
-    color: '#616161',
+  recoverContainer: {
+    width: '100%',
+    alignItems: 'flex-end',
     marginBottom: 24,
+  },
+  recover: {
+    color: '#616161',
     fontSize: 15,
+    textDecorationLine: 'underline',
+    paddingRight: 4,
   },
   loginButton: {
     backgroundColor: '#000',
