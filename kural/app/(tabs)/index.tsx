@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export const options = {
   headerShown: false,
 };
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const [constituency, setConstituency] = useState('119 - Thondamuthur');
   const { width } = Dimensions.get('window');
   const bannerRef = useRef<ScrollView>(null);
@@ -26,7 +28,7 @@ export default function DashboardScreen() {
       {/* Top area with blue background */}
       <View style={styles.topArea}>
         <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.menuButton}>
+          <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/(drawer)/drawerscreen')}>
             <View style={styles.menuBar} />
             <View style={styles.menuBar} />
             <View style={styles.menuBar} />
@@ -133,7 +135,9 @@ type IconTileProps = { title: string; src: any };
 const IconTile = ({ title, src }: IconTileProps) => (
   <TouchableOpacity style={styles.tileIconOnly} activeOpacity={0.8}>
     <Image source={src} style={styles.tileIcon} />
-    <Text style={styles.tileLabel}>{title}</Text>
+    <Text style={styles.tileLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
+      {title}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -162,13 +166,13 @@ const styles = StyleSheet.create({
   },
   topArea: {
     backgroundColor: '#E6F0FE',
-    paddingBottom: 12,
+    paddingBottom: 32,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 26,
   },
   menuButton: {
     width: 44,
@@ -270,7 +274,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   tileIconOnly: {
-    width: '23%',
+    width: '25%',
     alignItems: 'center',
     marginBottom: 16,
   },
@@ -298,13 +302,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 16,
   },
-  overviewRow: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 12 },
+  overviewRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 12 },
   overviewLarge: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 20,
-    marginRight: 12,
+    padding: 16,
     alignItems: 'center',
   },
   overviewSmall: {

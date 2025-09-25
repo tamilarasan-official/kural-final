@@ -71,7 +71,6 @@ UserSchema.virtual('isLocked').get(function () {
 });
 
 // Index for better query performance
-UserSchema.index({ email: 1 });
 UserSchema.index({ createdAt: -1 });
 
 // Encrypt password using bcrypt

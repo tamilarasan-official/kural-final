@@ -17,7 +17,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Use auto-detected long polling to avoid WebChannel transport issues on some networks/devices
-initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
 export const db = getFirestore(app);
 
 // Optional (web-only) analytics:

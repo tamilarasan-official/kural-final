@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "kunal",
-    "slug": "kunal",
+    "name": "kural",
+    "slug": "kural",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "kunal",
+    "scheme": "kural",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
