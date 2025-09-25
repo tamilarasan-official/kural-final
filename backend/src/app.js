@@ -14,6 +14,7 @@ const config = require('../config/config');
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const voterRoutes = require('./routes/voterRoutes');
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1', voterRoutes);
 
 // 404 handler
 app.use(notFound);

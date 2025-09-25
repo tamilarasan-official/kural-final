@@ -5,13 +5,13 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 module.exports = {
-    NODE_ENV: process.env.NODE_ENV || 'development',
+    NODE_ENV: process.env.NODE_ENV || 'production',
     PORT: parseInt(process.env.PORT, 10) || 5000,
     HOST: process.env.HOST || 'localhost',
 
     // Database
-    DATABASE_URI: process.env.DATABASE_URI || 'mongodb://localhost:27017/backend_db',
-    DATABASE_URI_TEST: process.env.DATABASE_URI_TEST || 'mongodb://localhost:27017/backend_db_test',
+    DATABASE_URI: process.env.DATABASE_URI || 'mongodb+srv://kural_db:kural_2025@cluster0.tcoecok.mongodb.net/kural?retryWrites=true&w=majority&appName=Cluster0',
+    DATABASE_URI_TEST: process.env.MANGODB_URI_TEST || 'mongodb://localhost:27017/backend_db_test',
 
     // JWT
     JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key',
@@ -34,7 +34,7 @@ module.exports = {
     REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
 
     // CORS
-    CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
 
     // Rate Limiting
     RATE_LIMIT_WINDOW: parseInt(process.env.RATE_LIMIT_WINDOW, 10) || 900000, // 15 minutes

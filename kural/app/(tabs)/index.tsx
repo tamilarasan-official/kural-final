@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export const options = {
@@ -12,6 +12,11 @@ export default function DashboardScreen() {
   const { width } = Dimensions.get('window');
   const bannerRef = useRef<ScrollView>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState(''); // State for search input
+  const [searchResults, setSearchResults] = useState([]); // State for search results
+  const [showSearchModal, setShowSearchModal] = useState(false); // State for search modal
+  const [pagination, setPagination] = useState(null); // State for pagination
+  const [currentPage, setCurrentPage] = useState(1); // State for current page
 
   // Auto-swipe banners every 3s
   useEffect(() => {
@@ -22,6 +27,55 @@ export default function DashboardScreen() {
     }, 3000);
     return () => clearInterval(id);
   }, [bannerIndex, width]);
+
+  // Function to handle search when search icon is clicked
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setShowSearchModal(false);
+      return;
+    }
+
+    // Reset to page 1 for new search
+    setCurrentPage(1);
+
+    try {
+      const response = await fetch(`http://192.168.31.31:5000/api/v1/search?q=${encodeURIComponent(searchQuery)}&page=1&limit=10`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      setSearchResults(data.voters || []);
+      setPagination(data.pagination);
+      setShowSearchModal(true);
+    } catch (error) {
+      console.error('Error fetching search results:', error.message);
+      // Optionally show an alert or update UI with error message
+    }
+  };
+
+  // Function to handle pagination
+  const handlePageChange = async (newPage: number) => {
+    if (!searchQuery.trim()) return;
+    
+    setCurrentPage(newPage);
+    
+    try {
+      const response = await fetch(`http://192.168.31.31:5000/api/v1/search?q=${encodeURIComponent(searchQuery)}&page=${newPage}&limit=10`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      setSearchResults(data.voters || []);
+      setPagination(data.pagination);
+    } catch (error) {
+      console.error('Error fetching search results:', error.message);
+    }
+  };
+
+  // Reset search when query is cleared
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setShowSearchModal(false);
+    }
+  }, [searchQuery]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -59,8 +113,19 @@ export default function DashboardScreen() {
             style={styles.searchInput}
             placeholder="Voter Id or Voter Name"
             placeholderTextColor="#B0BEC5"
+            value={searchQuery} // Bind search input to state
+            onChangeText={setSearchQuery} // Update state on text change
+            onSubmitEditing={handleSearch} // Search when user presses enter
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <Text style={styles.clearIcon}>✕</Text>
+            </TouchableOpacity>
+          )}
         </View>
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Text style={styles.searchButtonIcon}>🔍</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.filterButton}>
           <Text style={styles.filterText}>☰</Text>
         </TouchableOpacity>
@@ -119,6 +184,89 @@ export default function DashboardScreen() {
           <OverviewCard title={'Not\nLogged'} value={'0'} accent="#D32F2F" />
         </View>
       </View>
+
+      {/* Search Results Modal */}
+      {showSearchModal && (
+        <Modal
+          visible={showSearchModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Search Results</Text>
+              <TouchableOpacity 
+                onPress={() => setShowSearchModal(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {pagination && (
+              <Text style={styles.resultsCount}>
+                Showing {((pagination.currentPage - 1) * 10) + 1}-{Math.min(pagination.currentPage * 10, pagination.totalCount)} of {pagination.totalCount} Voters
+              </Text>
+            )}
+
+            <ScrollView style={styles.modalContent}>
+              {searchResults.map((voter, index) => (
+                <View key={index} style={styles.voterCard}>
+                  <View style={styles.voterHeader}>
+                    <Text style={styles.serialText}>Serial : {voter.sr}</Text>
+                    <Text style={styles.sectionText}>Section : {voter.Anubhag_number}</Text>
+                    <Text style={styles.partText}>Part : {voter.bhag_no}</Text>
+                  </View>
+                  
+                  <View style={styles.voterContent}>
+                    <View style={styles.voterImageContainer}>
+                      <View style={styles.voterImagePlaceholder}>
+                        <Text style={styles.voterImageIcon}>🏔️</Text>
+                      </View>
+                      <Text style={styles.voterId}>{voter.Number}</Text>
+                    </View>
+                    
+                    <View style={styles.voterDetails}>
+                      <Text style={styles.voterName}>{voter.Name}</Text>
+                      <Text style={styles.voterRelation}>{voter.Relation}</Text>
+                      <Text style={styles.voterFather}>{voter['Father Name']}</Text>
+                      <Text style={styles.voterAddress}>Door No {voter.makan}</Text>
+                      <View style={styles.voterFooter}>
+                        <Text style={styles.voterAge}>{voter.age} | {voter.Relation}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+              <View style={styles.paginationContainer}>
+                <TouchableOpacity 
+                  onPress={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  disabled={!pagination.hasPrev}
+                  style={[styles.paginationButton, !pagination.hasPrev && styles.paginationButtonDisabled]}
+                >
+                  <Text style={styles.paginationButtonText}>‹</Text>
+                </TouchableOpacity>
+                
+                <Text style={styles.paginationText}>
+                  {pagination.currentPage} / {pagination.totalPages}
+                </Text>
+                
+                <TouchableOpacity 
+                  onPress={() => handlePageChange(Math.min(pagination.totalPages, currentPage + 1))}
+                  disabled={!pagination.hasNext}
+                  style={[styles.paginationButton, !pagination.hasNext && styles.paginationButtonDisabled]}
+                >
+                  <Text style={styles.paginationButtonText}>›</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </Modal>
+      )}
     </ScrollView>
   );
 }
@@ -172,7 +320,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 26,
+    paddingTop: 36,
   },
   menuButton: {
     width: 44,
@@ -254,6 +402,33 @@ const styles = StyleSheet.create({
   },
   searchIcon: { fontSize: 18, color: '#90A4AE' },
   searchInput: { flex: 1, marginLeft: 8, color: '#263238' },
+  clearButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  clearIcon: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  searchButton: {
+    width: 48,
+    height: 48,
+    marginLeft: 8,
+    borderRadius: 12,
+    backgroundColor: '#1976D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+  },
+  searchButtonIcon: {
+    fontSize: 18,
+    color: '#FFFFFF',
+  },
   filterButton: {
     width: 48,
     height: 48,
@@ -321,4 +496,201 @@ const styles = StyleSheet.create({
   overviewTitle: { textAlign: 'center', color: '#263238', marginBottom: 12, fontWeight: '700', fontSize: 18 },
   badge: { minWidth: 56, height: 56, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   badgeText: { color: '#FFFFFF', fontSize: 22, fontWeight: '900' },
+
+  // Search Results Styles
+  searchResultsContainer: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  searchResultsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  searchResultItem: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1976D2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  searchResultDetails: {
+    fontSize: 14,
+    color: '#666666',
+  },
+
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#666666',
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: '#4CAF50',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: '#F8F9FA',
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  voterCard: {
+    backgroundColor: '#FFFFFF',
+    marginVertical: 8,
+    borderRadius: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  voterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  serialText: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  sectionText: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  partText: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  voterContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  voterImageContainer: {
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  voterImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  voterImageIcon: {
+    fontSize: 24,
+  },
+  voterId: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: '600',
+  },
+  voterDetails: {
+    flex: 1,
+  },
+  voterName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  voterRelation: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 2,
+  },
+  voterFather: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 2,
+  },
+  voterAddress: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 8,
+  },
+  voterFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  voterAge: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: '500',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  paginationButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1976D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E0E0E0',
+  },
+  paginationButtonText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  paginationText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    marginHorizontal: 16,
+  },
 });
