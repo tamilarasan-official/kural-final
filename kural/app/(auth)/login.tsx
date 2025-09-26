@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } fro
 import { useRouter } from 'expo-router';
 import { db } from '../../services/api/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { saveUserSession } from '../../services/api/userSession';
 
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
@@ -41,7 +42,8 @@ export default function LoginScreen() {
       }
 
       if (!querySnapshot.empty) {
-        // Auth success → go to tabs
+        // Auth success → save user session and go to tabs
+        await saveUserSession(trimmedMobile);
         router.replace('/(tabs)');
       } else {
         Alert.alert('Login Failed', 'Invalid mobile number or password');

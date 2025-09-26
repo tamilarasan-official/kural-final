@@ -1,18 +1,107 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { getUserSession } from '../../services/api/userSession';
 
 export default function MyProfileScreen() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    firstName: 'thamizh',
-    lastName: 'TVK',
-    email: 'thamizhlogesh2020@gmail.com',
-    mobileNumber: '9092317264',
+    firstName: '',
+    lastName: '',
+    email: '',
+    mobileNumber: '',
     role: 'User',
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [originalData, setOriginalData] = useState(null);
+  const [userId, setUserId] = useState('');
+  const [userMobile, setUserMobile] = useState('');
+
+  // Get user session and set up user data
+  const initializeUser = async () => {
+    try {
+      const session = await getUserSession();
+      if (session) {
+        setUserId(session.userId);
+        setUserMobile(session.mobileNumber);
+        setFormData(prev => ({
+          ...prev,
+          mobileNumber: session.mobileNumber
+        }));
+      } else {
+        // If no session, redirect to login
+        router.replace('/(auth)/index');
+        return;
+      }
+    } catch (error) {
+      console.error('Error getting user session:', error);
+      router.replace('/(auth)/index');
+    }
+  };
+
+  // Fetch profile data from API
+  const fetchProfile = async () => {
+    if (!userId) return;
+    
+    try {
+      setLoading(true);
+      const response = await fetch(`http://192.168.31.31:5000/api/v1/profile/${userId}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setFormData({
+            firstName: result.data.firstName || '',
+            lastName: result.data.lastName || '',
+            email: result.data.email || '',
+            mobileNumber: result.data.mobileNumber || userMobile,
+            role: result.data.role || 'User',
+          });
+          setOriginalData(result.data);
+        } else {
+          // If profile doesn't exist, create default one
+          createDefaultProfile();
+        }
+      } else {
+        // If profile doesn't exist, create default one
+        createDefaultProfile();
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      Alert.alert('Error', 'Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create default profile
+  const createDefaultProfile = async () => {
+    const defaultData = {
+      firstName: 'User',
+      lastName: 'Name',
+      email: `user${userId}@example.com`,
+      mobileNumber: userMobile,
+      role: 'User',
+    };
+    
+    setFormData(defaultData);
+    setOriginalData(defaultData);
+  };
+
+  // Load profile data on component mount
+  useEffect(() => {
+    initializeUser();
+  }, []);
+
+  // Fetch profile when userId is available
+  useEffect(() => {
+    if (userId) {
+      fetchProfile();
+    }
+  }, [userId]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -21,7 +110,7 @@ export default function MyProfileScreen() {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Basic validation
     if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -35,15 +124,66 @@ export default function MyProfileScreen() {
       return;
     }
 
-    // Here you would typically save to your backend/database
-    Alert.alert('Success', 'Profile updated successfully!', [
-      { text: 'OK', onPress: () => setIsEditing(false) }
-    ]);
+    try {
+      setSaving(true);
+      
+      const response = await fetch(`http://192.168.31.31:5000/api/v1/profile/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          mobileNumber: formData.mobileNumber,
+          role: formData.role,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setOriginalData(formData);
+        setIsEditing(false);
+        Alert.alert('Success', 'Profile updated successfully!');
+      } else {
+        Alert.alert('Error', result.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = () => {
     setIsEditing(true);
   };
+
+  const handleCancel = () => {
+    // Reset form data to original values
+    if (originalData) {
+      setFormData({
+        firstName: originalData.firstName || '',
+        lastName: originalData.lastName || '',
+        email: originalData.email || '',
+        mobileNumber: originalData.mobileNumber || '',
+        role: originalData.role || 'User',
+      });
+    }
+    setIsEditing(false);
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#1976D2" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -128,15 +268,21 @@ export default function MyProfileScreen() {
             <View style={styles.editActions}>
               <TouchableOpacity 
                 style={styles.cancelButton} 
-                onPress={() => {
-                  setIsEditing(false);
-                  // Reset form data if needed
-                }}
+                onPress={handleCancel}
+                disabled={saving}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save</Text>
+              <TouchableOpacity 
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -260,6 +406,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666666',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#BDBDBD',
   },
 });
 

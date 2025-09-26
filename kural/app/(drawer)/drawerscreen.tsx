@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { useRouter, useFocusEffect, router } from 'expo-router';
+import { getUserSession, clearUserSession } from '../../services/api/userSession';
 
 export const options = {
   headerShown: false,
@@ -11,6 +12,83 @@ const { width } = Dimensions.get('window');
 
 export default function DrawerScreen() {
   const router = useRouter();
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    role: 'User'
+  });
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState('');
+
+  // Get user session
+  const initializeUser = async () => {
+    try {
+      const session = await getUserSession();
+      if (session) {
+        setUserId(session.userId);
+      } else {
+        // If no session, redirect to login
+        router.replace('/(auth)/index');
+        return;
+      }
+    } catch (error) {
+      console.error('Error getting user session:', error);
+      router.replace('/(auth)/index');
+    }
+  };
+
+  // Fetch profile data
+  const fetchProfile = async () => {
+    if (!userId) return;
+    
+    try {
+      setLoading(true);
+      const response = await fetch(`http://192.168.31.31:5000/api/v1/profile/${userId}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setProfileData({
+            firstName: result.data.firstName || '',
+            lastName: result.data.lastName || '',
+            role: result.data.role || 'User'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      // Set default values if fetch fails
+      setProfileData({
+        firstName: 'User',
+        lastName: 'Name',
+        role: 'User'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load profile data when component mounts
+  useEffect(() => {
+    initializeUser();
+  }, []);
+
+  // Fetch profile when userId is available
+  useEffect(() => {
+    if (userId) {
+      fetchProfile();
+    }
+  }, [userId]);
+
+  // Refresh profile data when screen comes into focus (Expo Router way)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userId) {
+        fetchProfile();
+      }
+    }, [userId])
+  );
+
 
   const menuItems = [
     { id: 'profile', title: 'My Profile', icon: '👤', route: '/(drawer)/my_profile' },
@@ -25,6 +103,39 @@ export default function DrawerScreen() {
 
   const handleMenuPress = (route: string) => {
     router.push(route as any);
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearUserSession();
+              // Try using a different navigation approach
+              setTimeout(() => {
+                router.replace('/(auth)/index' as any);
+              }, 100);
+            } catch (error) {
+              console.error('Error during logout:', error);
+              // Fallback to push
+              setTimeout(() => {
+                router.push('/(auth)/index' as any);
+              }, 100);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
@@ -46,8 +157,16 @@ export default function DrawerScreen() {
           </View>
           
           <View style={styles.userInfo}>
-            <Text style={styles.username}>thamizh TVK</Text>
-            <Text style={styles.userType}>User</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#1976D2" />
+            ) : (
+              <>
+                <Text style={styles.username}>
+                  {profileData.firstName} {profileData.lastName}
+                </Text>
+                <Text style={styles.userType}>{profileData.role}</Text>
+              </>
+            )}
           </View>
         </View>
       </View>
@@ -71,7 +190,7 @@ export default function DrawerScreen() {
         {/* Logout */}
         <TouchableOpacity 
           style={[styles.menuItem, { marginTop: 8, marginBottom: 24 }]}
-          onPress={() => router.replace('/(auth)/index')}
+          onPress={handleLogout}
           activeOpacity={0.8}
         >
           <Text style={styles.menuIcon}>🚪</Text>
