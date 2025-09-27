@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function YourElectionScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   return (
     <View style={styles.container}>
@@ -12,14 +14,18 @@ export default function YourElectionScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Your Elections</Text>
+        <Text style={styles.headerTitle}>{t('elections.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Election Card */}
-        <View style={styles.electionCard}>
+        <TouchableOpacity 
+          style={styles.electionCard}
+          onPress={() => router.push('/(drawer)/election_details')}
+          activeOpacity={0.7}
+        >
           {/* Profile Image */}
           <View style={styles.imageContainer}>
             <View style={styles.profileImage}>
@@ -34,23 +40,8 @@ export default function YourElectionScreen() {
             <Text style={styles.bodyText}>Body not</Text>
             <Text style={styles.stateText}>Tamil Nadu</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Additional Election Cards (if any) */}
-        <View style={styles.electionCard}>
-          <View style={styles.imageContainer}>
-            <View style={styles.profileImage}>
-              <Text style={styles.profileIcon}>👤</Text>
-            </View>
-          </View>
-          
-          <View style={styles.cardDetails}>
-            <Text style={styles.constituencyNumber}>120 -</Text>
-            <Text style={styles.constituencyName}>Coimbatore North</Text>
-            <Text style={styles.bodyText}>Assembly</Text>
-            <Text style={styles.stateText}>Tamil Nadu</Text>
-          </View>
-        </View>
       </ScrollView>
     </View>
   );

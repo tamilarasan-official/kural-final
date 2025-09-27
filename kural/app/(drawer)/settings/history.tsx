@@ -1,0 +1,523 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Image, Alert, Dimensions } from 'react-native';
+import { router } from 'expo-router';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import * as ImagePicker from 'expo-image-picker';
+
+const { width } = Dimensions.get('window');
+
+export default function HistoryScreen() {
+  const { t } = useLanguage();
+  
+  // Sample history data
+  const [historyData, setHistoryData] = useState([
+    {
+      id: '1',
+      year: '2024',
+      type: 'MP',
+      title: '2024-MP',
+      color: '#1E40AF',
+      voted: true
+    },
+    {
+      id: '2',
+      year: '2022',
+      type: 'ULB',
+      title: '2022-Local Body',
+      color: '#DC2626',
+      voted: true
+    },
+    {
+      id: '3',
+      year: '2021',
+      type: 'AC',
+      title: '2021-MLA',
+      color: '#059669',
+      voted: true
+    },
+    {
+      id: '4',
+      year: '',
+      type: '',
+      title: 'Not Voted',
+      color: '#7C2D12',
+      voted: false
+    }
+  ]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [customText, setCustomText] = useState('');
+
+  const handleEdit = (item: any) => {
+    setSelectedItem(item);
+    setImageUrl('');
+    setSelectedImage(null);
+    setCustomText('');
+    setShowImageModal(true);
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert(t('common.error'), 'Failed to pick image');
+    }
+  };
+
+  const handleDelete = (item: any) => {
+    Alert.alert(
+      t('history.deleteConfirm'),
+      `${t('history.deleteMessage')} "${item.title}"?`,
+      [
+        { text: t('history.cancel'), style: 'cancel' },
+        {
+          text: t('history.delete'),
+          style: 'destructive',
+          onPress: () => {
+            setHistoryData(prev => prev.filter(entry => entry.id !== item.id));
+          }
+        }
+      ]
+    );
+  };
+
+  const handleSaveImage = () => {
+    if (selectedItem && (selectedImage || customText.trim())) {
+      // Update the selected item with new image or custom text
+      setHistoryData(prev => prev.map(item => 
+        item.id === selectedItem.id 
+          ? { 
+              ...item, 
+              title: customText.trim() || item.title,
+              customImage: selectedImage,
+              customText: customText.trim()
+            }
+          : item
+      ));
+      
+      console.log('Saving for:', selectedItem.title, 'Image:', selectedImage, 'Custom text:', customText);
+      setShowImageModal(false);
+      setImageUrl('');
+      setSelectedImage(null);
+      setCustomText('');
+      setSelectedItem(null);
+    } else {
+      Alert.alert(t('common.error'), 'Please select an image or enter custom text');
+    }
+  };
+
+  const handleCancel = () => {
+    setShowImageModal(false);
+    setImageUrl('');
+    setSelectedImage(null);
+    setCustomText('');
+    setSelectedItem(null);
+  };
+
+  const filteredData = historyData.filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const renderHistoryItem = (item: any) => (
+    <View key={item.id} style={styles.historyCard}>
+      <View style={styles.cardContent}>
+        <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
+          {item.customImage ? (
+            <Image source={{ uri: item.customImage }} style={styles.listImage} />
+          ) : item.voted ? (
+            <>
+              <Text style={styles.iconYear}>{item.year}</Text>
+              <Text style={styles.iconType}>{item.type}</Text>
+            </>
+          ) : (
+            <View style={styles.notVotedIcon}>
+              <Text style={styles.ballotIcon}>🗳️</Text>
+              <Text style={styles.noVoteIcon}>🚫</Text>
+            </View>
+          )}
+        </View>
+        
+        <Text style={styles.itemTitle}>{item.customText || item.title}</Text>
+        
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={styles.actionButton} 
+            onPress={() => handleEdit(item)}
+          >
+            <Text style={styles.editIcon}>✏️</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.deleteButton]} 
+            onPress={() => handleDelete(item)}
+          >
+            <Text style={styles.deleteIcon}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t('history.title')}</Text>
+        <View style={styles.headerRight} />
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder={t('history.search')}
+          placeholderTextColor="#999999"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <Text style={styles.searchIcon}>🔍</Text>
+      </View>
+
+      {/* History List */}
+      <ScrollView style={styles.historyList} showsVerticalScrollIndicator={false}>
+        {filteredData.map(renderHistoryItem)}
+      </ScrollView>
+
+      {/* Image Selection Modal */}
+      <Modal
+        visible={showImageModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+              <Text style={styles.imagePickerText}>📷 Select Image</Text>
+            </TouchableOpacity>
+            
+            <TextInput
+              style={styles.customTextInput}
+              placeholder=""
+              placeholderTextColor="#999999"
+              value={customText}
+              onChangeText={setCustomText}
+            />
+            
+            <Text style={styles.selectImageLabel}>{t('history.selectImage')}</Text>
+            
+            <View style={styles.imagePreview}>
+              {selectedImage ? (
+                <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+              ) : selectedItem && (
+                <View style={[styles.previewIcon, { backgroundColor: selectedItem.color }]}>
+                  {customText ? (
+                    <Text style={styles.customTextPreview}>{customText}</Text>
+                  ) : selectedItem.voted ? (
+                    <>
+                      <Text style={styles.previewYear}>{selectedItem.year}</Text>
+                      <Text style={styles.previewType}>{selectedItem.type}</Text>
+                    </>
+                  ) : (
+                    <View style={styles.previewNotVoted}>
+                      <Text style={styles.previewBallot}>🗳️</Text>
+                      <Text style={styles.previewNoVote}>🚫</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveImage}>
+                <Text style={styles.saveButtonText}>{t('history.save')}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                <Text style={styles.cancelButtonText}>{t('history.cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#E5E7EB',
+    paddingTop: 50,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: '#374151',
+    fontWeight: 'bold',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  headerRight: {
+    width: 40,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginVertical: 15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#374151',
+  },
+  searchIcon: {
+    fontSize: 18,
+    color: '#6B7280',
+  },
+  historyList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  historyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+  },
+  iconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  iconYear: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  iconType: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  notVotedIcon: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ballotIcon: {
+    fontSize: 20,
+  },
+  noVoteIcon: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    fontSize: 12,
+  },
+  itemTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButton: {
+    backgroundColor: '#FEE2E2',
+  },
+  editIcon: {
+    fontSize: 14,
+  },
+  deleteIcon: {
+    fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: width * 0.85,
+    maxWidth: 400,
+  },
+  imagePickerButton: {
+    backgroundColor: '#1E40AF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  imagePickerText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  customTextInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#374151',
+    marginBottom: 20,
+    minHeight: 40,
+  },
+  selectImageLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E40AF',
+    marginBottom: 15,
+  },
+  imagePreview: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  previewIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewYear: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  previewType: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  previewNotVoted: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewBallot: {
+    fontSize: 32,
+  },
+  previewNoVote: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    fontSize: 16,
+  },
+  selectedImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  customTextPreview: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  listImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#1E40AF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#1E40AF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#1E40AF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

@@ -8,11 +8,15 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function TabTwoScreen() {
+  const { t } = useLanguage();
+  
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
+      contentContainerStyle={{ paddingBottom: 80 }}
       headerImage={
         <IconSymbol
           size={310}

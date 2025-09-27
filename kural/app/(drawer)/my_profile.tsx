@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getUserSession } from '../../services/api/userSession';
+import { API_CONFIG } from '../../services/api/config';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function MyProfileScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -48,7 +51,7 @@ export default function MyProfileScreen() {
     
     try {
       setLoading(true);
-      const response = await fetch(`http://192.168.31.31:5000/api/v1/profile/${userId}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/profile/${userId}`);
       
       if (response.ok) {
         const result = await response.json();
@@ -127,7 +130,7 @@ export default function MyProfileScreen() {
     try {
       setSaving(true);
       
-      const response = await fetch(`http://192.168.31.31:5000/api/v1/profile/${userId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/profile/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +192,7 @@ export default function MyProfileScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Profile Details</Text>
+        <Text style={styles.title}>{t('profile.title')}</Text>
         <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
           <Text style={styles.closeIcon}>✕</Text>
         </TouchableOpacity>
@@ -198,7 +201,7 @@ export default function MyProfileScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* First Name */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>First Name</Text>
+          <Text style={styles.label}>{t('profile.firstName')}</Text>
           <TextInput
             style={[styles.input, !isEditing && styles.inputDisabled]}
             value={formData.firstName}
@@ -210,7 +213,7 @@ export default function MyProfileScreen() {
 
         {/* Last Name */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Last Name</Text>
+          <Text style={styles.label}>{t('profile.lastName')}</Text>
           <TextInput
             style={[styles.input, !isEditing && styles.inputDisabled]}
             value={formData.lastName}
@@ -222,7 +225,7 @@ export default function MyProfileScreen() {
 
         {/* Email */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('profile.email')}</Text>
           <TextInput
             style={[styles.input, !isEditing && styles.inputDisabled]}
             value={formData.email}
@@ -236,7 +239,7 @@ export default function MyProfileScreen() {
 
         {/* Mobile Number */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Mobile Number</Text>
+          <Text style={styles.label}>{t('profile.mobileNumber')}</Text>
           <TextInput
             style={[styles.input, styles.inputReadOnly]}
             value={formData.mobileNumber}
@@ -249,7 +252,7 @@ export default function MyProfileScreen() {
 
         {/* Role */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Role</Text>
+          <Text style={styles.label}>{t('profile.role')}</Text>
           <TextInput
             style={[styles.input, styles.inputReadOnly]}
             value={formData.role}
@@ -262,7 +265,7 @@ export default function MyProfileScreen() {
         <View style={styles.buttonContainer}>
           {!isEditing ? (
             <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-              <Text style={styles.editButtonText}>Edit Profile</Text>
+              <Text style={styles.editButtonText}>{t('common.edit')} Profile</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.editActions}>
@@ -271,7 +274,7 @@ export default function MyProfileScreen() {
                 onPress={handleCancel}
                 disabled={saving}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
@@ -281,7 +284,7 @@ export default function MyProfileScreen() {
                 {saving ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                 )}
               </TouchableOpacity>
             </View>

@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, Modal } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { API_CONFIG } from '../../services/api/config';
+import { useBanner } from '../../contexts/BannerContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export const options = {
   headerShown: false,
@@ -8,6 +11,9 @@ export const options = {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { openElectionModal } = useLocalSearchParams();
+  const { banners } = useBanner();
+  const { t } = useLanguage();
   const [constituency, setConstituency] = useState('119 - Thondamuthur');
   const { width } = Dimensions.get('window');
   const bannerRef = useRef<ScrollView>(null);
@@ -17,16 +23,20 @@ export default function DashboardScreen() {
   const [showSearchModal, setShowSearchModal] = useState(false); // State for search modal
   const [pagination, setPagination] = useState(null); // State for pagination
   const [currentPage, setCurrentPage] = useState(1); // State for current page
+  const [showElectionModal, setShowElectionModal] = useState(false); // State for election dropdown modal
+  const [selectedElection, setSelectedElection] = useState('119 - Thondamuthur'); // State for selected election
 
   // Auto-swipe banners every 3s
   useEffect(() => {
-    const id = setInterval(() => {
-      const next = (bannerIndex + 1) % 2; // two banners
-      setBannerIndex(next);
-      bannerRef.current?.scrollTo({ x: next * width, animated: true });
-    }, 3000);
-    return () => clearInterval(id);
-  }, [bannerIndex, width]);
+    if (banners.length > 1) {
+      const id = setInterval(() => {
+        const next = (bannerIndex + 1) % banners.length;
+        setBannerIndex(next);
+        bannerRef.current?.scrollTo({ x: next * width, animated: true });
+      }, 3000);
+      return () => clearInterval(id);
+    }
+  }, [bannerIndex, width, banners.length]);
 
   // Function to handle search when search icon is clicked
   const handleSearch = async () => {
@@ -40,7 +50,7 @@ export default function DashboardScreen() {
     setCurrentPage(1);
 
     try {
-      const response = await fetch(`http://192.168.31.31:5000/api/v1/search?q=${encodeURIComponent(searchQuery)}&page=1&limit=10`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/search?q=${encodeURIComponent(searchQuery)}&page=1&limit=10`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setSearchResults(data.voters || []);
@@ -59,7 +69,7 @@ export default function DashboardScreen() {
     setCurrentPage(newPage);
     
     try {
-      const response = await fetch(`http://192.168.31.31:5000/api/v1/search?q=${encodeURIComponent(searchQuery)}&page=${newPage}&limit=10`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/search?q=${encodeURIComponent(searchQuery)}&page=${newPage}&limit=10`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setSearchResults(data.voters || []);
@@ -77,8 +87,35 @@ export default function DashboardScreen() {
     }
   }, [searchQuery]);
 
+  // Handle URL parameter to open election modal
+  useEffect(() => {
+    console.log('openElectionModal parameter:', openElectionModal);
+    if (openElectionModal === 'true') {
+      console.log('Opening election modal...');
+      // Auto-open modal immediately
+      setShowElectionModal(true);
+      console.log('Modal should be open now');
+    }
+  }, [openElectionModal]);
+
+  // Handle election selection
+  const handleElectionSelect = () => {
+    setShowElectionModal(true);
+  };
+
+  // Handle election update
+  const handleElectionUpdate = () => {
+    setConstituency(selectedElection);
+    setShowElectionModal(false);
+  };
+
+  // Handle election modal close
+  const handleElectionClose = () => {
+    setShowElectionModal(false);
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 80 }]}>
       {/* Top area with blue background */}
       <View style={styles.topArea}>
         <View style={styles.headerRow}>
@@ -87,7 +124,7 @@ export default function DashboardScreen() {
             <View style={styles.menuBar} />
             <View style={styles.menuBar} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.selector} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.selector} activeOpacity={0.8} onPress={handleElectionSelect}>
             <Text style={styles.selectorText}>{constituency}</Text>
             <Text style={styles.selectorChevron}>▾</Text>
           </TouchableOpacity>
@@ -98,10 +135,18 @@ export default function DashboardScreen() {
 
         {/* Manager quick actions */}
         <View style={styles.quickRow}>
-          <ManagerCard title="Cadre Manager" source={require('../../assets/images/cadre_manager.png')} />
+          <ManagerCard 
+            title="Cadre Manager" 
+            source={require('../../assets/images/cadre_manager.png')} 
+            onPress={() => router.push('/(tabs)/dashboard/my_cadre')}
+          />
           <ManagerCard title="Voter Manager" source={require('../../assets/images/voter_manager.png')} />
           <ManagerCard title="Family Manager" source={require('../../assets/images/family_manager.png')} />
-          <ManagerCard title="Survey Manager" source={require('../../assets/images/survey_manager.png')} />
+          <ManagerCard 
+            title="Survey Manager" 
+            source={require('../../assets/images/survey_manager.png')} 
+            onPress={() => router.push('/(tabs)/dashboard/survey')}
+          />
         </View>
       </View>
 
@@ -159,16 +204,20 @@ export default function DashboardScreen() {
         }}
         style={styles.bannerScroller}
       >
-        <View style={[styles.banner, { width: width - 32, height: 190, backgroundColor: '#2E7D32' }]}>
-          <Text style={styles.bannerTitle}>Community Event</Text>
-        </View>
-        <View style={[styles.banner, { width: width - 32, height: 190, backgroundColor: '#1976D2' }]}>
-          <Text style={styles.bannerTitle}>Political Meeting</Text>
-        </View>
+        {banners.map((banner, index) => (
+          <View key={banner.id} style={[styles.banner, { width: width - 32, height: 190 }]}>
+            <Image
+              source={{ uri: banner.localUri || banner.imageUri }}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+          </View>
+        ))}
       </ScrollView>
       <View style={styles.dotsRow}>
-        <View style={[styles.dot, bannerIndex === 0 ? styles.dotActive : undefined]} />
-        <View style={[styles.dot, bannerIndex === 1 ? styles.dotActive : undefined]} />
+        {banners.map((_, index) => (
+          <View key={index} style={[styles.dot, bannerIndex === index ? styles.dotActive : undefined]} />
+        ))}
       </View>
 
       {/* Cadre Overview */}
@@ -267,13 +316,49 @@ export default function DashboardScreen() {
           </View>
         </Modal>
       )}
+
+      {/* Election Selection Modal */}
+      {showElectionModal && (
+        <Modal
+          visible={showElectionModal}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={handleElectionClose}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.electionModalContainer}>
+              <Text style={styles.electionModalTitle}>Set Default Election</Text>
+              
+              <View style={styles.electionInputContainer}>
+                <TextInput
+                  style={styles.electionInput}
+                  value={selectedElection}
+                  onChangeText={setSelectedElection}
+                  placeholder="Select election"
+                  placeholderTextColor="#999999"
+                />
+              </View>
+              
+              <View style={styles.electionButtonContainer}>
+                <TouchableOpacity style={styles.updateButton} onPress={handleElectionUpdate}>
+                  <Text style={styles.updateButtonText}>UPDATE</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.closeButton} onPress={handleElectionClose}>
+                  <Text style={styles.closeButtonText}>CLOSE</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </ScrollView>
   );
 }
 
-type ManagerCardProps = { title: string; source: any };
-const ManagerCard = ({ title, source }: ManagerCardProps) => (
-  <TouchableOpacity style={styles.managerCard} activeOpacity={0.8}>
+type ManagerCardProps = { title: string; source: any; onPress?: () => void };
+const ManagerCard = ({ title, source, onPress }: ManagerCardProps) => (
+  <TouchableOpacity style={styles.managerCard} activeOpacity={0.8} onPress={onPress}>
     <Image source={source} style={styles.managerIcon} />
     <Text style={styles.managerLabel}>{title}</Text>
   </TouchableOpacity>
@@ -465,7 +550,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bannerTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '700' },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+  },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#CFD8DC', marginHorizontal: 4 },
   dotActive: { backgroundColor: '#1565C0' },
@@ -692,5 +781,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1A1A1A',
     marginHorizontal: 16,
+  },
+
+  // Election Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  electionModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  electionModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  electionInputContainer: {
+    marginBottom: 20,
+  },
+  electionInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
+  },
+  electionButtonContainer: {
+    gap: 12,
+  },
+  updateButton: {
+    backgroundColor: '#1976D2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  updateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#1976D2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#1976D2',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

@@ -1,6 +1,6 @@
 export const API_CONFIG = {
   // Change this to your actual API domain in production
-  BASE_URL: "http://192.168.56.1:5000/api/v1",
+  BASE_URL: "http://10.231.0.109:5000/api/v1",
 
   ENDPOINTS: {
     AUTH: {
@@ -28,5 +28,12 @@ export const API_CONFIG = {
       DELETE: "/patient/delete",
     },
     QUERIES: "/queries",
+  },
+
+  // Get authentication token from storage
+  getToken: () => {
+    // For now, return a placeholder token
+    // In a real app, you would get this from AsyncStorage or secure storage
+    return "placeholder-token";
   },
 };
