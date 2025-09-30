@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useBanner } from '../../../contexts/BannerContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function AppBannerScreen() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function AppBannerScreen() {
             onChangeText={setSearchQuery}
           />
           <TouchableOpacity style={styles.searchIcon}>
-            <Text style={styles.searchIconText}>🔍</Text>
+            <Icon name="search" size={18} color="#666666" />
           </TouchableOpacity>
         </View>
       </View>
@@ -99,7 +100,7 @@ export default function AppBannerScreen() {
       {/* Add Banner Button */}
       <View style={styles.addBannerContainer}>
         <TouchableOpacity style={styles.addBannerButton} onPress={pickImage}>
-          <Text style={styles.addBannerIcon}>📷</Text>
+          <Icon name="photo-camera" size={18} color="#666666" />
           <Text style={styles.addBannerText}>Add New Banner</Text>
         </TouchableOpacity>
       </View>

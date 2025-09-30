@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator, Modal } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { cadreAPI } from '../../../services/api/cadre';
 
@@ -8,9 +8,10 @@ const { width } = Dimensions.get('window');
 
 export default function MyCadreScreen() {
   const { t } = useLanguage();
+  const { tab } = useLocalSearchParams();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState(tab as string || 'active');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cadres, setCadres] = useState([]);
@@ -21,11 +22,20 @@ export default function MyCadreScreen() {
     pending: 0,
     loggedIn: 0
   });
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [boothFilter, setBoothFilter] = useState('');
 
   useEffect(() => {
     loadCadres();
     loadStats();
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, boothFilter]);
+
+  // Update active tab when tab parameter changes
+  useEffect(() => {
+    if (tab && typeof tab === 'string') {
+      setActiveTab(tab);
+    }
+  }, [tab]);
 
   const loadCadres = async () => {
     try {
@@ -34,6 +44,7 @@ export default function MyCadreScreen() {
       const response = await cadreAPI.getAll({
         status: activeTab === 'all' ? undefined : activeTab,
         search: searchQuery || undefined,
+        boothNumber: boothFilter || undefined,
         limit: 50
       });
       
@@ -59,6 +70,17 @@ export default function MyCadreScreen() {
     } catch (err) {
       console.error('Error loading stats:', err);
     }
+  };
+
+  const handleApplyFilter = () => {
+    setShowFilterModal(false);
+    loadCadres();
+  };
+
+  const handleClearFilter = () => {
+    setBoothFilter('');
+    setShowFilterModal(false);
+    loadCadres();
   };
 
   const getTabCount = (status: string) => {
@@ -121,7 +143,10 @@ export default function MyCadreScreen() {
             <Text style={styles.searchIcon}>🔍</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity 
+          style={styles.filterButton}
+          onPress={() => setShowFilterModal(true)}
+        >
           <Text style={styles.filterIcon}>☰</Text>
         </TouchableOpacity>
       </View>
@@ -174,6 +199,50 @@ export default function MyCadreScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter Cadres</Text>
+            </View>
+            
+            <View style={styles.modalContent}>
+              <Text style={styles.filterLabel}>Search by booth number</Text>
+              <TextInput
+                style={styles.boothInput}
+                placeholder="Enter booth number"
+                placeholderTextColor="#999999"
+                value={boothFilter}
+                onChangeText={setBoothFilter}
+                keyboardType="numeric"
+              />
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.applyButton}
+                onPress={handleApplyFilter}
+              >
+                <Text style={styles.applyButtonText}>Apply</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.clearButton}
+                onPress={handleClearFilter}
+              >
+                <Text style={styles.clearButtonText}>Clear Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -426,5 +495,79 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+    textAlign: 'center',
+  },
+  modalContent: {
+    marginBottom: 30,
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333333',
+    marginBottom: 10,
+  },
+  boothInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333333',
+    backgroundColor: '#F9F9F9',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 15,
+  },
+  applyButton: {
+    flex: 1,
+    backgroundColor: '#1976D2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  clearButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#1976D2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    color: '#1976D2',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

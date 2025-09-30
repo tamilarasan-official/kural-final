@@ -82,14 +82,23 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
         />
-        <TouchableOpacity style={styles.recoverContainer}>
-          <Text style={styles.recover}>Recover Password?</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={submitting}>
+        <View style={styles.recoverWrapper}>
+          <TouchableOpacity 
+            style={styles.recoverContainer}
+            onPress={() => router.push('/(auth)/recover')}
+          >
+            <Text style={styles.recover}>Recover Password?</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity 
+        style={styles.loginButton} onPress={handleLogin} disabled={submitting}>
           <Text style={styles.loginText}>{submitting ? 'Logging in…' : 'Login'}</Text>
         </TouchableOpacity>
         <Text style={styles.orText}>Or Sign in with your mobile number</Text>
-        <TouchableOpacity style={styles.otpButton}>
+        <TouchableOpacity 
+          style={styles.otpButton}
+          onPress={() => router.push('/(auth)/otp')}
+        >
           <Text style={styles.otpText}>Login with OTP</Text>
         </TouchableOpacity>
       </View>
@@ -103,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3F2FD',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   logoContainer: {
     backgroundColor: '#fff',
@@ -125,6 +134,7 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
     alignItems: 'center',
+    paddingHorizontal: 0,
   },
   title: {
     fontSize: 22,
@@ -143,16 +153,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  recoverContainer: {
+  recoverWrapper: {
     width: '100%',
-    alignItems: 'flex-end',
     marginBottom: 24,
   },
+  recoverContainer: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 4,
+  },
   recover: {
-    color: '#616161',
-    fontSize: 15,
-    textDecorationLine: 'underline',
-    paddingRight: 4,
+    color: '#1976D2',
+    fontSize: 14,
+    textAlign: 'right',
+    fontWeight: '500',
   },
   loginButton: {
     backgroundColor: '#000',

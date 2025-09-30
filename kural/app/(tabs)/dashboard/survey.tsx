@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, Dimensions, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { surveyAPI } from '../../../services/api/survey';
 
@@ -8,8 +8,9 @@ const { width } = Dimensions.get('window');
 
 export default function SurveyScreen() {
   const { t } = useLanguage();
+  const router = useRouter();
   
-  const [surveys, setSurveys] = useState([]);
+  const [surveys, setSurveys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -35,6 +36,11 @@ export default function SurveyScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+
+  const handleFormClick = (surveyId: string) => {
+    router.push(`/(tabs)/dashboard/survey-form?surveyId=${surveyId}`);
   };
 
   const handleStatusToggle = async (surveyId: string, currentStatus: string) => {
@@ -64,6 +70,62 @@ export default function SurveyScreen() {
       setUpdating(null);
     }
   };
+
+  const renderSurveyFormCard = (survey: any) => (
+    <TouchableOpacity 
+      key={survey._id} 
+      style={styles.surveyFormCard}
+      onPress={() => handleFormClick(survey._id)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.surveyFormHeader}>
+        <View style={styles.formNumberContainer}>
+          <Text style={styles.formNumber}>Form : {survey.formNumber}</Text>
+        </View>
+        <View 
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={() => handleStatusToggle(survey._id, survey.status)}
+        >
+          <Switch
+            value={survey.status === 'Active'}
+            onValueChange={() => handleStatusToggle(survey._id, survey.status)}
+            disabled={updating === survey._id}
+            trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+            thumbColor={survey.status === 'Active' ? '#FFFFFF' : '#FFFFFF'}
+          />
+        </View>
+      </View>
+      
+      <View style={styles.surveyFormContent}>
+        <Text style={styles.tamilTitle}>{survey.tamilTitle}</Text>
+        {survey.title && (
+          <Text style={styles.englishTitle}>{survey.title}</Text>
+        )}
+        {survey.description && (
+          <Text style={styles.description}>{survey.description}</Text>
+        )}
+      </View>
+      
+      <View style={styles.surveyFormFooter}>
+        <View style={styles.statusContainer}>
+          <View style={[
+            styles.statusDot, 
+            { backgroundColor: survey.status === 'Active' ? '#4CAF50' : '#F44336' }
+          ]} />
+          <Text style={[
+            styles.statusText,
+            { color: survey.status === 'Active' ? '#4CAF50' : '#F44336' }
+          ]}>
+            {survey.status}
+          </Text>
+        </View>
+        
+        <Text style={styles.responseCount}>
+          {survey.responseCount || 0} responses
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   const renderSurveyCard = (survey: any) => (
     <View key={survey._id} style={styles.surveyCard}>
@@ -153,10 +215,10 @@ export default function SurveyScreen() {
     <View style={styles.container}>
       {/* Status Bar */}
       <View style={styles.statusBar}>
-        <Text style={styles.timeText}>4:39</Text>
+        <Text style={styles.timeText}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</Text>
         <View style={styles.statusIcons}>
           <Text style={styles.statusText}>5G+</Text>
-          <Text style={styles.batteryText}>81%</Text>
+          <Text style={styles.batteryText}>100%</Text>
         </View>
       </View>
 
@@ -172,7 +234,7 @@ export default function SurveyScreen() {
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {surveys.length > 0 ? (
-          surveys.map(renderSurveyCard)
+          surveys.map(renderSurveyFormCard)
         ) : (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No Surveys Found</Text>
@@ -299,6 +361,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+  surveyFormCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   surveyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -309,6 +382,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+  },
+  surveyFormHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   surveyHeader: {
     flexDirection: 'row',
@@ -326,6 +405,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#1976D2',
+  },
+  surveyFormContent: {
+    marginBottom: 12,
   },
   surveyContent: {
     marginBottom: 12,
@@ -346,6 +428,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999999',
     fontStyle: 'italic',
+  },
+  surveyFormFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   surveyFooter: {
     flexDirection: 'row',

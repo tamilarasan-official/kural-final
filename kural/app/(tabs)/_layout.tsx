@@ -3,6 +3,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function Layout() {
@@ -11,11 +12,11 @@ export default function Layout() {
   const { t } = useLanguage();
 
   const tabItems = [
-    { id: 'report', label: 'Report', icon: '📈', route: '/(tabs)/report' },
-    { id: 'catalogue', label: 'Catalogue', icon: '📄', route: '/(tabs)/catalogue' },
-    { id: 'home', label: '', icon: '🏠', route: '/(tabs)/' },
-    { id: 'slip', label: 'Slip', icon: '📋', route: '/(tabs)/slip' },
-    { id: 'poll', label: 'Poll', icon: '🗳️', route: '/(tabs)/poll' },
+    { id: 'report', label: 'Report', iconName: 'assessment', route: '/(tabs)/report' },
+    { id: 'catalogue', label: 'Catalogue', iconName: 'description', route: '/(tabs)/catalogue' },
+    { id: 'home', label: '', iconName: 'home', route: '/(tabs)/' },
+    { id: 'slip', label: 'Slip', iconName: 'receipt', route: '/(tabs)/slip' },
+    { id: 'poll', label: 'Poll', iconName: 'how-to-vote', route: '/(tabs)/poll' },
   ];
 
   const isActive = (route: string) => {
@@ -45,12 +46,11 @@ export default function Layout() {
               styles.iconContainer,
               isActive(item.route) && styles.activeIconContainer
             ]}>
-              <Text style={[
-                styles.icon,
-                isActive(item.route) && styles.activeIcon
-              ]}>
-                {item.icon}
-              </Text>
+              <Icon 
+                name={item.iconName} 
+                size={isActive(item.route) ? 32 : 24} 
+                color={isActive(item.route) ? '#FFFFFF' : '#666666'} 
+              />
             </View>
             {item.label && (
               <Text style={[
@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
     elevation: 8,
@@ -87,29 +87,21 @@ const styles = StyleSheet.create({
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   activeIconContainer: {
     backgroundColor: '#1976D2',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-  },
-  icon: {
-    fontSize: 18,
-    color: '#666666',
-  },
-  activeIcon: {
-    color: '#FFFFFF',
-    fontSize: 22,
+    borderRadius: 32,
+    width: 64,
+    height: 64,
   },
   label: {
     fontSize: 12,

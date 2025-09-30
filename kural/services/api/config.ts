@@ -1,6 +1,6 @@
 export const API_CONFIG = {
   // Change this to your actual API domain in production
-  BASE_URL: "http://10.231.0.109:5000/api/v1",
+  BASE_URL: "http://192.168.31.31:5000/api/v1",
 
   ENDPOINTS: {
     AUTH: {

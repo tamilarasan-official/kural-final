@@ -4,18 +4,19 @@ const voterSchema = new mongoose.Schema({
   sr: Number,
   Name: String,
   Relation: String,
-  'Father Name': String,  // Note: actual field has space, not underscore
+  'Father Name': String,
   Number: String,
   sex: String,
-  makan: Number,
+  Door_No: Number,
   Anubhag_number: Number,
   Anubhag_name: String,
   age: Number,
   vidhansabha: Number,
-  bhag_no: Number,
-  'Part Name': String     // Note: actual field has space, not underscore
+  Part_no: Number,
+  'Part Name': String,
+  'Mobile No': String
 }, {
-  collection: 'votersdata' // Use the actual collection name
+  collection: 'votersdata'
 });
 
 module.exports = mongoose.model('Voter', voterSchema);

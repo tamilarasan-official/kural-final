@@ -1,49 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Image, Alert, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
+import { settingsAPI } from '../../../services/api/settings';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { width } = Dimensions.get('window');
 
 export default function HistoryScreen() {
   const { t } = useLanguage();
   
-  // Sample history data
-  const [historyData, setHistoryData] = useState([
-    {
-      id: '1',
-      year: '2024',
-      type: 'MP',
-      title: '2024-MP',
-      color: '#1E40AF',
-      voted: true
-    },
-    {
-      id: '2',
-      year: '2022',
-      type: 'ULB',
-      title: '2022-Local Body',
-      color: '#DC2626',
-      voted: true
-    },
-    {
-      id: '3',
-      year: '2021',
-      type: 'AC',
-      title: '2021-MLA',
-      color: '#059669',
-      voted: true
-    },
-    {
-      id: '4',
-      year: '',
-      type: '',
-      title: 'Not Voted',
-      color: '#7C2D12',
-      voted: false
-    }
-  ]);
+  // History items loaded from backend
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
@@ -52,11 +22,49 @@ export default function HistoryScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [customText, setCustomText] = useState('');
 
+  const colorForTag = (tag: string) => {
+    switch ((tag || '').toUpperCase()) {
+      case 'MP':
+        return '#1E40AF';
+      case 'ULB':
+        return '#DC2626';
+      case 'AC':
+        return '#059669';
+      default:
+        return '#7C2D12';
+    }
+  };
+
+  const loadHistory = async () => {
+    try {
+      setLoading(true);
+      const res = await settingsAPI.getHistory();
+      const items = (res?.data || []).map((doc: any) => ({
+        _id: doc._id,
+        id: doc.id || doc._id,
+        year: doc.year || '',
+        type: doc.tag || '',
+        title: doc.title,
+        color: colorForTag(doc.tag || ''),
+        voted: doc.title !== 'Not Voted',
+      }));
+      setHistoryData(items);
+    } catch (e) {
+      console.error('Failed to load history', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
   const handleEdit = (item: any) => {
     setSelectedItem(item);
     setImageUrl('');
     setSelectedImage(null);
-    setCustomText('');
+    setCustomText(item?.title || '');
     setShowImageModal(true);
   };
 
@@ -95,28 +103,35 @@ export default function HistoryScreen() {
     );
   };
 
-  const handleSaveImage = () => {
-    if (selectedItem && (selectedImage || customText.trim())) {
-      // Update the selected item with new image or custom text
-      setHistoryData(prev => prev.map(item => 
-        item.id === selectedItem.id 
-          ? { 
-              ...item, 
-              title: customText.trim() || item.title,
-              customImage: selectedImage,
-              customText: customText.trim()
-            }
-          : item
-      ));
-      
-      console.log('Saving for:', selectedItem.title, 'Image:', selectedImage, 'Custom text:', customText);
+  const handleSaveImage = async () => {
+    if (!selectedItem) {
+      return;
+    }
+    try {
+      const newTitle = customText.trim();
+      if (!newTitle && !selectedImage) {
+        Alert.alert(t('common.error'), 'Please edit the title');
+        return;
+      }
+
+      // Persist title (and optionally tag/year later) in backend
+      await settingsAPI.updateHistory(selectedItem._id, {
+        title: newTitle || selectedItem.title,
+        year: selectedItem.year,
+        tag: selectedItem.type,
+      });
+
+      // Refresh list
+      await loadHistory();
+
       setShowImageModal(false);
       setImageUrl('');
       setSelectedImage(null);
       setCustomText('');
       setSelectedItem(null);
-    } else {
-      Alert.alert(t('common.error'), 'Please select an image or enter custom text');
+    } catch (err) {
+      console.error('Error saving history item:', err);
+      Alert.alert(t('common.error'), 'Failed to save');
     }
   };
 
@@ -133,7 +148,7 @@ export default function HistoryScreen() {
   );
 
   const renderHistoryItem = (item: any) => (
-    <View key={item.id} style={styles.historyCard}>
+    <View key={item._id || item.id} style={styles.historyCard}>
       <View style={styles.cardContent}>
         <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
           {item.customImage ? (
@@ -192,7 +207,7 @@ export default function HistoryScreen() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Icon name="search" size={18} color="#666666" />
       </View>
 
       {/* History List */}
@@ -210,7 +225,7 @@ export default function HistoryScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-              <Text style={styles.imagePickerText}>📷 Select Image</Text>
+              <Text style={styles.imagePickerText}>Select Image</Text>
             </TouchableOpacity>
             
             <TextInput

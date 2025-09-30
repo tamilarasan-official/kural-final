@@ -7,7 +7,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 module.exports = {
     NODE_ENV: process.env.NODE_ENV || 'production',
     PORT: parseInt(process.env.PORT, 10) || 5000,
-    HOST: process.env.HOST || 'localhost',
+    HOST: process.env.HOST || '0.0.0.0',
 
     // Database
     DATABASE_URI: process.env.DATABASE_URI || 'mongodb+srv://kural_db:kural_2025@cluster0.tcoecok.mongodb.net/kural?retryWrites=true&w=majority&appName=Cluster0',

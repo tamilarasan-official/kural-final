@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
@@ -13,79 +13,79 @@ export default function SettingsScreen() {
     {
       id: 'set-election',
       title: 'Set Election',
-      icon: '👆',
+      icon: require('../../../assets/images/set election.png'),
       disabled: false,
     },
     {
       id: 'app-banner',
       title: 'App Banner',
-      icon: '📢',
+      icon: require('../../../assets/images/App banner.png'),
       disabled: false,
     },
     {
       id: 'history',
       title: 'History',
-      icon: '🔄',
+      icon: require('../../../assets/images/History.png'),
       disabled: false,
     },
     {
       id: 'category',
       title: 'Category',
-      icon: '🔷',
+      icon: require('../../../assets/images/Category.png'),
       disabled: false,
     },
     {
       id: 'voter-slip',
       title: 'Voter Slip',
-      icon: '🎫',
+      icon: require('../../../assets/images/voter slip.png'),
       disabled: false,
     },
     {
       id: 'party',
       title: 'Party',
-      icon: '🏴',
+      icon: require('../../../assets/images/party.png'),
       disabled: false,
     },
     {
       id: 'religion',
       title: 'Religion',
-      icon: '🙏',
+      icon: require('../../../assets/images/religion.png'),
       disabled: false,
     },
     {
       id: 'caste-category',
       title: t('settings.caste'),
-      icon: '⚫',
+      icon: require('../../../assets/images/caste.png'),
       disabled: false,
     },
     {
       id: 'caste',
       title: t('castes.title'),
-      icon: '⚫',
+      icon: require('../../../assets/images/caste.png'),
       disabled: false,
     },
     {
       id: 'sub-caste',
       title: t('subCastes.title'),
-      icon: '👥',
+      icon: require('../../../assets/images/sub caste.png'),
       disabled: false,
     },
     {
       id: 'language',
       title: t('voterLanguage.title'),
-      icon: '🔤',
+      icon: require('../../../assets/images/language.png'),
       disabled: false,
     },
     {
       id: 'schemes',
       title: t('schemes.title'),
-      icon: '🛡️',
+      icon: require('../../../assets/images/schemes.png'),
       disabled: false,
     },
     {
       id: 'feedback',
       title: t('feedback.title'),
-      icon: '💬',
+      icon: require('../../../assets/images/feedback.png'),
       disabled: false,
     },
   ];
@@ -178,17 +178,14 @@ export default function SettingsScreen() {
               disabled={option.disabled}
               activeOpacity={option.disabled ? 1 : 0.7}
             >
-              <View style={[
-                styles.iconContainer,
-                option.disabled && styles.disabledIconContainer
-              ]}>
-                <Text style={[
+              <Image 
+                source={option.icon} 
+                style={[
                   styles.icon,
                   option.disabled && styles.disabledIcon
-                ]}>
-                  {option.icon}
-                </Text>
-              </View>
+                ]}
+                resizeMode="contain"
+              />
               <Text style={[
                 styles.optionTitle,
                 option.disabled && styles.disabledText
@@ -277,24 +274,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     opacity: 0.6,
   },
-  iconContainer: {
+  icon: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  disabledIconContainer: {
-    backgroundColor: '#E0E0E0',
-  },
-  icon: {
-    fontSize: 24,
-    color: '#1976D2',
+    marginBottom: 12,
   },
   disabledIcon: {
-    color: '#9E9E9E',
+    opacity: 0.5,
   },
   optionTitle: {
     fontSize: 12,

@@ -11,10 +11,32 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
 const config = require('../config/config');
 
+// Import models to ensure they're connected
+require('./models/Profile');
+require('./models/Election');
+require('./models/Settings');
+require('./models/Cadre');
+require('./models/Survey');
+require('./models/SurveyForm');
+require('./models/SurveyResponse');
+require('./models/ModalContent');
+require('./models/voter');
+require('./models/vulnerability');
+require('./models/partColor');
+
 // Import routes
 const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
 const voterRoutes = require('./routes/voterRoutes');
+const vulnerabilityRoutes = require('./routes/vulnerabilityRoutes');
+const partColorRoutes = require('./routes/partColorRoutes');
+const electionRoutes = require('./routes/electionRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
+const cadreRoutes = require('./routes/cadreRoutes');
+const surveyRoutes = require('./routes/surveyRoutes');
+const surveyFormRoutes = require('./routes/surveyFormRoutes');
+const modalContentRoutes = require('./routes/modalContentRoutes');
+const voterInfoRoutes = require('./routes/voterInfoRoutes');
 
 const app = express();
 
@@ -62,8 +84,17 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', userRoutes);
-app.use('/api/v1', voterRoutes);
+app.use('/api/v1/voters', voterRoutes);
+app.use('/api/v1/vulnerabilities', vulnerabilityRoutes);
+app.use('/api/v1/part-colors', partColorRoutes);
+app.use('/api/v1/elections', electionRoutes);
+app.use('/api/v1/profile', profileRoutes);
+app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/cadres', cadreRoutes);
+app.use('/api/v1/surveys', surveyRoutes);
+app.use('/api/v1/survey-forms', surveyFormRoutes);
+app.use('/api/v1/modal-content', modalContentRoutes);
+app.use('/api/v1/voter-info', voterInfoRoutes);
 
 // 404 handler
 app.use(notFound);

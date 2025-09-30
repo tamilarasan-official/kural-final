@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, Modal } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { API_CONFIG } from '../../services/api/config';
 import { useBanner } from '../../contexts/BannerContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { voterAPI } from '../../services/api/voter';
 
 export const options = {
   headerShown: false,
@@ -25,6 +27,22 @@ export default function DashboardScreen() {
   const [currentPage, setCurrentPage] = useState(1); // State for current page
   const [showElectionModal, setShowElectionModal] = useState(false); // State for election dropdown modal
   const [selectedElection, setSelectedElection] = useState('119 - Thondamuthur'); // State for selected election
+  const [showAdvanceSearchModal, setShowAdvanceSearchModal] = useState(false); // State for advance search modal
+  const [advanceSearchData, setAdvanceSearchData] = useState({
+    mobileNo: '',
+    Number: '',
+    age: '',
+    partNo: '',
+    serialNo: '',
+    Name: '',
+    'Father Name': '',
+    relationFirstName: '',
+    relationLastName: '',
+  }); // State for advance search form data
+  const [voterSearchResults, setVoterSearchResults] = useState([]); // State for voter search results
+  const [voterSearchPagination, setVoterSearchPagination] = useState(null); // State for voter search pagination
+  const [showVoterSearchModal, setShowVoterSearchModal] = useState(false); // State for voter search results modal
+  const [voterSearchLoading, setVoterSearchLoading] = useState(false); // State for voter search loading
 
   // Auto-swipe banners every 3s
   useEffect(() => {
@@ -38,6 +56,93 @@ export default function DashboardScreen() {
     }
   }, [bannerIndex, width, banners.length]);
 
+  // Function to handle advance search
+  const handleAdvanceSearch = async () => {
+    try {
+      setVoterSearchLoading(true);
+      
+      // Filter out empty fields
+      const searchParams = Object.entries(advanceSearchData)
+        .filter(([key, value]) => value.trim() !== '')
+        .reduce((obj, [key, value]) => ({ ...obj, [key]: value.trim() }), {});
+
+      if (Object.keys(searchParams).length === 0) {
+        alert('Please fill at least one search field');
+        setVoterSearchLoading(false);
+        return;
+      }
+
+      // Add pagination parameters
+      searchParams.page = 1;
+      searchParams.limit = 10;
+
+      console.log('Searching voters with params:', searchParams);
+      
+      // Call the voter search API
+      const response = await voterAPI.searchVoters(searchParams);
+      
+      if (response.success) {
+        setVoterSearchResults(response.data);
+        setVoterSearchPagination(response.pagination);
+        setShowAdvanceSearchModal(false);
+        setShowVoterSearchModal(true);
+      } else {
+        alert(response.message || 'Search failed. Please try again.');
+      }
+      
+    } catch (error) {
+      console.error('Advance search error:', error);
+      alert('Search failed. Please try again.');
+    } finally {
+      setVoterSearchLoading(false);
+    }
+  };
+
+  // Function to clear advance search form
+  const clearAdvanceSearch = () => {
+    setAdvanceSearchData({
+      mobileNo: '',
+      epicId: '',
+      age: '',
+      partNo: '',
+      serialNo: '',
+      voterFirstName: '',
+      voterLastName: '',
+      relationFirstName: '',
+      relationLastName: ''
+    });
+  };
+
+  // Function to handle voter search pagination
+  const handleVoterSearchPageChange = async (newPage: number) => {
+    try {
+      setVoterSearchLoading(true);
+      
+      // Get current search parameters
+      const searchParams = Object.entries(advanceSearchData)
+        .filter(([key, value]) => value.trim() !== '')
+        .reduce((obj, [key, value]) => ({ ...obj, [key]: value.trim() }), {});
+
+      searchParams.page = newPage;
+      searchParams.limit = 10;
+
+      const response = await voterAPI.searchVoters(searchParams);
+      
+      if (response.success) {
+        setVoterSearchResults(response.data);
+        setVoterSearchPagination(response.pagination);
+      } else {
+        alert(response.message || 'Failed to load page');
+      }
+      
+    } catch (error) {
+      console.error('Voter search pagination error:', error);
+      alert('Failed to load page. Please try again.');
+    } finally {
+      setVoterSearchLoading(false);
+    }
+  };
+
   // Function to handle search when search icon is clicked
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -50,15 +155,26 @@ export default function DashboardScreen() {
     setCurrentPage(1);
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/search?q=${encodeURIComponent(searchQuery)}&page=1&limit=10`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-      setSearchResults(data.voters || []);
-      setPagination(data.pagination);
-      setShowSearchModal(true);
+      // Use the voter search API with the search query as voter name
+      const searchParams = {
+        voterFirstName: searchQuery.trim(),
+        page: 1,
+        limit: 10
+      };
+
+      const response = await voterAPI.searchVoters(searchParams);
+      
+      if (response.success) {
+        setSearchResults(response.data);
+        setPagination(response.pagination);
+        setShowSearchModal(true);
+      } else {
+        console.error('Search failed:', response.message);
+        alert('Search failed. Please try again.');
+      }
     } catch (error) {
       console.error('Error fetching search results:', error.message);
-      // Optionally show an alert or update UI with error message
+      alert('Search failed. Please try again.');
     }
   };
 
@@ -69,13 +185,25 @@ export default function DashboardScreen() {
     setCurrentPage(newPage);
     
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/search?q=${encodeURIComponent(searchQuery)}&page=${newPage}&limit=10`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-      setSearchResults(data.voters || []);
-      setPagination(data.pagination);
+      // Use the voter search API with the search query as voter name
+      const searchParams = {
+        voterFirstName: searchQuery.trim(),
+        page: newPage,
+        limit: 10
+      };
+
+      const response = await voterAPI.searchVoters(searchParams);
+      
+      if (response.success) {
+        setSearchResults(response.data);
+        setPagination(response.pagination);
+      } else {
+        console.error('Search failed:', response.message);
+        alert('Failed to load page. Please try again.');
+      }
     } catch (error) {
       console.error('Error fetching search results:', error.message);
+      alert('Failed to load page. Please try again.');
     }
   };
 
@@ -129,7 +257,7 @@ export default function DashboardScreen() {
             <Text style={styles.selectorChevron}>▾</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.bell}>
-            <Text style={styles.bellText}>🔔</Text>
+            <Icon name="notifications" size={24} color="#1976D2" />
           </TouchableOpacity>
         </View>
 
@@ -140,7 +268,11 @@ export default function DashboardScreen() {
             source={require('../../assets/images/cadre_manager.png')} 
             onPress={() => router.push('/(tabs)/dashboard/my_cadre')}
           />
-          <ManagerCard title="Voter Manager" source={require('../../assets/images/voter_manager.png')} />
+          <ManagerCard 
+            title="Voter Manager" 
+            source={require('../../assets/images/voter_manager.png')} 
+            onPress={() => router.push('/(tabs)/dashboard/part_numbers')}
+          />
           <ManagerCard title="Family Manager" source={require('../../assets/images/family_manager.png')} />
           <ManagerCard 
             title="Survey Manager" 
@@ -153,7 +285,7 @@ export default function DashboardScreen() {
       {/* Search */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Icon name="search" size={18} color="#90A4AE" />
           <TextInput
             style={styles.searchInput}
             placeholder="Voter Id or Voter Name"
@@ -169,9 +301,12 @@ export default function DashboardScreen() {
           )}
         </View>
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Text style={styles.searchButtonIcon}>🔍</Text>
+          <Icon name="search" size={18} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity 
+          style={styles.filterButton}
+          onPress={() => setShowAdvanceSearchModal(true)}
+        >
           <Text style={styles.filterText}>☰</Text>
         </TouchableOpacity>
       </View>
@@ -223,13 +358,30 @@ export default function DashboardScreen() {
       {/* Cadre Overview */}
       <Text style={styles.sectionTitle}>Cadre Overview</Text>
       <View style={styles.overviewRow}>
-        <OverviewCard title={'Total\nCadres'} value={'0'} accent="#1976D2" large iconEmoji="🚶" />
+        <OverviewCard 
+          title={'Total\nCadres'} 
+          value={'0'} 
+          accent="#1976D2" 
+          large 
+          iconEmoji="🚶" 
+          onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')}
+        />
         <View style={styles.overviewColSmall}>
-          <OverviewCard title={'Cadre\nActive'} value={'0'} accent="#2E7D32" />
+          <OverviewCard 
+            title={'Cadre\nActive'} 
+            value={'0'} 
+            accent="#2E7D32" 
+            onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')}
+          />
           <OverviewCard title={'Logged\nIn'} value={'0'} accent="#2E7D32" />
         </View>
         <View style={styles.overviewColSmall}>
-          <OverviewCard title={'Cadre\nInActive'} value={'0'} accent="#D32F2F" />
+          <OverviewCard 
+            title={'Cadre\nInActive'} 
+            value={'0'} 
+            accent="#D32F2F" 
+            onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=inactive')}
+          />
           <OverviewCard title={'Not\nLogged'} value={'0'} accent="#D32F2F" />
         </View>
       </View>
@@ -270,7 +422,7 @@ export default function DashboardScreen() {
                   <View style={styles.voterContent}>
                     <View style={styles.voterImageContainer}>
                       <View style={styles.voterImagePlaceholder}>
-                        <Text style={styles.voterImageIcon}>🏔️</Text>
+                        <Icon name="image" size={18} color="#B0BEC5" />
                       </View>
                       <Text style={styles.voterId}>{voter.Number}</Text>
                     </View>
@@ -344,10 +496,255 @@ export default function DashboardScreen() {
                   <Text style={styles.updateButtonText}>UPDATE</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.closeButton} onPress={handleElectionClose}>
-                  <Text style={styles.closeButtonText}>CLOSE</Text>
+                <TouchableOpacity style={styles.electionCloseButton} onPress={handleElectionClose}>
+                  <Text style={styles.electionCloseButtonText}>CLOSE</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Advance Search Modal */}
+      {showAdvanceSearchModal && (
+        <Modal
+          visible={showAdvanceSearchModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowAdvanceSearchModal(false)}
+        >
+          <View style={styles.advanceSearchModalOverlay}>
+            <View style={styles.advanceSearchModalContainer}>
+              {/* Header */}
+              <View style={styles.advanceSearchHeader}>
+                <Text style={styles.advanceSearchTitle}>Advance Search</Text>
+                <TouchableOpacity 
+                  style={styles.advanceSearchCloseButton}
+                  onPress={() => setShowAdvanceSearchModal(false)}
+                >
+                  <Text style={styles.advanceSearchCloseIcon}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Form Fields */}
+              <View style={styles.advanceSearchForm}>
+                {/* Full width fields */}
+                <TextInput
+                  style={styles.advanceSearchInputFull}
+                  placeholder="Mobile No"
+                  placeholderTextColor="#999999"
+                  value={advanceSearchData.mobileNo}
+                  onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, mobileNo: text }))}
+                  keyboardType="numeric"
+                />
+                
+                <TextInput
+                  style={styles.advanceSearchInputFull}
+                  placeholder="EPIC Id"
+                  placeholderTextColor="#999999"
+                  value={advanceSearchData.Number}
+                  onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, Number: text }))}
+                />
+                
+                <TextInput
+                  style={styles.advanceSearchInputFull}
+                  placeholder="Age"
+                  placeholderTextColor="#999999"
+                  value={advanceSearchData.age}
+                  onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, age: text }))}
+                  keyboardType="numeric"
+                />
+
+                {/* Half width fields - Part No and Serial No */}
+                <View style={styles.advanceSearchRow}>
+                  <TextInput
+                    style={styles.advanceSearchInputHalf}
+                    placeholder="Part No"
+                    placeholderTextColor="#999999"
+                    value={advanceSearchData.partNo}
+                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, partNo: text }))}
+                    keyboardType="numeric"
+                  />
+                  <TextInput
+                    style={styles.advanceSearchInputHalf}
+                    placeholder="Serial No"
+                    placeholderTextColor="#999999"
+                    value={advanceSearchData.serialNo}
+                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, serialNo: text }))}
+                    keyboardType="numeric"
+                  />
+                </View>
+
+
+                {/* Half width fields - Voter First Name and Last Name */}
+                <View style={styles.advanceSearchRow}>
+                  <TextInput
+                    style={styles.advanceSearchInputHalf}
+                    placeholder="Voter First Name"
+                    placeholderTextColor="#999999"
+                    value={advanceSearchData.Name}
+                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, Name: text }))}
+                  />
+                  <TextInput
+                    style={styles.advanceSearchInputHalf}
+                    placeholder="Voter Last Name"
+                    placeholderTextColor="#999999"
+                    value={advanceSearchData['Father Name']}
+                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, 'Father Name': text }))}
+                  />
+                </View>
+
+                {/* Half width fields - Relation First Name and Last Name */}
+                <View style={styles.advanceSearchRow}>
+                  <TextInput
+                    style={styles.advanceSearchInputHalf}
+                    placeholder="Relation First Name"
+                    placeholderTextColor="#999999"
+                    value={advanceSearchData.relationFirstName}
+                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, relationFirstName: text }))}
+                  />
+                  <TextInput
+                    style={styles.advanceSearchInputHalf}
+                    placeholder="Relation Last Name"
+                    placeholderTextColor="#999999"
+                    value={advanceSearchData.relationLastName}
+                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, relationLastName: text }))}
+                  />
+                </View>
+
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.advanceSearchButtons}>
+                <TouchableOpacity 
+                  style={styles.advanceSearchButton}
+                  onPress={handleAdvanceSearch}
+                >
+                  <Text style={styles.advanceSearchButtonText}>Search</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.advanceSearchCancelButton}
+                  onPress={() => setShowAdvanceSearchModal(false)}
+                >
+                  <Text style={styles.advanceSearchCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Voter Search Results Modal */}
+      {showVoterSearchModal && (
+        <Modal
+          visible={showVoterSearchModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowVoterSearchModal(false)}
+        >
+          <View style={styles.voterSearchModalOverlay}>
+            <View style={styles.voterSearchModalContainer}>
+              {/* Header */}
+              <View style={styles.voterSearchHeader}>
+                <Text style={styles.voterSearchTitle}>Search Results</Text>
+                <TouchableOpacity 
+                  style={styles.voterSearchCloseButton}
+                  onPress={() => setShowVoterSearchModal(false)}
+                >
+                  <Text style={styles.voterSearchCloseIcon}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Results Summary */}
+              {voterSearchPagination && (
+                <Text style={styles.voterSearchSummary}>
+                  Showing {((voterSearchPagination.currentPage - 1) * voterSearchPagination.limit) + 1}-{Math.min(voterSearchPagination.currentPage * voterSearchPagination.limit, voterSearchPagination.totalCount)} of {voterSearchPagination.totalCount} Voters
+                </Text>
+              )}
+
+              {/* Results List */}
+              <ScrollView style={styles.voterSearchResults}>
+                {voterSearchLoading ? (
+                  <View style={styles.voterSearchLoading}>
+                    <Text style={styles.voterSearchLoadingText}>Loading...</Text>
+                  </View>
+                ) : voterSearchResults.length > 0 ? (
+                  voterSearchResults.map((voter: any, index: number) => (
+                    <View key={voter._id || index} style={styles.voterCard}>
+                      {/* Voter Info Header */}
+                      <View style={styles.voterCardHeader}>
+                        <Text style={styles.voterSerial}>Serial : {voter.sr}</Text>
+                        <Text style={styles.voterSection}>Section : {voter.Anubhag_number}</Text>
+                        <Text style={styles.voterPart}>Part : {voter.Part_no}</Text>
+                      </View>
+
+                      {/* Voter Details */}
+                      <View style={styles.voterCardContent}>
+                        {/* Voter Image Placeholder */}
+                        <View style={styles.voterImageContainer}>
+                          <View style={styles.voterImagePlaceholder}>
+                            <Icon name="person" size={18} color="#90A4AE" />
+                          </View>
+                          <Text style={styles.voterId}>{voter.Number}</Text>
+                        </View>
+
+                        {/* Voter Information */}
+                        <View style={styles.voterDetails}>
+                          <Text style={styles.voterName}>{voter.Name}</Text>
+                          <Text style={styles.voterRelation}>{voter.Relation}</Text>
+                          <Text style={styles.voterFather}>{voter['Father Name']}</Text>
+                          <Text style={styles.voterAddress}>Door No {voter.Door_No}</Text>
+                          <View style={styles.voterAgeContainer}>
+                            <Text style={styles.voterAge}>{voter.age} | {voter.sex}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.voterSearchEmpty}>
+                    <Text style={styles.voterSearchEmptyText}>No voters found matching your search criteria</Text>
+                  </View>
+                )}
+              </ScrollView>
+
+              {/* Pagination */}
+              {voterSearchPagination && voterSearchPagination.totalPages > 1 && (
+                <View style={styles.voterSearchPagination}>
+                  <TouchableOpacity
+                    style={[
+                      styles.voterSearchPageButton,
+                      !voterSearchPagination.hasPrev && styles.voterSearchPageButtonDisabled
+                    ]}
+                    onPress={() => voterSearchPagination.hasPrev && handleVoterSearchPageChange(voterSearchPagination.currentPage - 1)}
+                    disabled={!voterSearchPagination.hasPrev || voterSearchLoading}
+                  >
+                    <Text style={[
+                      styles.voterSearchPageButtonText,
+                      !voterSearchPagination.hasPrev && styles.voterSearchPageButtonTextDisabled
+                    ]}>‹</Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.voterSearchPageInfo}>
+                    {voterSearchPagination.currentPage} / {voterSearchPagination.totalPages}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.voterSearchPageButton,
+                      !voterSearchPagination.hasNext && styles.voterSearchPageButtonDisabled
+                    ]}
+                    onPress={() => voterSearchPagination.hasNext && handleVoterSearchPageChange(voterSearchPagination.currentPage + 1)}
+                    disabled={!voterSearchPagination.hasNext || voterSearchLoading}
+                  >
+                    <Text style={[
+                      styles.voterSearchPageButtonText,
+                      !voterSearchPagination.hasNext && styles.voterSearchPageButtonTextDisabled
+                    ]}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </Modal>
@@ -380,16 +777,21 @@ type OverviewCardProps = {
   accent: string;
   large?: boolean;
   iconEmoji?: string;
+  onPress?: () => void;
 };
 
-const OverviewCard = ({ title, value, accent, large, iconEmoji }: OverviewCardProps) => (
-  <View style={[large ? styles.overviewLarge : styles.overviewSmall]}>
+const OverviewCard = ({ title, value, accent, large, iconEmoji, onPress }: OverviewCardProps) => (
+  <TouchableOpacity 
+    style={[large ? styles.overviewLarge : styles.overviewSmall]} 
+    onPress={onPress}
+    activeOpacity={0.8}
+  >
     {iconEmoji ? <Text style={styles.overviewIcon}>{iconEmoji}</Text> : null}
     <Text style={styles.overviewTitle}>{title}</Text>
     <View style={[styles.badge, { backgroundColor: accent }]}>
       <Text style={styles.badgeText}>{value}</Text>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
@@ -444,12 +846,10 @@ const styles = StyleSheet.create({
   bell: {
     width: 44,
     height: 44,
-    backgroundColor: '#0A0A0A',
-    borderRadius: 10,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bellText: { color: '#fff', fontSize: 16 },
 
   quickRow: {
     flexDirection: 'row',
@@ -836,7 +1236,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  closeButton: {
+  electionCloseButton: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#1976D2',
@@ -844,9 +1244,296 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
-  closeButtonText: {
+  electionCloseButtonText: {
     color: '#1976D2',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  
+  // Advance Search Modal Styles
+  advanceSearchModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  advanceSearchModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  advanceSearchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  advanceSearchTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  advanceSearchCloseButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  advanceSearchCloseIcon: {
+    fontSize: 18,
+    color: '#666666',
+    fontWeight: 'bold',
+  },
+  advanceSearchForm: {
+    marginBottom: 20,
+  },
+  advanceSearchInputFull: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333333',
+    backgroundColor: '#F9F9F9',
+    marginBottom: 15,
+  },
+  advanceSearchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  advanceSearchInputHalf: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333333',
+    backgroundColor: '#F9F9F9',
+    width: '48%',
+  },
+  advanceSearchButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  advanceSearchButton: {
+    flex: 1,
+    backgroundColor: '#1976D2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  advanceSearchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  advanceSearchCancelButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#1976D2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  advanceSearchCancelButtonText: {
+    color: '#1976D2',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Voter Search Results Modal Styles
+  voterSearchModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voterSearchModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    width: '95%',
+    maxWidth: 500,
+    maxHeight: '90%',
+    padding: 20,
+  },
+  voterSearchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  voterSearchTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  voterSearchCloseButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voterSearchCloseIcon: {
+    fontSize: 18,
+    color: '#666666',
+    fontWeight: 'bold',
+  },
+  voterSearchSummary: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '500',
+    marginBottom: 15,
+  },
+  voterSearchResults: {
+    maxHeight: 400,
+    marginBottom: 15,
+  },
+  voterSearchLoading: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  voterSearchLoadingText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  voterSearchEmpty: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  voterSearchEmptyText: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  voterCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  voterCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  voterSerial: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  voterSection: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  voterPart: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  voterCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  voterImageContainer: {
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  voterImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  voterImageIcon: {
+    fontSize: 24,
+  },
+  voterId: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: '600',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  voterDetails: {
+    flex: 1,
+  },
+  voterName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  voterRelation: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 2,
+  },
+  voterFather: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 2,
+  },
+  voterAddress: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  voterAgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  voterAge: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  voterSearchPagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  voterSearchPageButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1976D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  voterSearchPageButtonDisabled: {
+    backgroundColor: '#E0E0E0',
+  },
+  voterSearchPageButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  voterSearchPageButtonTextDisabled: {
+    color: '#999999',
+  },
+  voterSearchPageInfo: {
+    fontSize: 16,
+    color: '#333333',
+    fontWeight: '500',
+    marginHorizontal: 15,
   },
 });

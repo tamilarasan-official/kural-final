@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert, Modal } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { router } from 'expo-router';
+import { useRouter, useFocusEffect, router as globalRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getUserSession, clearUserSession } from '../../services/api/userSession';
 import { API_CONFIG } from '../../services/api/config';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -25,6 +26,7 @@ export default function DrawerScreen() {
   });
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -67,10 +69,11 @@ export default function DrawerScreen() {
         const result = await response.json();
         console.log('Profile API Response:', result); // Debug log
         if (result.success) {
+          console.log('Role from API:', result.data.role); // Debug log
           setProfileData({
             firstName: result.data.firstName || '',
             lastName: result.data.lastName || '',
-            role: result.data.role || 'User',
+            role: result.data.role || 'Admin',
             mobileNumber: result.data.mobileNumber || ''
           });
         }
@@ -136,15 +139,15 @@ export default function DrawerScreen() {
 
 
   const menuItems = [
-    { id: 'profile', title: t('nav.profile'), icon: '👤', route: '/(drawer)/my_profile' },
-    { id: 'elections', title: t('nav.elections'), icon: '🗳️', route: '/(drawer)/your_election' },
-    { id: 'settings', title: t('nav.settings'), icon: '⚙️', route: '/(drawer)/settings' },
-    { id: 'language', title: t('nav.language'), icon: '🌐', route: '/(drawer)/app_language' },
-    { id: 'password', title: 'Change Password', icon: '🔒', route: '/(drawer)/change_password' },
-    { id: 'privacy', title: 'Privacy Policy', icon: '🛡️', route: '/(drawer)/privacy_policy' },
-    { id: 'terms', title: 'Terms & Conditions', icon: '📄', route: '/(drawer)/terms_condition' },
-    { id: 'help', title: 'Help', icon: '❓', route: '/(drawer)/help' },
-    { id: 'about', title: 'About', icon: 'ℹ️', route: '/(drawer)/about' },
+    { id: 'profile', title: 'My Profile', iconName: 'person', route: '/(drawer)/my_profile' },
+    { id: 'elections', title: 'Your Election', iconName: 'how-to-vote', route: '/(drawer)/your_election' },
+    { id: 'settings', title: 'Settings', iconName: 'settings', route: '/(drawer)/settings' },
+    { id: 'language', title: 'App Language', iconName: 'language', route: '/(drawer)/app_language' },
+    { id: 'password', title: 'Change Password', iconName: 'lock', route: '/(drawer)/change_password' },
+    { id: 'privacy', title: 'Privacy Policy', iconName: 'security', route: '/(drawer)/privacy_policy' },
+    { id: 'terms', title: 'Terms & Conditions', iconName: 'description', route: '/(drawer)/terms_condition' },
+    { id: 'help', title: 'Help', iconName: 'help', route: '/(drawer)/help' },
+    { id: 'about', title: 'About', iconName: 'info', route: '/(drawer)/about' },
   ];
 
   const handleMenuPress = (route: string, id: string) => {
@@ -158,6 +161,10 @@ export default function DrawerScreen() {
       setShowTermsModal(true);
     } else if (id === 'privacy') {
       setShowPrivacyModal(true);
+    } else if (id === 'profile') {
+      router.push('/(drawer)/my_profile');
+    } else if (id === 'elections') {
+      router.push('/(drawer)/your_election');
     } else {
       router.push(route as any);
     }
@@ -222,16 +229,12 @@ export default function DrawerScreen() {
           onPress: async () => {
             try {
               await clearUserSession();
-              // Try using a different navigation approach
-              setTimeout(() => {
-                router.replace('/(auth)/index' as any);
-              }, 100);
+              // Navigate to root which should redirect to auth
+              globalRouter.replace('/');
             } catch (error) {
               console.error('Error during logout:', error);
-              // Fallback to push
-              setTimeout(() => {
-                router.push('/(auth)/index' as any);
-              }, 100);
+              // Fallback navigation
+              globalRouter.replace('/');
             }
           },
         },
@@ -240,37 +243,75 @@ export default function DrawerScreen() {
     );
   };
 
+  const pickImage = async () => {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header with gradient background */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-          <Text style={styles.closeIcon}>✕</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.profileSection}>
-          <View style={styles.profileImageContainer}>
-            <View style={styles.profileImage}>
-              <Text style={styles.profileIcon}>👤</Text>
-            </View>
-            <TouchableOpacity style={styles.cameraButton}>
-              <Text style={styles.cameraIcon}>📷</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Header with wave background */}
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+            <Icon name="close" size={24} color="#000000" />
+          </TouchableOpacity>
           
-          <View style={styles.userInfo}>
-            {loading ? (
-              <ActivityIndicator size="small" color="#1976D2" />
-            ) : (
-              <>
-                <Text style={styles.username}>
-                  {profileData.firstName} {profileData.lastName}
-                </Text>
-                <Text style={styles.userType}>{profileData.role}</Text>
-              </>
-            )}
+          <View style={styles.profileSection}>
+            <View style={styles.profileImageContainer}>
+              <TouchableOpacity style={styles.profileImage} onPress={pickImage}>
+                {profileImage ? (
+                  <Image 
+                    source={{ uri: profileImage }} 
+                    style={styles.profileImageActual}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Icon name="person" size={60} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cameraButton} onPress={pickImage}>
+                <Icon name="camera-alt" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.userInfo}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#1976D2" />
+              ) : (
+                <>
+                  <Text style={styles.username}>
+                    {profileData.firstName} {profileData.lastName}
+                  </Text>
+                  <Text style={styles.userType}>{profileData.role || 'Admin'}</Text>
+                </>
+              )}
+            </View>
           </View>
         </View>
+        
       </View>
 
       {/* Menu List */}
@@ -282,7 +323,12 @@ export default function DrawerScreen() {
               onPress={() => handleMenuPress(item.route, item.id)}
               activeOpacity={0.7}
             >
-              <Text style={styles.menuIcon}>{item.icon}</Text>
+              <Icon 
+                name={item.iconName} 
+                size={24} 
+                color="#1976D2" 
+                style={styles.menuIcon}
+              />
               <Text style={styles.menuTitle}>{item.title}</Text>
             </TouchableOpacity>
             <View style={styles.separator} />
@@ -295,10 +341,20 @@ export default function DrawerScreen() {
           onPress={handleLogout}
           activeOpacity={0.8}
         >
-          <Text style={styles.menuIcon}>🚪</Text>
-          <Text style={[styles.menuTitle, { color: '#D32F2F', fontWeight: '700' }]}>{t('nav.logout')}</Text>
+          <Icon 
+            name="logout" 
+            size={24} 
+            color="#D32F2F" 
+            style={styles.menuIcon}
+          />
+          <Text style={[styles.menuTitle, { color: '#D32F2F', fontWeight: '700' }]}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Version Number */}
+      <View style={styles.versionContainer}>
+        <Text style={styles.versionText}>V.3.1 |</Text>
+      </View>
 
       {/* Change Password Modal */}
       <Modal
@@ -342,7 +398,7 @@ export default function DrawerScreen() {
             <View style={styles.aboutHeader}>
               <Text style={styles.aboutTitle}>About</Text>
               <TouchableOpacity onPress={() => setShowAboutModal(false)}>
-                <Text style={styles.aboutCloseIcon}>✕</Text>
+                <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
             </View>
             
@@ -374,7 +430,7 @@ export default function DrawerScreen() {
             <View style={styles.helpHeader}>
               <Text style={styles.helpTitle}>Help</Text>
               <TouchableOpacity onPress={() => setShowHelpModal(false)}>
-                <Text style={styles.helpCloseIcon}>✕</Text>
+                <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
             </View>
             
@@ -406,7 +462,7 @@ export default function DrawerScreen() {
             <View style={styles.termsHeader}>
               <Text style={styles.termsTitle}>Terms & Conditions</Text>
               <TouchableOpacity onPress={() => setShowTermsModal(false)}>
-                <Text style={styles.termsCloseIcon}>✕</Text>
+                <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
             </View>
             
@@ -438,7 +494,7 @@ export default function DrawerScreen() {
             <View style={styles.privacyHeader}>
               <Text style={styles.privacyTitle}>Privacy Policy</Text>
               <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
-                <Text style={styles.privacyCloseIcon}>✕</Text>
+                <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
             </View>
             
@@ -466,10 +522,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  headerContainer: {
+    backgroundColor: '#E3F2FD',
+  },
   header: {
     backgroundColor: '#E3F2FD',
     paddingTop: 50,
-    paddingBottom: 20,
+    paddingBottom: 60,
     paddingHorizontal: 20,
     position: 'relative',
   },
@@ -489,60 +548,79 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-  closeIcon: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
+  // closeIcon removed - using vector icons now
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 20,
+    paddingHorizontal: 20,
   },
   profileImageContainer: {
     position: 'relative',
+    zIndex: 10,
   },
   profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  profileIcon: {
-    fontSize: 40,
-    color: '#FFFFFF',
+  // profileIcon removed - using vector icons now
+  profileImageActual: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   cameraButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#000000',
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1976D2',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
-  cameraIcon: {
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
+  // cameraIcon removed - using vector icons now
   userInfo: {
-    marginLeft: 16,
     flex: 1,
+    alignItems: 'flex-start',
+    marginLeft: 10,
   },
   username: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   userType: {
     fontSize: 16,
+    color: '#666666',
+    flexWrap: 'wrap',
+  },
+  versionContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  versionText: {
+    fontSize: 14,
     color: '#666666',
   },
   menuContainer: {
@@ -552,13 +630,13 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 20,
   },
   menuIcon: {
-    fontSize: 24,
+    width: 24,
+    height: 24,
     marginRight: 16,
-    width: 30,
     textAlign: 'center',
   },
   menuTitle: {
@@ -569,7 +647,7 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#E0E0E0',
-    marginLeft: 46,
+    marginLeft: 60,
   },
   modalOverlay: {
     flex: 1,
@@ -650,11 +728,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1976D2',
   },
-  aboutCloseIcon: {
-    fontSize: 18,
-    color: '#1976D2',
-    fontWeight: 'bold',
-  },
+  // aboutCloseIcon removed - using vector icons now
   aboutContent: {
     flex: 1,
     paddingBottom: 20,
@@ -767,11 +841,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1976D2',
   },
-  helpCloseIcon: {
-    fontSize: 18,
-    color: '#1976D2',
-    fontWeight: 'bold',
-  },
+  // helpCloseIcon removed - using vector icons now
   helpContent: {
     flex: 1,
     paddingBottom: 20,
@@ -816,11 +886,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1976D2',
   },
-  termsCloseIcon: {
-    fontSize: 18,
-    color: '#1976D2',
-    fontWeight: 'bold',
-  },
+  // termsCloseIcon removed - using vector icons now
   termsContent: {
     flex: 1,
     paddingBottom: 20,
@@ -888,11 +954,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1976D2',
   },
-  privacyCloseIcon: {
-    fontSize: 18,
-    color: '#1976D2',
-    fontWeight: 'bold',
-  },
+  // privacyCloseIcon removed - using vector icons now
   privacyContent: {
     flex: 1,
     paddingBottom: 20,

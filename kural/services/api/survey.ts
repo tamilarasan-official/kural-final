@@ -17,6 +17,7 @@ export const surveyAPI = {
     if (params?.search) queryParams.append('search', params.search);
 
     const url = `${BASE_URL}?${queryParams.toString()}`;
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -24,12 +25,15 @@ export const surveyAPI = {
         'Authorization': `Bearer ${API_CONFIG.getToken()}`,
       },
     });
-
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Survey API error response:', errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data;
   },
 
   // Get survey by ID
