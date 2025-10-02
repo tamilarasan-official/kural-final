@@ -330,7 +330,7 @@ export default function DashboardScreen() {
         <IconTile title="Guardian" src={require('../../assets/images/guardian.png')} onPress={() => router.push('/(tabs)/dashboard/guardian')} />
         <IconTile title="Overseas" src={require('../../assets/images/overseas.png')} />
         <IconTile title="Birthday" src={require('../../assets/images/birthday.png')} />
-        <IconTile title="Star" src={require('../../assets/images/star.png')} />
+        <IconTile title="Star" src={require('../../assets/images/star.png')} onPress={() => router.push('/(tabs)/dashboard/star')} />
         <IconTile title="Mobile" src={require('../../assets/images/Mobile.png')} onPress={() => router.push('/(tabs)/dashboard/mobile')} />
         <IconTile title="80 Above" src={require('../../assets/images/80 Above.png')} onPress={() => router.push('/(tabs)/dashboard/age80above')} />
       </View>
