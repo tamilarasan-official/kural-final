@@ -1,33 +1,26 @@
 export const API_CONFIG = {
   // Change this to your actual API domain in production
-  BASE_URL: "http://192.168.31.31:5000/api/v1",
+  BASE_URL: "http://34.180.20.87/api/v1",
 
   ENDPOINTS: {
     AUTH: {
       LOGIN: "/auth/login",
-      SIGNUP: "/auth/signup",
-      VERIFY: "/auth/verify",
     },
-    DOCTOR: {
-      DASHBOARD: "/doctor/dashboard",
-      PATIENTS: "/doctor/patients",
-      PROFILE: "/doctor/profile",
-      QUERIES: "/doctor/queries",
-      DELETE: "/doctor/delete",
-    },
-    GAMES: {
-      RESULTS: "/games/results",
-      TODAY: "/games/today",
-      HISTORY: "/games/history",
-    },
-    PATIENT: {
-      DASHBOARD: "/patient/dashboard",
-      QUERIES: "/patient/queries",
-      PROFILE: "/patient/profile",
-      DOCTORS: "/patient/doctors",
-      DELETE: "/patient/delete",
-    },
-    QUERIES: "/queries",
+    VOTERS: "/voters",
+    VOTER_INFO: "/voter-info",
+    TRANSGENDER_VOTERS: "/transgender-voters",
+    FATHERLESS_VOTERS: "/fatherless-voters",
+    GUARDIAN_VOTERS: "/guardian-voters",
+    MOBILE_VOTERS: "/mobile-voters",
+    AGE80ABOVE_VOTERS: "/age80above-voters",
+    PART_COLORS: "/part-colors",
+    VULNERABILITIES: "/vulnerabilities",
+    SETTINGS: "/settings",
+    SURVEYS: "/surveys",
+    SURVEY_FORMS: "/survey-forms",
+    CADRES: "/cadres",
+    MODAL_CONTENT: "/modal-content",
+    CATALOGUE: "/catalogue",
   },
 
   // Get authentication token from storage

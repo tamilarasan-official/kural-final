@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "config": {
-        "googleMapsApiKey": "${GOOGLE_MAPS_API_KEY}"
+        "googleMapsApiKey": "AIzaSyCiwZbwy5fgQQ-0E6zFGrdSPWQGh1XVFPQ"
       }
     },
     "android": {
@@ -20,15 +20,13 @@
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png",
-        
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "config": {
         "googleMaps": {
-          "apiKey": "${GOOGLE_MAPS_API_KEY}"
+          "apiKey": "AIzaSyCiwZbwy5fgQQ-0E6zFGrdSPWQGh1XVFPQ"
         }
       }
     },
@@ -49,6 +47,17 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "manifestPlaceholders": {
+              "merge_strategy": "always_use_first"
+            }
+          }
+        }
       ]
     ],
     "experiments": {
@@ -57,10 +66,10 @@
     },
     "extra": {
       "router": {},
+      "GOOGLE_MAPS_API_KEY": "AIzaSyCiwZbwy5fgQQ-0E6zFGrdSPWQGh1XVFPQ",
       "eas": {
-        "projectId": "4d6ff1c7-aaf5-49b7-a752-45337268125e"
-      },
-      "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "projectId": "d77a475b-9d3c-4dc4-80d2-052a8d56a56b"
+      }
     }
   }
 }

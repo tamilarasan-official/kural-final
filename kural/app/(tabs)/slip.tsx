@@ -9,7 +9,9 @@ import {
   Alert,
   Switch,
   Dimensions,
-  StatusBar
+  StatusBar,
+  Platform,
+  PermissionsAndroid
 } from 'react-native';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useRouter } from 'expo-router';
@@ -53,11 +55,65 @@ export default function SlipScreen() {
     setShowBluetoothModal(true);
   };
 
-  const handleBluetoothAllow = () => {
-    setBluetoothEnabled(true);
-    setShowBluetoothModal(false);
-    setShowScanModal(true);
-    showToastMessage('Bluetooth enabled successfully');
+  const handleBluetoothAllow = async () => {
+    try {
+      // Request required permissions on Android
+      if (Platform.OS === 'android') {
+        const sdkInt = Number((global as any).nativePerformance?.now ? 31 : 30); // heuristic fallback if not available
+        const neededPerms: string[] = [];
+        // Android 12+ runtime permissions
+        // @ts-ignore - string literals used to avoid types dependency
+        const BL_CONNECT = 'android.permission.BLUETOOTH_CONNECT';
+        // @ts-ignore
+        const BL_SCAN = 'android.permission.BLUETOOTH_SCAN';
+        // @ts-ignore
+        const BL_ADVERTISE = 'android.permission.BLUETOOTH_ADVERTISE';
+
+        if (sdkInt >= 31) {
+          neededPerms.push(BL_CONNECT, BL_SCAN, BL_ADVERTISE);
+        } else {
+          neededPerms.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+        }
+
+        const results = await PermissionsAndroid.requestMultiple(
+          // @ts-ignore
+          neededPerms
+        );
+        const denied = Object.values(results).some(r => r !== PermissionsAndroid.RESULTS.GRANTED);
+        if (denied) {
+          showToastMessage('Bluetooth permission denied');
+          setShowBluetoothModal(false);
+          setShowScanModal(true);
+          return;
+        }
+      }
+
+      // Dynamically import Bluetooth state manager to enable bluetooth
+      let BluetoothStateManager: any = null;
+      try {
+        const mod = await import('react-native-bluetooth-state-manager');
+        BluetoothStateManager = (mod as any)?.default ?? mod;
+      } catch (e) {
+        BluetoothStateManager = null;
+      }
+
+      if (BluetoothStateManager && typeof BluetoothStateManager.requestToEnable === 'function') {
+        await BluetoothStateManager.requestToEnable();
+        setBluetoothEnabled(true);
+        showToastMessage('Bluetooth enabled successfully');
+      } else {
+        // Fallback: pretend enabled but inform dev to install module
+        setBluetoothEnabled(true);
+        showToastMessage('Bluetooth enabled (simulated). Install react-native-bluetooth-state-manager for real enabling');
+      }
+
+      setShowBluetoothModal(false);
+      setShowScanModal(true);
+    } catch (err: any) {
+      console.log('Enable Bluetooth error:', err?.message || err);
+      showToastMessage('Failed to enable Bluetooth');
+      setShowBluetoothModal(false);
+    }
   };
 
   const handleBluetoothDeny = () => {
