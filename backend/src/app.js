@@ -23,6 +23,12 @@ require('./models/ModalContent');
 require('./models/voter');
 require('./models/vulnerability');
 require('./models/partColor');
+require('./models/transgenderVoter');
+require('./models/fatherlessVoter');
+require('./models/guardianVoter');
+require('./models/mobileVoter');
+require('./models/age80AboveVoter');
+require('./models/catalogue');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -37,6 +43,12 @@ const surveyRoutes = require('./routes/surveyRoutes');
 const surveyFormRoutes = require('./routes/surveyFormRoutes');
 const modalContentRoutes = require('./routes/modalContentRoutes');
 const voterInfoRoutes = require('./routes/voterInfoRoutes');
+const transgenderRoutes = require('./routes/transgenderRoutes');
+const fatherlessRoutes = require('./routes/fatherlessRoutes');
+const guardianRoutes = require('./routes/guardianRoutes');
+const mobileRoutes = require('./routes/mobileRoutes');
+const age80AboveRoutes = require('./routes/age80AboveRoutes');
+const catalogueRoutes = require('./routes/catalogueRoutes');
 
 const app = express();
 
@@ -95,6 +107,12 @@ app.use('/api/v1/surveys', surveyRoutes);
 app.use('/api/v1/survey-forms', surveyFormRoutes);
 app.use('/api/v1/modal-content', modalContentRoutes);
 app.use('/api/v1/voter-info', voterInfoRoutes);
+app.use('/api/v1/transgender-voters', transgenderRoutes);
+app.use('/api/v1/fatherless-voters', fatherlessRoutes);
+app.use('/api/v1/guardian-voters', guardianRoutes);
+app.use('/api/v1/mobile-voters', mobileRoutes);
+app.use('/api/v1/age80above-voters', age80AboveRoutes);
+app.use('/api/v1/catalogue', catalogueRoutes);
 
 // 404 handler
 app.use(notFound);

@@ -157,7 +157,7 @@ export default function DashboardScreen() {
     try {
       // Use the voter search API with the search query as voter name
       const searchParams = {
-        voterFirstName: searchQuery.trim(),
+        Name: searchQuery.trim(),
         page: 1,
         limit: 10
       };
@@ -187,7 +187,7 @@ export default function DashboardScreen() {
     try {
       // Use the voter search API with the search query as voter name
       const searchParams = {
-        voterFirstName: searchQuery.trim(),
+        Name: searchQuery.trim(),
         page: newPage,
         limit: 10
       };
@@ -271,9 +271,13 @@ export default function DashboardScreen() {
           <ManagerCard 
             title="Voter Manager" 
             source={require('../../assets/images/voter_manager.png')} 
-            onPress={() => router.push('/(tabs)/dashboard/part_numbers')}
+            onPress={() => router.push('/(tabs)/dashboard/part_number1')}
           />
-          <ManagerCard title="Family Manager" source={require('../../assets/images/family_manager.png')} />
+          <ManagerCard 
+            title="Family Manager" 
+            source={require('../../assets/images/family_manager.png')} 
+            onPress={() => router.push('/(tabs)/dashboard/family_manager?partNumber=1')}
+          />
           <ManagerCard 
             title="Survey Manager" 
             source={require('../../assets/images/survey_manager.png')} 
@@ -313,18 +317,22 @@ export default function DashboardScreen() {
 
       {/* Feature grid (icons + labels, no squares) */}
       <View style={styles.grid}>
-        <IconTile title="Cadre" src={require('../../assets/images/cadre.png')} />
-        <IconTile title="Part" src={require('../../assets/images/part.png')} />
-        <IconTile title="Voter" src={require('../../assets/images/voter.png')} />
+        <IconTile 
+          title="Cadre" 
+          src={require('../../assets/images/cadre.png')} 
+          onPress={() => router.push('/(tabs)/dashboard/volunteers_tracking')}
+        />
+        <IconTile title="Part" src={require('../../assets/images/part.png')} onPress={() => router.push('/(tabs)/dashboard/part_map')} />
+        <IconTile title="Voter" src={require('../../assets/images/voter.png')} onPress={() => router.push('/(tabs)/dashboard/part_number2')} />
         <IconTile title="New" src={require('../../assets/images/New.png')} />
-        <IconTile title="Transgender" src={require('../../assets/images/transegender.png')} />
-        <IconTile title="Fatherless" src={require('../../assets/images/fatherless.png')} />
-        <IconTile title="Guardian" src={require('../../assets/images/guardian.png')} />
+        <IconTile title="Transgender" src={require('../../assets/images/transegender.png')} onPress={() => router.push('/(tabs)/dashboard/transgender')} />
+        <IconTile title="Fatherless" src={require('../../assets/images/fatherless.png')} onPress={() => router.push('/(tabs)/dashboard/fatherless')} />
+        <IconTile title="Guardian" src={require('../../assets/images/guardian.png')} onPress={() => router.push('/(tabs)/dashboard/guardian')} />
         <IconTile title="Overseas" src={require('../../assets/images/overseas.png')} />
         <IconTile title="Birthday" src={require('../../assets/images/birthday.png')} />
         <IconTile title="Star" src={require('../../assets/images/star.png')} />
-        <IconTile title="Mobile" src={require('../../assets/images/Mobile.png')} />
-        <IconTile title="80 Above" src={require('../../assets/images/80 Above.png')} />
+        <IconTile title="Mobile" src={require('../../assets/images/Mobile.png')} onPress={() => router.push('/(tabs)/dashboard/mobile')} />
+        <IconTile title="80 Above" src={require('../../assets/images/80 Above.png')} onPress={() => router.push('/(tabs)/dashboard/age80above')} />
       </View>
 
       {/* Banners - auto swipe */}
@@ -761,9 +769,9 @@ const ManagerCard = ({ title, source, onPress }: ManagerCardProps) => (
   </TouchableOpacity>
 );
 
-type IconTileProps = { title: string; src: any };
-const IconTile = ({ title, src }: IconTileProps) => (
-  <TouchableOpacity style={styles.tileIconOnly} activeOpacity={0.8}>
+type IconTileProps = { title: string; src: any; onPress?: () => void };
+const IconTile = ({ title, src, onPress }: IconTileProps) => (
+  <TouchableOpacity style={styles.tileIconOnly} activeOpacity={0.8} onPress={onPress}>
     <Image source={src} style={styles.tileIcon} />
     <Text style={styles.tileLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
       {title}
@@ -929,17 +937,17 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    justifyContent: 'space-around',
+    paddingHorizontal: 12,
     marginTop: 18,
   },
   tileIconOnly: {
-    width: '25%',
+    width: '22%',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 22,
   },
-  tileIcon: { width: 44, height: 44, resizeMode: 'contain', marginBottom: 6 },
-  tileLabel: { fontSize: 13, color: '#263238', textAlign: 'center' },
+  tileIcon: { width: 48, height: 48, resizeMode: 'contain', marginBottom: 8 },
+  tileLabel: { fontSize: 12, color: '#263238', textAlign: 'center' },
 
   bannerScroller: { marginTop: 8 },
   banner: {

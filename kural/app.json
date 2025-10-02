@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "${GOOGLE_MAPS_API_KEY}"
+      }
     },
     "android": {
       "package": "com.kuralapp.kural",
@@ -22,7 +25,12 @@
       },
       "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "${GOOGLE_MAPS_API_KEY}"
+        }
+      }
     },
     "web": {
       "output": "static",
@@ -51,7 +59,8 @@
       "router": {},
       "eas": {
         "projectId": "4d6ff1c7-aaf5-49b7-a752-45337268125e"
-      }
+      },
+      "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
     }
   }
 }

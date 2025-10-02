@@ -187,9 +187,9 @@ export default function PartNumbersScreen() {
   };
 
   const handlePartNavigation = (partNumber: number) => {
-    // Navigate to voter detail screen for this part number
+    // Navigate to voters map for this part number
     router.push({
-      pathname: '/(tabs)/dashboard/voter_detail',
+      pathname: '/(tabs)/dashboard/voters_map',
       params: { partNumber: partNumber.toString() }
     });
   };

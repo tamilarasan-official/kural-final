@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import Slider from '@react-native-community/slider';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { settingsAPI } from '../../../services/api/settings';
 import { voterAPI } from '../../../services/api/voter';
 
@@ -184,6 +184,39 @@ export default function VoterDetailScreen() {
     }
   };
 
+  // Floating labels above each thumb for the age range slider
+  const AgeLabel = ({
+    oneMarkerLeftPosition,
+    twoMarkerLeftPosition,
+    oneMarkerValue,
+    twoMarkerValue,
+  }: any) => {
+    return (
+      <View style={{ position: 'relative', height: 20, marginBottom: 6 }}>
+        <Text
+          style={{
+            position: 'absolute',
+            left: Math.max(0, oneMarkerLeftPosition - 18),
+            color: '#64748B',
+            fontSize: 12,
+          }}
+        >
+          {oneMarkerValue}
+        </Text>
+        <Text
+          style={{
+            position: 'absolute',
+            left: Math.max(0, twoMarkerLeftPosition - 18),
+            color: '#64748B',
+            fontSize: 12,
+          }}
+        >
+          {twoMarkerValue}
+        </Text>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -307,34 +340,29 @@ export default function VoterDetailScreen() {
 
             <ScrollView style={{ maxHeight: 420 }}>
               <Text style={styles.sectionTitle}>Age</Text>
-              <View style={{ paddingHorizontal: 4, marginBottom: 6 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={styles.rangeLabel}>Age {minAge}</Text>
-                  <Text style={styles.rangeLabel}>Age {maxAge}</Text>
-                </View>
-                <Slider
-                  minimumValue={0}
-                  maximumValue={120}
-                  step={1}
-                  value={minAge}
-                  minimumTrackTintColor="#1976D2"
-                  maximumTrackTintColor="#BBDEFB"
-                  thumbTintColor="#1976D2"
-                  onValueChange={(v) => setMinAge(Math.min(maxAge, Math.round(v)))}
-                />
-                <Slider
-                  minimumValue={0}
-                  maximumValue={120}
-                  step={1}
-                  value={maxAge}
-                  minimumTrackTintColor="#1976D2"
-                  maximumTrackTintColor="#BBDEFB"
-                  thumbTintColor="#1976D2"
-                  onValueChange={(v) => setMaxAge(Math.max(minAge, Math.round(v)))}
-                />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={styles.rangeLabel}>0</Text>
-                  <Text style={styles.rangeLabel}>120</Text>
+              <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
+                <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
+                  <MultiSlider
+                    values={[minAge, maxAge]}
+                    min={0}
+                    max={120}
+                    step={1}
+                    sliderLength={width - 64}
+                    onValuesChange={(vals) => {
+                      const a = Math.round(Math.min(vals[0], vals[1]));
+                      const b = Math.round(Math.max(vals[0], vals[1]));
+                      setMinAge(a);
+                      setMaxAge(b);
+                    }}
+                    allowOverlap={false}
+                    snapped
+                    selectedStyle={{ backgroundColor: '#1976D2' }}
+                    unselectedStyle={{ backgroundColor: '#BBDEFB' }}
+                    markerStyle={{ height: 22, width: 22, backgroundColor: '#1976D2' }}
+                    trackStyle={{ height: 4 }}
+                    enableLabel
+                    customLabel={AgeLabel}
+                  />
                 </View>
               </View>
 
