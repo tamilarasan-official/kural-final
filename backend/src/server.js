@@ -10,7 +10,7 @@ const PORT = config.PORT || 5000;
 const server = app.listen(PORT, config.HOST, () => {
   console.log(`Server running on http://${config.HOST}:${PORT}`);
   console.log(`Local access: http://localhost:${PORT}`);
-  console.log(`Network access: http://192.168.31.31:${PORT}`);
+  console.log(`Network access: http://10.231.0.109:${PORT}`);
   console.log(`Environment: ${config.NODE_ENV}`);
 });
 

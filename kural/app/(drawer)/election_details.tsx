@@ -24,20 +24,20 @@ export default function ElectionDetailsScreen() {
   const [currentDateField, setCurrentDateField] = useState('');
   
   // Dropdown options
-  const categoryOptions = ['Political', 'Non-Political'];
-  const electionTypeOptions = ['General', 'By-election'];
-  const electionBodyOptions = ['Union Body (MP)', 'State Body (MLA)', 'Urban Body', 'Rural Body'];
-  const statusOptions = ['Yet to Start', 'In-Progress', 'Completed', 'Cancelled'];
+  const categoryOptions = [t('Political'), t('Non-Political')];
+  const electionTypeOptions = [t('General'), t('By-election')];
+  const electionBodyOptions = [t('Union Body (MP)'), t('State Body (MLA)'), t('Urban Body'), t('Rural Body')];
+  const statusOptions = [t('Yet to Start'), t('In-Progress'), t('Completed'), t('Cancelled')];
   
   // Indian states
   const indianStates = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
-    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
-    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
-    'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
-    'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli',
-    'Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+    t('Andhra Pradesh'), t('Arunachal Pradesh'), t('Assam'), t('Bihar'), t('Chhattisgarh'),
+    t('Goa'), t('Gujarat'), t('Haryana'), t('Himachal Pradesh'), t('Jharkhand'), t('Karnataka'),
+    t('Kerala'), t('Madhya Pradesh'), t('Maharashtra'), t('Manipur'), t('Meghalaya'), t('Mizoram'),
+    t('Nagaland'), t('Odisha'), t('Punjab'), t('Rajasthan'), t('Sikkim'), t('Tamil Nadu'),
+    t('Telangana'), t('Tripura'), t('Uttar Pradesh'), t('Uttarakhand'), t('West Bengal'),
+    t('Andaman and Nicobar Islands'), t('Chandigarh'), t('Dadra and Nagar Haveli'),
+    t('Daman and Diu'), t('Delhi'), t('Jammu and Kashmir'), t('Ladakh'), t('Lakshadweep'), t('Puducherry')
   ];
   
   // Form data state - using database field names (camelCase)
@@ -290,7 +290,7 @@ export default function ElectionDetailsScreen() {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>Loading election data...</Text>
+        <Text style={styles.loadingText}>{t('election.loadingData')}</Text>
       </View>
     );
   }
@@ -302,18 +302,18 @@ export default function ElectionDetailsScreen() {
         <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
           <Text style={styles.closeIcon}>✕</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>View Election</Text>
+        <Text style={styles.headerTitle}>{t('election.viewElection')}</Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Step 1: Create Election */}
-        <Text style={styles.stepTitle}>Step 1: Create Election</Text>
+        <Text style={styles.stepTitle}>{t('election.step1Create')}</Text>
 
         {/* Election Picture Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Election Picture</Text>
+          <Text style={styles.sectionTitle}>{t('election.picture')}</Text>
           <View style={styles.imageSection}>
             <TouchableOpacity style={styles.profileImage} onPress={pickImage}>
               {selectedImage ? (
@@ -323,15 +323,15 @@ export default function ElectionDetailsScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-              <Text style={styles.uploadButtonText}>Upload Photo</Text>
+              <Text style={styles.uploadButtonText}>{t('election.uploadPhoto')}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.uploadHint}>Upload a photo of the election.</Text>
+          <Text style={styles.uploadHint}>{t('election.uploadHint')}</Text>
         </View>
 
         {/* Category Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Category</Text>
+          <Text style={styles.sectionTitle}>{t('election.category')}</Text>
           <TouchableOpacity 
             style={styles.inputField} 
             onPress={() => isEditing && setShowCategoryDropdown(true)}
@@ -348,10 +348,10 @@ export default function ElectionDetailsScreen() {
 
         {/* Election Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Election Information</Text>
+          <Text style={styles.sectionTitle}>{t('election.information')}</Text>
           
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Election Type</Text>
+            <Text style={styles.fieldLabel}>{t('election.type')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && setShowElectionTypeDropdown(true)}
@@ -367,7 +367,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Election Body</Text>
+            <Text style={styles.fieldLabel}>{t('election.body')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && setShowElectionBodyDropdown(true)}
@@ -383,7 +383,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Country</Text>
+            <Text style={styles.fieldLabel}>{t('election.country')}</Text>
             <View style={styles.inputField}>
               <View style={styles.fieldTextContainer}>
                 <Text style={styles.fieldValue}>{formData.country}</Text>
@@ -394,10 +394,10 @@ export default function ElectionDetailsScreen() {
 
         {/* Location Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location Information</Text>
+          <Text style={styles.sectionTitle}>{t('election.locationInfo')}</Text>
           
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>State</Text>
+            <Text style={styles.fieldLabel}>{t('election.state')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && setShowStateDropdown(true)}
@@ -413,14 +413,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>PC Name</Text>
+            <Text style={styles.fieldLabel}>{t('election.pcName')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.pcName}
                   onChangeText={(value: string) => handleInputChange('pcName', value)}
-                  placeholder="Enter PC name"
+                  placeholder={t('election.enterPCName')}
                   placeholderTextColor="#999999"
                 />
               ) : (
@@ -434,14 +434,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>AC Name</Text>
+            <Text style={styles.fieldLabel}>{t('election.acName')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.acName}
                   onChangeText={(value: string) => handleInputChange('acName', value)}
-                  placeholder="Enter AC name"
+                  placeholder={t('election.enterACName')}
                   placeholderTextColor="#999999"
                 />
               ) : (
@@ -455,14 +455,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Urban Name</Text>
+            <Text style={styles.fieldLabel}>{t('election.urbanName')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.urbanName}
                   onChangeText={(value: string) => handleInputChange('urbanName', value)}
-                  placeholder="Enter urban name"
+                  placeholder={t('election.enterUrbanName')}
                   placeholderTextColor="#999999"
                 />
               ) : (
@@ -476,14 +476,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Rural Name</Text>
+            <Text style={styles.fieldLabel}>{t('election.ruralName')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.ruralName}
                   onChangeText={(value: string) => handleInputChange('ruralName', value)}
-                  placeholder="Enter rural name"
+                  placeholder={t('election.enterRuralName')}
                   placeholderTextColor="#999999"
                 />
               ) : (
@@ -497,14 +497,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Election Name</Text>
+            <Text style={styles.fieldLabel}>{t('election.name')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.electionName}
                   onChangeText={(value: string) => handleInputChange('electionName', value)}
-                  placeholder="Enter election name"
+                  placeholder={t('election.enterElectionName')}
                   placeholderTextColor="#999999"
                 />
               ) : (
@@ -520,17 +520,17 @@ export default function ElectionDetailsScreen() {
 
         {/* Election Details Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Election Details</Text>
+          <Text style={styles.sectionTitle}>{t('election.details')}</Text>
           
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Election Description</Text>
+            <Text style={styles.fieldLabel}>{t('election.description')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={[styles.textInput, styles.textAreaField]}
                   value={formData.electionDescription}
                   onChangeText={(value: string) => handleInputChange('electionDescription', value)}
-                  placeholder="Enter election description"
+                  placeholder={t('election.enterDescription')}
                   placeholderTextColor="#999999"
                   multiline={true}
                   numberOfLines={3}
@@ -546,7 +546,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Election Date</Text>
+            <Text style={styles.fieldLabel}>{t('election.date')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('electionDate')}
@@ -562,7 +562,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Status</Text>
+            <Text style={styles.fieldLabel}>{t('election.status')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && setShowStatusDropdown(true)}
@@ -580,17 +580,17 @@ export default function ElectionDetailsScreen() {
 
         {/* Booth Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Booth Information</Text>
+          <Text style={styles.sectionTitle}>{t('election.boothInfo')}</Text>
           
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Total Number of Booths</Text>
+            <Text style={styles.fieldLabel}>{t('election.totalBooths')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.totalBooths}
                   onChangeText={(value: string) => handleInputChange('totalBooths', value)}
-                  placeholder="Enter total booths"
+                  placeholder={t('election.enterTotalBooths')}
                   placeholderTextColor="#999999"
                   keyboardType="numeric"
                 />
@@ -605,14 +605,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Total All Booths</Text>
+            <Text style={styles.fieldLabel}>{t('election.totalAllBooths')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.totalAllBooths}
                   onChangeText={(value: string) => handleInputChange('totalAllBooths', value)}
-                  placeholder="Enter total all booths"
+                  placeholder={t('election.enterTotalAllBooths')}
                   placeholderTextColor="#999999"
                   keyboardType="numeric"
                 />
@@ -627,14 +627,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Number of Pink Booths</Text>
+            <Text style={styles.fieldLabel}>{t('election.pinkBooths')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.pinkBooths}
                   onChangeText={(value: string) => handleInputChange('pinkBooths', value)}
-                  placeholder="Enter pink booths count"
+                  placeholder={t('election.enterPinkBooths')}
                   placeholderTextColor="#999999"
                   keyboardType="numeric"
                 />
@@ -651,17 +651,17 @@ export default function ElectionDetailsScreen() {
 
         {/* Voter Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Voter Information</Text>
+          <Text style={styles.sectionTitle}>{t('election.voterInfo')}</Text>
           
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Total Voters</Text>
+            <Text style={styles.fieldLabel}>{t('election.totalVoters')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.totalVoters}
                   onChangeText={(value: string) => handleInputChange('totalVoters', value)}
-                  placeholder="Enter total voters"
+                  placeholder={t('election.enterTotalVoters')}
                   placeholderTextColor="#999999"
                   keyboardType="numeric"
                 />
@@ -676,14 +676,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Male Voters</Text>
+            <Text style={styles.fieldLabel}>{t('election.maleVoters')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.maleVoters}
                   onChangeText={(value: string) => handleInputChange('maleVoters', value)}
-                  placeholder="Enter male voters count"
+                  placeholder={t('election.enterMaleVoters')}
                   placeholderTextColor="#999999"
                   keyboardType="numeric"
                 />
@@ -698,14 +698,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Female Voters</Text>
+            <Text style={styles.fieldLabel}>{t('election.femaleVoters')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.femaleVoters}
                   onChangeText={(value: string) => handleInputChange('femaleVoters', value)}
-                  placeholder="Enter female voters count"
+                  placeholder={t('election.enterFemaleVoters')}
                   placeholderTextColor="#999999"
                   keyboardType="numeric"
                 />
@@ -720,14 +720,14 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Transgender Voters</Text>
+            <Text style={styles.fieldLabel}>{t('election.transgenderVoters')}</Text>
             <View style={styles.inputField}>
               {isEditing ? (
                 <TextInput
                   style={styles.textInput}
                   value={formData.transgenderVoters}
                   onChangeText={(value: string) => handleInputChange('transgenderVoters', value)}
-                  placeholder="Enter transgender voters count"
+                  placeholder={t('election.enterTransgenderVoters')}
                   placeholderTextColor="#999999"
                   keyboardType="numeric"
                 />
@@ -744,17 +744,17 @@ export default function ElectionDetailsScreen() {
 
         {/* Remarks Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Remarks</Text>
+          <Text style={styles.sectionTitle}>{t('election.remarks')}</Text>
           
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Remarks</Text>
+            <Text style={styles.fieldLabel}>{t('election.remarks')}</Text>
             <View style={[styles.inputField, styles.textAreaField]}>
               {isEditing ? (
                 <TextInput
                   style={[styles.textInput, styles.textAreaField]}
                   value={formData.remarks}
                   onChangeText={(value: string) => handleInputChange('remarks', value)}
-                  placeholder="Enter remarks"
+                  placeholder={t('election.enterRemarks')}
                   placeholderTextColor="#999999"
                   multiline={true}
                   numberOfLines={4}
@@ -772,10 +772,10 @@ export default function ElectionDetailsScreen() {
 
         {/* Calendar of Event Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Calendar of Event</Text>
+          <Text style={styles.sectionTitle}>{t('election.calendarOfEvent')}</Text>
           
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Gazette Notification</Text>
+            <Text style={styles.fieldLabel}>{t('election.gazetteNotification')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('gazetteNotification')}
@@ -791,7 +791,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Last Date for Filling Nomination</Text>
+            <Text style={styles.fieldLabel}>{t('election.lastDateFillingNomination')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('lastDateFillingNomination')}
@@ -807,7 +807,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Scrutiny Nomination</Text>
+            <Text style={styles.fieldLabel}>{t('election.scrutinyNomination')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('scrutinyNomination')}
@@ -823,7 +823,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Last Date for Withdrawal of Nomination</Text>
+            <Text style={styles.fieldLabel}>{t('election.lastDateWithdrawalNomination')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('lastDateWithdrawalNomination')}
@@ -839,7 +839,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Date of Poll</Text>
+            <Text style={styles.fieldLabel}>{t('election.dateOfPoll')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('dateOfPoll')}
@@ -855,7 +855,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Date of Counting of Votes</Text>
+            <Text style={styles.fieldLabel}>{t('election.dateOfCounting')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('dateOfCounting')}
@@ -871,7 +871,7 @@ export default function ElectionDetailsScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Completion Deadline</Text>
+            <Text style={styles.fieldLabel}>{t('election.completionDeadline')}</Text>
             <TouchableOpacity 
               style={styles.inputField} 
               onPress={() => isEditing && openDatePicker('completionDeadline')}
@@ -892,15 +892,15 @@ export default function ElectionDetailsScreen() {
       <View style={styles.bottomButton}>
         {!isEditing ? (
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-            <Text style={styles.editButtonText}>Edit</Text>
+            <Text style={styles.editButtonText}>{t('election.edit')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.editActions}>
             <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('election.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
-              <Text style={styles.updateButtonText}>Update</Text>
+              <Text style={styles.updateButtonText}>{t('election.update')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -914,7 +914,7 @@ export default function ElectionDetailsScreen() {
           onPress={() => setShowCategoryDropdown(false)}
         >
           <View style={styles.dropdownModal}>
-            <Text style={styles.dropdownTitle}>Select Category</Text>
+            <Text style={styles.dropdownTitle}>{t('election.selectCategory')}</Text>
             <FlatList
               data={categoryOptions}
               keyExtractor={(item) => item}
@@ -938,7 +938,7 @@ export default function ElectionDetailsScreen() {
           onPress={() => setShowElectionTypeDropdown(false)}
         >
           <View style={styles.dropdownModal}>
-            <Text style={styles.dropdownTitle}>Select Election Type</Text>
+            <Text style={styles.dropdownTitle}>{t('election.selectType')}</Text>
             <FlatList
               data={electionTypeOptions}
               keyExtractor={(item) => item}
@@ -962,7 +962,7 @@ export default function ElectionDetailsScreen() {
           onPress={() => setShowElectionBodyDropdown(false)}
         >
           <View style={styles.dropdownModal}>
-            <Text style={styles.dropdownTitle}>Select Election Body</Text>
+            <Text style={styles.dropdownTitle}>{t('election.selectBody')}</Text>
             <FlatList
               data={electionBodyOptions}
               keyExtractor={(item) => item}
@@ -986,7 +986,7 @@ export default function ElectionDetailsScreen() {
           onPress={() => setShowStateDropdown(false)}
         >
           <View style={styles.dropdownModal}>
-            <Text style={styles.dropdownTitle}>Select State</Text>
+            <Text style={styles.dropdownTitle}>{t('election.selectState')}</Text>
             <FlatList
               data={indianStates}
               keyExtractor={(item) => item}
@@ -1010,7 +1010,7 @@ export default function ElectionDetailsScreen() {
           onPress={() => setShowStatusDropdown(false)}
         >
           <View style={styles.dropdownModal}>
-            <Text style={styles.dropdownTitle}>Select Status</Text>
+            <Text style={styles.dropdownTitle}>{t('election.selectStatus')}</Text>
             <FlatList
               data={statusOptions}
               keyExtractor={(item) => item}

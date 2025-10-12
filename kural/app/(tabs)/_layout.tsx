@@ -12,11 +12,11 @@ export default function Layout() {
   const { t } = useLanguage();
 
   const tabItems = [
-    { id: 'report', label: 'Report', iconName: 'assessment', route: '/(tabs)/report' },
-    { id: 'catalogue', label: 'Catalogue', iconName: 'description', route: '/(tabs)/catalogue' },
+    { id: 'report', label: t('nav.report'), iconName: 'assessment', route: '/(tabs)/report' },
+    { id: 'catalogue', label: t('nav.catalogue'), iconName: 'description', route: '/(tabs)/catalogue' },
     { id: 'home', label: '', iconName: 'home', route: '/(tabs)/' },
-    { id: 'slip', label: 'Slip', iconName: 'receipt', route: '/(tabs)/slip' },
-    { id: 'poll', label: 'Poll', iconName: 'how-to-vote', route: '/(tabs)/poll' },
+    { id: 'slip', label: t('nav.slip'), iconName: 'receipt', route: '/(tabs)/slip' },
+    { id: 'poll', label: t('nav.poll'), iconName: 'how-to-vote', route: '/(tabs)/poll' },
   ];
 
   const isActive = (route: string) => {

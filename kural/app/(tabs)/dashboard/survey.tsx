@@ -80,7 +80,7 @@ export default function SurveyScreen() {
     >
       <View style={styles.surveyFormHeader}>
         <View style={styles.formNumberContainer}>
-          <Text style={styles.formNumber}>Form : {survey.formNumber}</Text>
+          <Text style={styles.formNumber}>{t('survey.form')} : {survey.formNumber}</Text>
         </View>
         <View 
           onStartShouldSetResponder={() => true}
@@ -121,7 +121,7 @@ export default function SurveyScreen() {
         </View>
         
         <Text style={styles.responseCount}>
-          {survey.responseCount || 0} responses
+          {survey.responseCount || 0} {t('survey.responses')}
         </Text>
       </View>
     </TouchableOpacity>
@@ -131,7 +131,7 @@ export default function SurveyScreen() {
     <View key={survey._id} style={styles.surveyCard}>
       <View style={styles.surveyHeader}>
         <View style={styles.formNumberContainer}>
-          <Text style={styles.formNumber}>Form : {survey.formNumber}</Text>
+          <Text style={styles.formNumber}>{t('survey.form')} : {survey.formNumber}</Text>
         </View>
         <Switch
           value={survey.status === 'Active'}
@@ -167,7 +167,7 @@ export default function SurveyScreen() {
         </View>
         
         <Text style={styles.responseCount}>
-          {survey.responseCount || 0} responses
+          {survey.responseCount || 0} {t('survey.responses')}
         </Text>
       </View>
     </View>
@@ -180,12 +180,12 @@ export default function SurveyScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Survey</Text>
+          <Text style={styles.headerTitle}>{t('survey.title')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading surveys...</Text>
+          <Text style={styles.loadingText}>{t('survey.loading')}</Text>
         </View>
       </View>
     );
@@ -198,13 +198,13 @@ export default function SurveyScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Survey</Text>
+          <Text style={styles.headerTitle}>{t('survey.title')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadSurveys}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -227,7 +227,7 @@ export default function SurveyScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Survey</Text>
+        <Text style={styles.headerTitle}>{t('survey.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -237,8 +237,8 @@ export default function SurveyScreen() {
           surveys.map(renderSurveyFormCard)
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No Surveys Found</Text>
-            <Text style={styles.emptySubtext}>Create your first survey to get started</Text>
+            <Text style={styles.emptyText}>{t('survey.noSurveys')}</Text>
+            <Text style={styles.emptySubtext}>{t('survey.createFirst')}</Text>
           </View>
         )}
       </ScrollView>

@@ -33,11 +33,11 @@ export default function SchemesScreen() {
       if (response.success) {
         setSchemesData(response.data);
       } else {
-        setError('Failed to load schemes');
+        setError(t('schemes.error'));
       }
     } catch (err) {
       console.error('Error loading schemes:', err);
-      setError('Failed to load schemes');
+      setError(t('schemes.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function SchemesScreen() {
           setEditName('');
           setEditDescription('');
           setSelectedScheme(null);
-          Alert.alert('Success', 'Scheme updated successfully');
+          Alert.alert(t('schemes.success'), t('schemes.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update scheme');
+          Alert.alert(t('common.error'), t('schemes.updateError'));
         }
       } catch (err) {
         console.error('Error updating scheme:', err);
-        Alert.alert('Error', 'Failed to update scheme');
+        Alert.alert(t('common.error'), t('schemes.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter a scheme name');
+      Alert.alert(t('common.error'), t('schemes.validationError'));
     }
   };
 
@@ -115,7 +115,7 @@ export default function SchemesScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading schemes...</Text>
+          <Text style={styles.loadingText}>{t('schemes.loading')}</Text>
         </View>
       </View>
     );
@@ -134,7 +134,7 @@ export default function SchemesScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadSchemes}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('schemes.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

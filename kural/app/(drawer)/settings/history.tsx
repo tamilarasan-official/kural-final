@@ -82,7 +82,7 @@ export default function HistoryScreen() {
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert(t('common.error'), 'Failed to pick image');
+      Alert.alert(t('common.error'), t('history.failedToPickImage'));
     }
   };
 
@@ -110,7 +110,7 @@ export default function HistoryScreen() {
     try {
       const newTitle = customText.trim();
       if (!newTitle && !selectedImage) {
-        Alert.alert(t('common.error'), 'Please edit the title');
+        Alert.alert(t('common.error'), t('history.editTitle'));
         return;
       }
 
@@ -131,7 +131,7 @@ export default function HistoryScreen() {
       setSelectedItem(null);
     } catch (err) {
       console.error('Error saving history item:', err);
-      Alert.alert(t('common.error'), 'Failed to save');
+      Alert.alert(t('common.error'), t('history.failedToSave'));
     }
   };
 
@@ -225,7 +225,7 @@ export default function HistoryScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-              <Text style={styles.imagePickerText}>Select Image</Text>
+              <Text style={styles.imagePickerText}>{t('history.selectImage')}</Text>
             </TouchableOpacity>
             
             <TextInput

@@ -31,7 +31,7 @@ export default function TabTwoScreen() {
           style={{
             fontFamily: Fonts.rounded,
           }}>
-          Explore
+          {t('nav.explore')}
         </ThemedText>
       </ThemedView>
       <ThemedText>This app includes example code to help you get started.</ThemedText>
@@ -46,7 +46,7 @@ export default function TabTwoScreen() {
           sets up the tab navigator.
         </ThemedText>
         <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
+          <ThemedText type="link">{t('explore.learnMore')}</ThemedText>
         </ExternalLink>
       </Collapsible>
       <Collapsible title="Android, iOS, and web support">
@@ -66,7 +66,7 @@ export default function TabTwoScreen() {
           style={{ width: 100, height: 100, alignSelf: 'center' }}
         />
         <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
+          <ThemedText type="link">{t('explore.learnMore')}</ThemedText>
         </ExternalLink>
       </Collapsible>
       <Collapsible title="Light and dark mode components">
@@ -76,7 +76,7 @@ export default function TabTwoScreen() {
           what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
         </ThemedText>
         <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
+          <ThemedText type="link">{t('explore.learnMore')}</ThemedText>
         </ExternalLink>
       </Collapsible>
       <Collapsible title="Animations">

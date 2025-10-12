@@ -40,11 +40,11 @@ export default function CatalogueScreen() {
       if (response.success && Array.isArray(response.data)) {
         setProducts(response.data);
       } else {
-        setError('Failed to load catalogue items');
+        setError(t('catalogue.error'));
       }
     } catch (err: any) {
       console.log('Catalogue fetch error:', err?.message || err);
-      setError('Failed to load catalogue items');
+      setError(t('catalogue.error'));
     } finally {
       setLoading(false);
     }
@@ -68,20 +68,20 @@ export default function CatalogueScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Catalogue</Text>
+        <Text style={styles.headerTitle}>{t('catalogue.title')}</Text>
       </View>
       
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading catalogue items...</Text>
+          <Text style={styles.loadingText}>{t('catalogue.loading')}</Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
           <Icon name="error-outline" size={48} color="#F44336" />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCatalogueItems}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('catalogue.retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

@@ -33,11 +33,11 @@ export default function FeedbackScreen() {
       if (response.success) {
         setData(response.data);
       } else {
-        setError('Failed to load data');
+        setError(t('feedback.error'));
       }
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Failed to load data');
+      setError(t('feedback.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function FeedbackScreen() {
           setEdittitle('');
           setEditdescription('');
           setSelectedItem(null);
-          Alert.alert('Success', 'Item updated successfully');
+          Alert.alert(t('feedback.success'), t('feedback.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update item');
+          Alert.alert(t('common.error'), t('feedback.updateError'));
         }
       } catch (err) {
         console.error('Error updating item:', err);
-        Alert.alert('Error', 'Failed to update item');
+        Alert.alert(t('common.error'), t('feedback.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please fill all required fields');
+      Alert.alert(t('common.error'), t('feedback.validationError'));
     }
   };
 
@@ -109,7 +109,7 @@ export default function FeedbackScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading data...</Text>
+          <Text style={styles.loadingText}>{t('feedback.loading')}</Text>
         </View>
       </View>
     );
@@ -128,7 +128,7 @@ export default function FeedbackScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('feedback.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { voterAPI } from '../../../services/api/voter';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { settingsAPI } from '../../../services/api/settings';
@@ -33,6 +34,7 @@ interface Voter {
 type TabType = 'basic' | 'family' | 'friends' | 'share';
 
 export default function VoterInfoScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { voterData, partNumber } = useLocalSearchParams();
   const [voter, setVoter] = useState<Voter | null>(null);
@@ -128,8 +130,8 @@ export default function VoterInfoScreen() {
           tamil: partName    // For now, use the same text for Tamil
         },
         address: {
-          english: `Part ${voterData?.Part_no || voter?.Part_no} - ${partName}`,
-          tamil: `பகுதி ${voterData?.Part_no || voter?.Part_no} - ${partName}`
+          english: `${t('dashboard.part')} ${voterData?.Part_no || voter?.Part_no} - ${partName}`,
+          tamil: `${t('dashboard.part')} ${voterData?.Part_no || voter?.Part_no} - ${partName}`
         }
       };
       
@@ -248,10 +250,10 @@ export default function VoterInfoScreen() {
       const response = await settingsAPI.saveVoterInfo(voter._id, voterInfoData);
       
       if (response.success) {
-        Alert.alert('Success', 'Voter information saved successfully');
+        Alert.alert(t('voterInfo.success'), t('voterInfo.savedSuccessfully'));
         console.log('Voter info saved successfully:', response.data);
       } else {
-        Alert.alert('Error', 'Failed to save voter information');
+        Alert.alert(t('common.error'), t('voterInfo.saveFailed'));
       }
     } catch (error) {
       console.error('Error saving voter info:', error);
@@ -262,24 +264,24 @@ export default function VoterInfoScreen() {
   const showDropdown = (field: string, options: any[]) => {
     console.log(`showDropdown called for ${field} with ${options?.length || 0} options`);
     if (!options || options.length === 0) {
-      Alert.alert('No Options', `No options available for ${field} field`);
+      Alert.alert(t('voterInfo.noOptions'), t('voterInfo.noOptionsAvailable', { field }));
       return;
     }
 
     setPickerField(field);
     const titleMap: any = {
-      religion: 'Select Religion',
-      caste: 'Select Caste',
-      subCaste: 'Select Sub-Caste',
-      category: 'Select Category',
-      casteCategory: 'Caste Category',
-      party: 'Select Party',
-      schemes: 'Select Schemes',
-      history: 'Select History',
-      feedback: 'Select Feedback',
-      language: 'Select Language'
+      religion: t('voterInfo.selectReligion'),
+      caste: t('voterInfo.selectCaste'),
+      subCaste: t('voterInfo.selectSubCaste'),
+      category: t('voterInfo.selectCategory'),
+      casteCategory: t('voterInfo.casteCategory'),
+      party: t('voterInfo.selectParty'),
+      schemes: t('voterInfo.selectSchemes'),
+      history: t('voterInfo.selectHistory'),
+      feedback: t('voterInfo.selectFeedback'),
+      language: t('voterInfo.selectLanguage')
     };
-    setPickerTitle(titleMap[field] || 'Select');
+    setPickerTitle(titleMap[field] || t('common.select'));
     setPickerOptions(options);
     setPickerSearch('');
     setPickerVisible(true);
@@ -319,11 +321,11 @@ export default function VoterInfoScreen() {
     if (!voter) return;
     
     const mobileNumber = voter['Mobile No'];
-    const message = `Voter Info:\nName: ${voter.Name}\nEPIC: ${voter.Number}\nPart: ${voter.Part_no}`;
+    const message = `${t('voterInfo.voterInfo')}:\n${t('voterInfo.name')}: ${voter.Name}\n${t('voterInfo.epic')}: ${voter.Number}\n${t('voterInfo.part')}: ${voter.Part_no}`;
     
     // Check if mobile number is available for WhatsApp, SMS, and Share
     if ((type === 'whatsapp' || type === 'sms' || type === 'share') && (!mobileNumber || mobileNumber.trim() === '')) {
-      Alert.alert('No Mobile Number', 'No mobile number is there for this voter');
+      Alert.alert(t('voterInfo.noMobileNumber'), t('voterInfo.noMobileNumberMessage'));
       return;
     }
     
@@ -333,7 +335,7 @@ export default function VoterInfoScreen() {
           // Open WhatsApp with the voter's mobile number
           const whatsappUrl = `whatsapp://send?phone=${mobileNumber}&text=${encodeURIComponent(message)}`;
           // In a real app, you would use Linking.openURL(whatsappUrl)
-          Alert.alert('WhatsApp', `Opening WhatsApp for ${mobileNumber}`);
+          Alert.alert(t('voterInfo.whatsapp'), t('voterInfo.openingWhatsApp', { mobileNumber }));
         }
         break;
       case 'sms':
@@ -341,17 +343,17 @@ export default function VoterInfoScreen() {
           // Open SMS with the voter's mobile number
           const smsUrl = `sms:${mobileNumber}?body=${encodeURIComponent(message)}`;
           // In a real app, you would use Linking.openURL(smsUrl)
-          Alert.alert('SMS', `Opening SMS for ${mobileNumber}`);
+          Alert.alert(t('voterInfo.sms'), t('voterInfo.openingSMS', { mobileNumber }));
         }
         break;
       case 'general':
         if (mobileNumber) {
           // General sharing functionality
-          Alert.alert('Share', `Sharing voter info for ${mobileNumber}`);
+          Alert.alert(t('voterInfo.share'), t('voterInfo.sharingVoterInfo', { mobileNumber }));
         }
         break;
       case 'print':
-        Alert.alert('Print', 'Print functionality');
+        Alert.alert(t('voterInfo.print'), t('voterInfo.printFunctionality'));
         break;
     }
   };
@@ -373,7 +375,7 @@ export default function VoterInfoScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>Loading voter details...</Text>
+        <Text style={styles.loadingText}>{t('voterInfo.loadingVoterDetails')}</Text>
       </View>
     );
   }
@@ -382,9 +384,9 @@ export default function VoterInfoScreen() {
     return (
       <View style={styles.errorContainer}>
         <Icon name="error" size={48} color="#f44336" />
-        <Text style={styles.errorText}>Voter not found</Text>
+        <Text style={styles.errorText}>{t('voterInfo.voterNotFound')}</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={styles.backButtonText}>{t('common.goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -393,7 +395,7 @@ export default function VoterInfoScreen() {
   const renderBasicTab = () => (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Contact Information</Text>
+        <Text style={styles.sectionTitle}>{t('voterInfo.contactInformation')}</Text>
         
         <View style={styles.inputRow}>
           <Icon name="calendar-today" size={20} color="#666" />
@@ -402,7 +404,7 @@ export default function VoterInfoScreen() {
             onPress={() => setShowDobPicker(true)}
           >
             <Text style={styles.dropdownText}>
-              {selectedValues.dob ? selectedValues.dob : 'Select Date of Birth'}
+              {selectedValues.dob ? selectedValues.dob : t('voterInfo.selectDateOfBirth')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -431,7 +433,7 @@ export default function VoterInfoScreen() {
           <Icon name="phone" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder="Enter Mobile Number"
+            placeholder={t('voterInfo.enterMobileNumber')}
             placeholderTextColor="#999"
             value={voter['Mobile No'] || ''}
             editable={false}
@@ -442,7 +444,7 @@ export default function VoterInfoScreen() {
           <Icon name="message" size={20} color="#25D366" />
           <TextInput
             style={styles.textInput}
-            placeholder="Enter Whatsapp Number"
+            placeholder={t('voterInfo.enterWhatsappNumber')}
             placeholderTextColor="#999"
           />
         </View>
@@ -451,7 +453,7 @@ export default function VoterInfoScreen() {
           <Icon name="email" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder="Enter Email"
+            placeholder={t('voterInfo.enterEmail')}
             placeholderTextColor="#999"
           />
         </View>
@@ -460,23 +462,23 @@ export default function VoterInfoScreen() {
           <Icon name="location-on" size={20} color="#666" />
           <View style={styles.locationContainer}>
             <TouchableOpacity style={styles.locationButton}>
-              <Text style={styles.locationButtonText}>No location</Text>
+              <Text style={styles.locationButtonText}>{t('voterInfo.noLocation')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.fetchLocationButton}>
-              <Text style={styles.fetchLocationButtonText}>Fetch Location</Text>
+              <Text style={styles.fetchLocationButtonText}>{t('voterInfo.fetchLocation')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Additional Information</Text>
+        <Text style={styles.sectionTitle}>{t('voterInfo.additionalInformation')}</Text>
         
         <View style={styles.inputRow}>
           <Icon name="fingerprint" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder="Enter Aadhar Number"
+            placeholder={t('voterInfo.enterAadharNumber')}
             placeholderTextColor="#999"
             value={selectedValues.aadhar}
             onChangeText={(text) => setSelectedValues(prev => ({ ...prev, aadhar: text }))}
@@ -487,7 +489,7 @@ export default function VoterInfoScreen() {
           <Icon name="account-balance" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder="Enter Pan Number"
+            placeholder={t('voterInfo.enterPanNumber')}
             placeholderTextColor="#999"
             value={selectedValues.pan}
             onChangeText={(text) => setSelectedValues(prev => ({ ...prev, pan: text }))}
@@ -498,7 +500,7 @@ export default function VoterInfoScreen() {
           <Icon name="card-membership" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder="Enter Membership Number"
+            placeholder={t('voterInfo.enterMembershipNumber')}
             placeholderTextColor="#999"
             value={selectedValues.membership}
             onChangeText={(text) => setSelectedValues(prev => ({ ...prev, membership: text }))}
@@ -512,7 +514,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('religion', religions)}
           >
             <Text style={[styles.dropdownText, selectedValues.religion && styles.selectedText]}>
-              {selectedValues.religion || 'Select Religion'}
+              {selectedValues.religion || t('voterInfo.selectReligion')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -525,7 +527,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('caste', castes)}
           >
             <Text style={[styles.dropdownText, selectedValues.caste && styles.selectedText]}>
-              {selectedValues.caste || 'Select Caste'}
+              {selectedValues.caste || t('voterInfo.selectCaste')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -538,7 +540,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('subCaste', subCastes)}
           >
             <Text style={[styles.dropdownText, selectedValues.subCaste && styles.selectedText]}>
-              {selectedValues.subCaste || 'Select Sub-Caste'}
+              {selectedValues.subCaste || t('voterInfo.selectSubCaste')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -551,7 +553,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('category', categories)}
           >
             <Text style={[styles.dropdownText, selectedValues.category && styles.selectedText]}>
-              {selectedValues.category || 'Select Category'}
+              {selectedValues.category || t('voterInfo.selectCategory')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -564,7 +566,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('casteCategory', casteCategories)}
           >
             <Text style={[styles.dropdownText, selectedValues.casteCategory && styles.selectedText]}>
-              {selectedValues.casteCategory || 'Select Caste Category'}
+              {selectedValues.casteCategory || t('voterInfo.selectCasteCategory')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -577,7 +579,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('party', parties)}
           >
             <Text style={[styles.dropdownText, selectedValues.party && styles.selectedText]}>
-              {selectedValues.party || 'Select Party'}
+              {selectedValues.party || t('voterInfo.selectParty')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -590,7 +592,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('schemes', schemes)}
           >
             <Text style={[styles.dropdownText, selectedValues.schemes && styles.selectedText]}>
-              {selectedValues.schemes || 'Select Schemes'}
+              {selectedValues.schemes || t('voterInfo.selectSchemes')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -603,7 +605,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('history', histories)}
           >
             <Text style={[styles.dropdownText, selectedValues.history && styles.selectedText]}>
-              {selectedValues.history || 'Select History'}
+              {selectedValues.history || t('voterInfo.selectHistory')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -616,7 +618,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('feedback', feedbacks)}
           >
             <Text style={[styles.dropdownText, selectedValues.feedback && styles.selectedText]}>
-              {selectedValues.feedback || 'Select Feedback'}
+              {selectedValues.feedback || t('voterInfo.selectFeedback')}
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -629,7 +631,7 @@ export default function VoterInfoScreen() {
             onPress={() => showDropdown('language', languages)}
           >
             <Text style={[styles.dropdownText, selectedValues.language && styles.selectedText]}>
-              {selectedValues.language || 'Select Language'}
+              {selectedValues.language || t('voterInfo.selectLanguage')}   
             </Text>
             <Icon name="keyboard-arrow-down" size={20} color="#666" />
           </TouchableOpacity>
@@ -639,7 +641,7 @@ export default function VoterInfoScreen() {
           <Icon name="note" size={20} color="#666" />
           <TextInput
             style={[styles.textInput, styles.remarksInput]}
-            placeholder="Enter Remarks"
+            placeholder={t('voterInfo.enterRemarks')}
             placeholderTextColor="#999"
             multiline
             numberOfLines={3}
@@ -658,7 +660,7 @@ export default function VoterInfoScreen() {
           <Icon name="search" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by EPIC number or name"
+            placeholder={t('voterInfo.searchByEpicOrName')}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -671,8 +673,8 @@ export default function VoterInfoScreen() {
 
       <View style={styles.emptyState}>
         <Icon name="family-restroom" size={64} color="#ccc" />
-        <Text style={styles.emptyStateTitle}>No family members found</Text>
-        <Text style={styles.emptyStateSubtitle}>Search by EPIC number to add family</Text>
+        <Text style={styles.emptyStateTitle}>{t('voterInfo.noFamilyMembersFound')}</Text>
+        <Text style={styles.emptyStateSubtitle}>{t('voterInfo.searchByEpicToAddFamily')}</Text>
       </View>
     </View>
   );
@@ -684,7 +686,7 @@ export default function VoterInfoScreen() {
           <Icon name="search" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by EPIC number or name"
+            placeholder={t('voterInfo.searchByEpicOrName')}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -697,8 +699,8 @@ export default function VoterInfoScreen() {
 
       <View style={styles.emptyState}>
         <Icon name="people" size={64} color="#ccc" />
-        <Text style={styles.emptyStateTitle}>No friends Found</Text>
-        <Text style={styles.emptyStateSubtitle}>Search by EPIC number or</Text>
+        <Text style={styles.emptyStateTitle}>{t('voterInfo.noFriendsFound')}</Text>
+        <Text style={styles.emptyStateSubtitle}>{t('voterInfo.searchByEpicOr')}</Text>
       </View>
     </View>
   );
@@ -706,7 +708,7 @@ export default function VoterInfoScreen() {
   const renderShareTab = () => (
     <View style={styles.tabContent}>
       <View style={styles.shareContainer}>
-        <Text style={styles.sectionTitle}>Share Voter Information</Text>
+        <Text style={styles.sectionTitle}>{t('voterInfo.shareVoterInformation')}</Text>
         
         <View style={styles.shareButtons}>
           <TouchableOpacity 
@@ -714,7 +716,7 @@ export default function VoterInfoScreen() {
             onPress={() => handleShare('whatsapp')}
           >
             <Icon name="chat" size={24} color="#25D366" />
-            <Text style={styles.shareButtonText}>WhatsApp</Text>
+            <Text style={styles.shareButtonText}>{t('voterInfo.whatsapp')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -722,7 +724,7 @@ export default function VoterInfoScreen() {
             onPress={() => handleShare('sms')}
           >
             <Icon name="message" size={24} color="#2196F3" />
-            <Text style={styles.shareButtonText}>SMS</Text>
+            <Text style={styles.shareButtonText}>{t('voterInfo.sms')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -730,7 +732,7 @@ export default function VoterInfoScreen() {
             onPress={() => handleShare('general')}
           >
             <Icon name="share" size={24} color="#2196F3" />
-            <Text style={styles.shareButtonText}>Share</Text>
+            <Text style={styles.shareButtonText}>{t('voterInfo.share')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -738,19 +740,19 @@ export default function VoterInfoScreen() {
             onPress={() => handleShare('print')}
           >
             <Icon name="print" size={24} color="#666" />
-            <Text style={styles.shareButtonText}>Take Print</Text>
+            <Text style={styles.shareButtonText}>{t('voterInfo.takePrint')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.partSectionContainer}>
-          <Text style={styles.partSectionTitle}>Part & Section Info</Text>
+          <Text style={styles.partSectionTitle}>{t('voterInfo.partSectionInfo')}</Text>
           
           {partSectionInfo ? (
             <>
               <View style={styles.locationCard}>
                 <Icon name="location-on" size={20} color="#666" />
                 <View style={styles.locationDetails}>
-                  <Text style={styles.locationTitle}>Polling Station</Text>
+                  <Text style={styles.locationTitle}>{t('voterInfo.pollingStation')}</Text>
                   <Text style={styles.locationText}>{partSectionInfo.pollingStation.english}</Text>
                   <Text style={styles.locationTextTamil}>{partSectionInfo.pollingStation.tamil}</Text>
                 </View>
@@ -759,7 +761,7 @@ export default function VoterInfoScreen() {
               <View style={styles.locationCard}>
                 <Icon name="home" size={20} color="#666" />
                 <View style={styles.locationDetails}>
-                  <Text style={styles.locationTitle}>Address/Ward</Text>
+                  <Text style={styles.locationTitle}>{t('voterInfo.addressWard')}</Text>
                   <Text style={styles.locationText}>{partSectionInfo.address.english}</Text>
                   <Text style={styles.locationTextTamil}>{partSectionInfo.address.tamil}</Text>
                 </View>
@@ -767,7 +769,7 @@ export default function VoterInfoScreen() {
             </>
           ) : (
             <View style={styles.loadingInfo}>
-              <Text style={styles.loadingInfoText}>Loading Part & Section Info...</Text>
+              <Text style={styles.loadingInfoText}>{t('voterInfo.loadingPartSectionInfo')}</Text>
             </View>
           )}
         </View>
@@ -782,7 +784,7 @@ export default function VoterInfoScreen() {
         <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Voter Info</Text>
+        <Text style={styles.headerTitle}>{t('voterInfo.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -790,9 +792,9 @@ export default function VoterInfoScreen() {
       <View style={styles.voterCard}>
         <View style={styles.voterHeader}>
           <Icon name="star" size={16} color="#E91E63" />
-          <Text style={styles.serialText}>Serial : {voter.sr}</Text>
-          <Text style={styles.sectionText}>Section : 1</Text>
-          <Text style={styles.partText}>Part : {voter.Part_no}</Text>
+          <Text style={styles.serialText}>{t('dashboard.serial')} : {voter.sr}</Text>
+          <Text style={styles.sectionText}>{t('dashboard.section')} : 1</Text>
+          <Text style={styles.partText}>{t('dashboard.part')} : {voter.Part_no}</Text>
         </View>
 
         <View style={styles.voterContent}>
@@ -808,10 +810,10 @@ export default function VoterInfoScreen() {
 
           <View style={styles.voterDetails}>
             <Text style={styles.voterName}>{voter.Name}</Text>
-            <Text style={styles.voterNameTamil}>பாப்பாத்தி வரதராஜன்</Text>
+            <Text style={styles.voterNameTamil}>{voter.NameTamil || voter.Name}</Text>
             <Text style={styles.relationName}>{voter['Father Name']}</Text>
-            <Text style={styles.relationNameTamil}>காளப்பகவுடர்</Text>
-            <Text style={styles.address}>Door No {voter.Door_No}</Text>
+            <Text style={styles.relationNameTamil}>{voter.RelationNameTamil || voter['Father Name']}</Text>
+            <Text style={styles.address}>{t('dashboard.doorNo')} {voter.Door_No}</Text>
           </View>
         </View>
 
@@ -840,7 +842,7 @@ export default function VoterInfoScreen() {
             color={activeTab === 'basic' ? '#fff' : '#666'} 
           />
           <Text style={[styles.tabText, activeTab === 'basic' && styles.activeTabText]}>
-            Basic
+            {t('voterInfo.basic')}
           </Text>
         </TouchableOpacity>
 
@@ -854,7 +856,7 @@ export default function VoterInfoScreen() {
             color={activeTab === 'family' ? '#fff' : '#666'} 
           />
           <Text style={[styles.tabText, activeTab === 'family' && styles.activeTabText]}>
-            Family
+            {t('voterInfo.family')}
           </Text>
         </TouchableOpacity>
 
@@ -868,7 +870,7 @@ export default function VoterInfoScreen() {
             color={activeTab === 'friends' ? '#fff' : '#666'} 
           />
           <Text style={[styles.tabText, activeTab === 'friends' && styles.activeTabText]}>
-            Friends
+            {t('voterInfo.friends')}
           </Text>
         </TouchableOpacity>
 
@@ -882,7 +884,7 @@ export default function VoterInfoScreen() {
             color={activeTab === 'share' ? '#fff' : '#666'} 
           />
           <Text style={[styles.tabText, activeTab === 'share' && styles.activeTabText]}>
-            Share
+            {t('voterInfo.share')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -906,7 +908,7 @@ export default function VoterInfoScreen() {
             <View style={styles.modalSearchRow}>
               <TextInput
                 style={styles.modalSearchInput}
-                placeholder={pickerTitle.replace('Select', 'Search').trim()}
+                placeholder={pickerTitle.replace(t('common.select'), t('common.search')).trim()}
                 placeholderTextColor="#999"
                 value={pickerSearch}
                 onChangeText={setPickerSearch}
@@ -942,7 +944,7 @@ export default function VoterInfoScreen() {
       {!pickerVisible && (
         <View style={styles.bottomContainer}>
           <TouchableOpacity style={styles.saveButton} onPress={saveVoterInfo}>
-            <Text style={styles.saveButtonText}>SAVE CHANGES</Text>
+            <Text style={styles.saveButtonText}>{t('voterInfo.saveChanges')}</Text>
           </TouchableOpacity>
         </View>
       )}

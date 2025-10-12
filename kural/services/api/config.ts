@@ -1,6 +1,6 @@
 export const API_CONFIG = {
   // Change this to your actual API domain in production
-  BASE_URL: "http://34.180.20.87/api/v1",
+  BASE_URL: "https://api.kuralapp.in/api/v1",
 
   ENDPOINTS: {
     AUTH: {
@@ -21,6 +21,7 @@ export const API_CONFIG = {
     CADRES: "/cadres",
     MODAL_CONTENT: "/modal-content",
     CATALOGUE: "/catalogue",
+    SOON_VOTERS: "/soon-voters",
   },
 
   // Get authentication token from storage

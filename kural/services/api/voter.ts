@@ -27,13 +27,24 @@ export const voterAPI = {
       body: JSON.stringify(searchParams),
     });
 
+    // Read as text first to avoid JSON parse crashes when server returns plain text/HTML
+    const raw = await response.text();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      try {
+        const errorData = JSON.parse(raw);
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      } catch {
+        throw new Error(raw || `HTTP error! status: ${response.status}`);
+      }
     }
 
-    const data = await response.json();
-    return data;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      // Normalize non-JSON success payloads
+      return { success: false, message: raw } as any;
+    }
   },
 
   // Transgender voters list
@@ -116,8 +127,14 @@ export const voterAPI = {
   },
 
   // Get voters by part number
-  getVotersByPart: async (partNumber: string) => {
-    const response = await fetch(`${BASE_URL}/by-part/${partNumber}`, {
+  getVotersByPart: async (partNumber: string, options?: { page?: number; limit?: number }) => {
+    const ts = Date.now();
+    const qp = new URLSearchParams();
+    if (options?.page) qp.append('page', String(options.page));
+    if (options?.limit) qp.append('limit', String(options.limit));
+    qp.append('_', String(ts));
+    const qs = qp.toString();
+    const response = await fetch(`${BASE_URL}/by-part/${partNumber}?${qs}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -136,7 +153,8 @@ export const voterAPI = {
 
   // Get voter statistics by part number
   getVoterStats: async (partNumber: string) => {
-    const response = await fetch(`${BASE_URL}/stats/${partNumber}`, {
+    const ts = Date.now();
+    const response = await fetch(`${BASE_URL}/stats/${partNumber}?_=${ts}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

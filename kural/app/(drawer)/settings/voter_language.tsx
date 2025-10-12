@@ -33,11 +33,11 @@ export default function VoterLanguageScreen() {
       if (response.success) {
         setLanguagesData(response.data);
       } else {
-        setError('Failed to load languages');
+        setError(t('voterLanguage.error'));
       }
     } catch (err) {
       console.error('Error loading languages:', err);
-      setError('Failed to load languages');
+      setError(t('voterLanguage.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function VoterLanguageScreen() {
           setEditEnglishName('');
           setEditNativeName('');
           setSelectedLanguage(null);
-          Alert.alert('Success', 'Language updated successfully');
+          Alert.alert(t('voterLanguage.success'), t('voterLanguage.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update language');
+          Alert.alert(t('common.error'), t('voterLanguage.updateError'));
         }
       } catch (err) {
         console.error('Error updating language:', err);
-        Alert.alert('Error', 'Failed to update language');
+        Alert.alert(t('common.error'), t('voterLanguage.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter both English and native names');
+      Alert.alert(t('common.error'), t('voterLanguage.validationError'));
     }
   };
 
@@ -109,7 +109,7 @@ export default function VoterLanguageScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading languages...</Text>
+          <Text style={styles.loadingText}>{t('voterLanguage.loading')}</Text>
         </View>
       </View>
     );
@@ -128,7 +128,7 @@ export default function VoterLanguageScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadLanguages}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('voterLanguage.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -74,7 +74,7 @@ export default function MyProfileScreen() {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      Alert.alert('Error', 'Failed to load profile data');
+        Alert.alert(t('profile.error'), t('profile.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -149,13 +149,13 @@ export default function MyProfileScreen() {
       if (response.ok && result.success) {
         setOriginalData(formData);
         setIsEditing(false);
-        Alert.alert('Success', 'Profile updated successfully!');
+        Alert.alert(t('profile.success'), t('profile.updatedSuccessfully'));
       } else {
-        Alert.alert('Error', result.message || 'Failed to update profile');
+        Alert.alert(t('profile.error'), result.message || t('profile.failedToUpdate'));
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      Alert.alert(t('profile.error'), t('profile.failedToSave'));
     } finally {
       setSaving(false);
     }
@@ -183,7 +183,7 @@ export default function MyProfileScreen() {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Text style={styles.loadingText}>{t('profile.loadingData')}</Text>
       </View>
     );
   }
@@ -207,7 +207,7 @@ export default function MyProfileScreen() {
             value={formData.firstName}
             onChangeText={(value) => handleInputChange('firstName', value)}
             editable={isEditing}
-            placeholder="Enter first name"
+            placeholder={t('profile.enterFirstName')}
           />
         </View>
 
@@ -219,7 +219,7 @@ export default function MyProfileScreen() {
             value={formData.lastName}
             onChangeText={(value) => handleInputChange('lastName', value)}
             editable={isEditing}
-            placeholder="Enter last name"
+            placeholder={t('profile.enterLastName')}
           />
         </View>
 
@@ -231,7 +231,7 @@ export default function MyProfileScreen() {
             value={formData.email}
             onChangeText={(value) => handleInputChange('email', value)}
             editable={isEditing}
-            placeholder="Enter email address"
+            placeholder={t('profile.enterEmail')}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -244,10 +244,10 @@ export default function MyProfileScreen() {
             style={[styles.input, styles.inputReadOnly]}
             value={formData.mobileNumber}
             editable={false}
-            placeholder="Enter mobile number"
+            placeholder={t('profile.enterMobile')}
             keyboardType="phone-pad"
           />
-          <Text style={styles.readOnlyText}>Mobile number cannot be changed</Text>
+          <Text style={styles.readOnlyText}>{t('profile.mobileCannotChange')}</Text>
         </View>
 
         {/* Role */}
@@ -257,7 +257,7 @@ export default function MyProfileScreen() {
             style={[styles.input, styles.inputReadOnly]}
             value={formData.role}
             editable={false}
-            placeholder="Select role"
+            placeholder={t('profile.selectRole')}
           />
         </View>
 
@@ -265,7 +265,7 @@ export default function MyProfileScreen() {
         <View style={styles.buttonContainer}>
           {!isEditing ? (
             <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-              <Text style={styles.editButtonText}>{t('common.edit')} Profile</Text>
+              <Text style={styles.editButtonText}>{t('profile.editProfile')}</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.editActions}>

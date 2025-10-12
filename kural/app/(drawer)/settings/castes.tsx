@@ -33,11 +33,11 @@ export default function CastesScreen() {
       if (response.success) {
         setCastesData(response.data);
       } else {
-        setError('Failed to load castes');
+        setError(t('castes.error'));
       }
     } catch (err) {
       console.error('Error loading castes:', err);
-      setError('Failed to load castes');
+      setError(t('castes.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function CastesScreen() {
           setEditEnglishName('');
           setEditTamilName('');
           setSelectedCaste(null);
-          Alert.alert('Success', 'Caste updated successfully');
+          Alert.alert(t('castes.success'), t('castes.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update caste');
+          Alert.alert(t('common.error'), t('castes.updateError'));
         }
       } catch (err) {
         console.error('Error updating caste:', err);
-        Alert.alert('Error', 'Failed to update caste');
+        Alert.alert(t('common.error'), t('castes.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter both English and Tamil names');
+      Alert.alert(t('common.error'), t('castes.validationError'));
     }
   };
 
@@ -109,7 +109,7 @@ export default function CastesScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading castes...</Text>
+          <Text style={styles.loadingText}>{t('castes.loading')}</Text>
         </View>
       </View>
     );
@@ -128,7 +128,7 @@ export default function CastesScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCastes}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('castes.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

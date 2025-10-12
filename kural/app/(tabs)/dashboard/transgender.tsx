@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Activi
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { voterAPI } from '../../../services/api/voter';
 import { settingsAPI } from '../../../services/api/settings';
 
@@ -39,6 +40,7 @@ const AgeLabel = ({
 };
 
 export default function TransgenderScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<TG[]>([]);
@@ -127,7 +129,7 @@ export default function TransgenderScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transgender</Text>
+        <Text style={styles.headerTitle}>{t('transgender.title')}</Text>
         <TouchableOpacity style={styles.headerIcon} onPress={() => setFiltersVisible(true)}>
           <Icon name="tune" size={22} color="#0D47A1" />
         </TouchableOpacity>
@@ -135,19 +137,19 @@ export default function TransgenderScreen() {
 
       <View style={styles.countersRow}>
         <View style={[styles.counterCard, { backgroundColor: '#C8E6C9' }]}>
-          <Text style={styles.counterTitle}>Male</Text>
+          <Text style={styles.counterTitle}>{t('common.male')}</Text>
           <Text style={styles.counterValue}>{stats.male}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#F8BBD9' }]}>
-          <Text style={styles.counterTitle}>Female</Text>
+          <Text style={styles.counterTitle}>{t('common.female')}</Text>
           <Text style={styles.counterValue}>{stats.female}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#E0E0E0' }]}>
-          <Text style={styles.counterTitle}>Others</Text>
+          <Text style={styles.counterTitle}>{t('common.others')}</Text>
           <Text style={styles.counterValue}>{stats.other}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#BBDEFB' }]}>
-          <Text style={styles.counterTitle}>Total</Text>
+          <Text style={styles.counterTitle}>{t('common.total')}</Text>
           <Text style={styles.counterValue}>{stats.total}</Text>
         </View>
       </View>
@@ -157,7 +159,7 @@ export default function TransgenderScreen() {
           <Icon name="search" size={18} color="#90A4AE" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Voter Id or Voter Name"
+            placeholder={t('dashboard.searchPlaceholder')}
             placeholderTextColor="#999"
             value={query}
             onChangeText={setQuery}
@@ -173,11 +175,15 @@ export default function TransgenderScreen() {
       ) : (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {items.map((it, idx) => (
-            <View key={it._id} style={styles.voterCard}>
+            <TouchableOpacity key={it._id} style={styles.voterCard} activeOpacity={0.8} onPress={() => {
+              try {
+                router.push({ pathname: '/(tabs)/dashboard/voter_info', params: { voterData: JSON.stringify(it) } });
+              } catch {}
+            }}>
               <View style={styles.rowTop}>
-                <Text style={styles.linkText}>Serial : {idx + 1}</Text>
-                <Text style={styles.linkText}>Section : {it.Anubhag_number ?? '-'}</Text>
-                <Text style={styles.linkText}>Part : {it.Part_no ?? '-'}</Text>
+                <Text style={styles.linkText}>{t('dashboard.serial')} : {idx + 1}</Text>
+                <Text style={styles.linkText}>{t('dashboard.section')} : {it.Anubhag_number ?? '-'}</Text>
+                <Text style={styles.linkText}>{t('dashboard.part')} : {it.Part_no ?? '-'}</Text>
               </View>
               <View style={{ flexDirection: 'row' }}>
                 <View style={styles.imagePlaceholder}>
@@ -189,7 +195,7 @@ export default function TransgenderScreen() {
                     <Text style={styles.voterIdBadge}>{it.Number}</Text>
                   )}
                   <Text style={styles.relationName}>{it['Father Name'] || ''}</Text>
-                  <Text style={styles.address}>Door No {it.Door_No ?? '-'}</Text>
+                  <Text style={styles.address}>{t('dashboard.doorNo')} {it.Door_No ?? '-'}</Text>
                 </View>
               </View>
               <View style={styles.bottomRow}>
@@ -202,7 +208,7 @@ export default function TransgenderScreen() {
                   <Icon name="call" size={18} color="#1976D2" />
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       )}
@@ -211,11 +217,11 @@ export default function TransgenderScreen() {
       {filtersVisible && (
         <View style={styles.filterOverlay}>
           <View style={styles.filterCard}>
-            <Text style={styles.filterTitle}>Filter Voters</Text>
-            <Text style={styles.filterSubtitle}>Select filters to narrow down the voter list</Text>
+            <Text style={styles.filterTitle}>{t('dashboard.filterVoters')}</Text>
+            <Text style={styles.filterSubtitle}>{t('dashboard.filterSubtitle')}</Text>
 
             <ScrollView style={{ maxHeight: 420 }}>
-              <Text style={styles.sectionTitle}>Age</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
               <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
                 <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
                   <MultiSlider
@@ -242,7 +248,7 @@ export default function TransgenderScreen() {
                 </View>
               </View>
 
-              <Text style={styles.sectionTitle}>Gender</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
               <View style={styles.chipsRow}>
                 {['male','female','other'].map(g => (
                   <TouchableOpacity
@@ -260,7 +266,7 @@ export default function TransgenderScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Voter History</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
               <View style={styles.chipsRowWrap}>
                 {histories.map((h:any) => (
                   <TouchableOpacity
@@ -278,7 +284,7 @@ export default function TransgenderScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Voter Category</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
               <View style={styles.chipsRowWrap}>
                 {categories.map((c:any) => (
                   <TouchableOpacity
@@ -296,7 +302,7 @@ export default function TransgenderScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Political Party</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
               <View style={styles.chipsRowWrap}>
                 {parties.map((p:any) => (
                   <TouchableOpacity
@@ -314,7 +320,7 @@ export default function TransgenderScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Religion</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.religion')}</Text>
               <View style={styles.chipsRowWrap}>
                 {religions.map((r:any) => (
                   <TouchableOpacity
@@ -342,7 +348,7 @@ export default function TransgenderScreen() {
                   setItems(allItems);
                 }}
               >
-                <Text style={styles.clearText}>Clear All</Text>
+                <Text style={styles.clearText}>{t('dashboard.clearAll')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}
@@ -356,12 +362,12 @@ export default function TransgenderScreen() {
                   setFiltersVisible(false);
                 }}
               >
-                <Text style={styles.applyText}>Apply Filters</Text>
+                <Text style={styles.applyText}>{t('dashboard.applyFilters')}</Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.closeBar} onPress={() => setFiltersVisible(false)}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={styles.closeText}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>

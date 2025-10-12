@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { cadreAPI } from '../../../services/api/cadre';
 
 type Cadre = {
@@ -18,6 +19,7 @@ type FilterType = 'all' | 'active' | 'inactive';
 export const options = { headerShown: false };
 
 export default function VolunteersTrackingScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [cadres, setCadres] = useState<Cadre[]>([]);
   const [filteredCadres, setFilteredCadres] = useState<Cadre[]>([]);
@@ -101,7 +103,7 @@ export default function VolunteersTrackingScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>Loading volunteers...</Text>
+        <Text style={styles.loadingText}>{t('volunteers.loading')}</Text>
       </View>
     );
   }
@@ -113,7 +115,7 @@ export default function VolunteersTrackingScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Volunteers Tracking</Text>
+        <Text style={styles.headerTitle}>{t('volunteers.title')}</Text>
         <View style={styles.headerActions} />
       </View>
 
@@ -122,7 +124,7 @@ export default function VolunteersTrackingScreen() {
         <View style={styles.searchBar}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by name or mobile number..."
+            placeholder={t('volunteers.searchPlaceholder')}
             placeholderTextColor="#90A4AE"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -143,7 +145,7 @@ export default function VolunteersTrackingScreen() {
           onPress={() => setActiveFilter('active')}
         >
           <Text style={[styles.filterTabText, activeFilter === 'active' && styles.filterTabTextActive]}>
-            Active
+            {t('volunteers.active')}
           </Text>
           <View style={[styles.badge, { backgroundColor: '#4CAF50' }]}>
             <Text style={styles.badgeText}>{stats.active}</Text>
@@ -155,7 +157,7 @@ export default function VolunteersTrackingScreen() {
           onPress={() => setActiveFilter('inactive')}
         >
           <Text style={[styles.filterTabText, activeFilter === 'inactive' && styles.filterTabTextActive]}>
-            In Active
+            {t('volunteers.inactive')}
           </Text>
           <View style={[styles.badge, { backgroundColor: '#F44336' }]}>
             <Text style={styles.badgeText}>{stats.inactive}</Text>
@@ -167,7 +169,7 @@ export default function VolunteersTrackingScreen() {
           onPress={() => setActiveFilter('all')}
         >
           <Text style={[styles.filterTabText, activeFilter === 'all' && styles.filterTabTextActive]}>
-            All
+            {t('volunteers.all')}
           </Text>
           <View style={[styles.badge, { backgroundColor: '#9E9E9E' }]}>
             <Text style={styles.badgeText}>{stats.total}</Text>
@@ -179,7 +181,7 @@ export default function VolunteersTrackingScreen() {
       <ScrollView style={styles.content}>
         {filteredCadres.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No Volunteer</Text>
+            <Text style={styles.emptyText}>{t('volunteers.noVolunteers')}</Text>
           </View>
         ) : (
           filteredCadres.map((cadre) => (

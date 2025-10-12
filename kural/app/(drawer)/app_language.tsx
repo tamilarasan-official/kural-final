@@ -48,15 +48,11 @@ export default function AppLanguageScreen() {
               <ActivityIndicator size="large" color="#FFFFFF" />
             </View>
           ) : (
-            <>
-              <Image 
-                source={require('../../assets/images/icon.png')} 
-                style={styles.appIcon}
-                resizeMode="contain"
-              />
-              <Text style={styles.logoText}>{t('app.title')}</Text>
-              <Text style={styles.logoSubtext}>{t('app.subtitle')}</Text>
-            </>
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={styles.logoImage}
+              resizeMode="cover"
+            />
           )}
         </View>
       </View>
@@ -93,18 +89,20 @@ export default function AppLanguageScreen() {
       </View>
 
       {/* Submit Button */}
-      <TouchableOpacity 
-        style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
-        onPress={handleSubmit} 
-        activeOpacity={0.8}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Text style={styles.submitText}>{t('common.submit')}</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.submitButtonContainer}>
+        <TouchableOpacity 
+          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
+          onPress={handleSubmit} 
+          activeOpacity={0.8}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitText}>{t('common.submit')}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -128,26 +126,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  appIcon: {
-    width: 30,
-    height: 30,
-    marginBottom: 4,
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
   },
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  logoSubtext: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    textAlign: 'center',
-    marginTop: 2,
-  },
+  // removed inner texts to fully fill circle with icon
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -159,7 +147,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 30, // Reduced from 50 to move submit button up
+    marginBottom: 0,
   },
   languageButton: {
     width: '48%',
@@ -192,13 +180,18 @@ const styles = StyleSheet.create({
   selectedLanguageName: {
     color: '#000000',
   },
+  submitButtonContainer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 24,
+  },
   submitButton: {
     backgroundColor: '#000000',
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 30,
   },
   submitButtonDisabled: {
     backgroundColor: '#666666',

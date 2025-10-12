@@ -1,10 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function VotersMapScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { partNumber } = useLocalSearchParams();
   const mapRef = useRef<MapView | null>(null);
@@ -24,7 +26,7 @@ export default function VotersMapScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Voters Map{partNumber ? ` (Part ${partNumber})` : ''}</Text>
+        <Text style={styles.headerTitle}>{t('votersMap.title')}{partNumber ? ` (${t('votersMap.part')} ${partNumber})` : ''}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -42,7 +44,7 @@ export default function VotersMapScreen() {
         {/* Top overlay with loaded time, Reload and Clear */}
         <View style={styles.topOverlay}>
           <View style={styles.loadedAtBox}>
-            <Text style={styles.loadedAtText}>Data loaded at:</Text>
+            <Text style={styles.loadedAtText}>{t('votersMap.dataLoadedAt')}:</Text>
           </View>
           <TouchableOpacity
             style={styles.actionBtn}
@@ -51,7 +53,7 @@ export default function VotersMapScreen() {
               setRegion(initialRegion);
             }}
           >
-            <Text style={styles.actionText}>Reload</Text>
+            <Text style={styles.actionText}>{t('votersMap.reload')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtn}
@@ -59,7 +61,7 @@ export default function VotersMapScreen() {
               // Placeholder for clearing drawn items/markers when added
             }}
           >
-            <Text style={styles.actionText}>Clear</Text>
+            <Text style={styles.actionText}>{t('votersMap.clear')}</Text>
           </TouchableOpacity>
         </View>
 

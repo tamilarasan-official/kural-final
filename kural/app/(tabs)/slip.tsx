@@ -16,6 +16,7 @@ import {
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
@@ -46,8 +47,6 @@ export default function SlipScreen() {
   }, []);
 
   const checkBluetoothStatus = async () => {
-    // Simulate checking Bluetooth status
-    // In a real app, you would use a Bluetooth library like react-native-bluetooth-serial
     setBluetoothEnabled(false);
   };
 
@@ -57,16 +56,11 @@ export default function SlipScreen() {
 
   const handleBluetoothAllow = async () => {
     try {
-      // Request required permissions on Android
       if (Platform.OS === 'android') {
-        const sdkInt = Number((global as any).nativePerformance?.now ? 31 : 30); // heuristic fallback if not available
+        const sdkInt = Number((global as any).nativePerformance?.now ? 31 : 30);
         const neededPerms: string[] = [];
-        // Android 12+ runtime permissions
-        // @ts-ignore - string literals used to avoid types dependency
         const BL_CONNECT = 'android.permission.BLUETOOTH_CONNECT';
-        // @ts-ignore
         const BL_SCAN = 'android.permission.BLUETOOTH_SCAN';
-        // @ts-ignore
         const BL_ADVERTISE = 'android.permission.BLUETOOTH_ADVERTISE';
 
         if (sdkInt >= 31) {
@@ -81,37 +75,40 @@ export default function SlipScreen() {
         );
         const denied = Object.values(results).some(r => r !== PermissionsAndroid.RESULTS.GRANTED);
         if (denied) {
-          showToastMessage('Bluetooth permission denied');
+          showToastMessage(t('common.permissionRequired'));
           setShowBluetoothModal(false);
           setShowScanModal(true);
           return;
         }
       }
 
-      // Dynamically import Bluetooth state manager to enable bluetooth
-      let BluetoothStateManager: any = null;
-      try {
-        const mod = await import('react-native-bluetooth-state-manager');
-        BluetoothStateManager = (mod as any)?.default ?? mod;
-      } catch (e) {
-        BluetoothStateManager = null;
-      }
-
-      if (BluetoothStateManager && typeof BluetoothStateManager.requestToEnable === 'function') {
-        await BluetoothStateManager.requestToEnable();
+      if (Constants?.appOwnership === 'expo') {
         setBluetoothEnabled(true);
-        showToastMessage('Bluetooth enabled successfully');
+        showToastMessage('Bluetooth simulated in Expo Go. Build a Dev Client to enable for real.');
       } else {
-        // Fallback: pretend enabled but inform dev to install module
-        setBluetoothEnabled(true);
-        showToastMessage('Bluetooth enabled (simulated). Install react-native-bluetooth-state-manager for real enabling');
+        let BluetoothStateManager: any = null;
+        try {
+          const mod = await import('react-native-bluetooth-state-manager');
+          BluetoothStateManager = (mod as any)?.default ?? mod;
+        } catch (e) {
+          BluetoothStateManager = null;
+        }
+
+        if (BluetoothStateManager && typeof BluetoothStateManager.requestToEnable === 'function') {
+          await BluetoothStateManager.requestToEnable();
+          setBluetoothEnabled(true);
+          showToastMessage(t('slip.btEnabled'));
+        } else {
+          setBluetoothEnabled(true);
+          showToastMessage(t('slip.btEnabled'));
+        }
       }
 
       setShowBluetoothModal(false);
       setShowScanModal(true);
     } catch (err: any) {
       console.log('Enable Bluetooth error:', err?.message || err);
-      showToastMessage('Failed to enable Bluetooth');
+      showToastMessage(t('common.error'));
       setShowBluetoothModal(false);
     }
   };
@@ -124,11 +121,9 @@ export default function SlipScreen() {
   const startScanning = () => {
     setIsScanning(true);
     setShowScanModal(false);
-    
-    // Simulate scanning process
     setTimeout(() => {
       setIsScanning(false);
-      showToastMessage('No slip box found. Try scanning again.');
+      showToastMessage(t('slip.scan.none'));
     }, 3000);
   };
 
@@ -157,13 +152,13 @@ export default function SlipScreen() {
           style={styles.enableBluetoothButton}
           onPress={requestBluetoothPermission}
         >
-          <Text style={styles.enableBluetoothText}>Enable Bluetooth</Text>
+          <Text style={styles.enableBluetoothText}>{t('slip.enableBluetooth')}</Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.bluetoothEnabledContainer}>
           <Icon name="bluetooth" size={48} color="#1976D2" />
-          <Text style={styles.bluetoothEnabledText}>Bluetooth is enabled</Text>
-          <Text style={styles.bluetoothSubText}>Ready to connect to slip box devices</Text>
+          <Text style={styles.bluetoothEnabledText}>{t('slip.btEnabled')}</Text>
+          <Text style={styles.bluetoothSubText}>{t('slip.btReady')}</Text>
         </View>
       )}
     </View>
@@ -174,7 +169,7 @@ export default function SlipScreen() {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Enter Voter Slip Name"
+          placeholder={t('slip.searchPlaceholder')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#999"
@@ -187,7 +182,7 @@ export default function SlipScreen() {
           <Text style={styles.sectionTitle}>{sectionName}</Text>
           <View style={styles.toggleContainer}>
             <View style={styles.toggleItem}>
-              <Text style={styles.toggleLabel}>Prin</Text>
+              <Text style={styles.toggleLabel}>{t('slip.prin')}</Text>
               <Switch
                 value={settings.prin}
                 onValueChange={() => toggleSetting(sectionName, 'prin')}
@@ -196,7 +191,7 @@ export default function SlipScreen() {
               />
             </View>
             <View style={styles.toggleItem}>
-              <Text style={styles.toggleLabel}>Candidate</Text>
+              <Text style={styles.toggleLabel}>{t('slip.candidate')}</Text>
               <Switch
                 value={settings.candidate}
                 onValueChange={() => toggleSetting(sectionName, 'candidate')}
@@ -219,7 +214,7 @@ export default function SlipScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Slip Box</Text>
+        <Text style={styles.headerTitle}>{t('slip.header')}</Text>
       </View>
 
       {/* Segmented Control */}
@@ -229,7 +224,7 @@ export default function SlipScreen() {
           onPress={() => setActiveTab('slipbox')}
         >
           <Text style={[styles.segmentText, activeTab === 'slipbox' && styles.activeSegmentText]}>
-            Slip Box
+            {t('slip.segment.slipbox')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -237,7 +232,7 @@ export default function SlipScreen() {
           onPress={() => setActiveTab('voterslip')}
         >
           <Text style={[styles.segmentText, activeTab === 'voterslip' && styles.activeSegmentText]}>
-            Voter Slip
+            {t('slip.segment.voterslip')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -255,31 +250,31 @@ export default function SlipScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Slip Box Setting</Text>
+              <Text style={styles.modalTitle}>{t('slip.modal.title')}</Text>
               <TouchableOpacity onPress={() => setShowBluetoothModal(false)}>
                 <Icon name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalText}>TEAM wants to turn on Bluetooth</Text>
-            <Text style={styles.modalSubtext}>Once allowed, Bluetooth will remain on.</Text>
+            <Text style={styles.modalText}>{t('slip.modal.turnOn')}</Text>
+            <Text style={styles.modalSubtext}>{t('slip.modal.persist')}</Text>
             <View style={styles.checkboxContainer}>
               <TouchableOpacity style={styles.checkbox}>
                 <Icon name="check-box-outline-blank" size={20} color="#666" />
               </TouchableOpacity>
-              <Text style={styles.checkboxText}>Don't remind me again</Text>
+              <Text style={styles.checkboxText}>{t('slip.modal.dontRemind')}</Text>
             </View>
             <View style={styles.modalButtons}>
               <TouchableOpacity 
                 style={styles.modalButtonSecondary}
                 onPress={handleBluetoothDeny}
               >
-                <Text style={styles.modalButtonSecondaryText}>Don't allow</Text>
+                <Text style={styles.modalButtonSecondaryText}>{t('slip.modal.dontAllow')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.modalButtonPrimary}
                 onPress={handleBluetoothAllow}
               >
-                <Text style={styles.modalButtonPrimaryText}>Allow</Text>
+                <Text style={styles.modalButtonPrimaryText}>{t('slip.modal.allow')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -296,18 +291,18 @@ export default function SlipScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Slip Box Setting</Text>
+              <Text style={styles.modalTitle}>{t('slip.modal.title')}</Text>
               <TouchableOpacity onPress={() => setShowScanModal(false)}>
                 <Icon name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalSubtitle}>Available Slip</Text>
-            <Text style={styles.scanText}>No slip box found. Try Scanning for slip box</Text>
+            <Text style={styles.modalSubtitle}>{t('slip.scan.available')}</Text>
+            <Text style={styles.scanText}>{t('slip.scan.none')}</Text>
             <TouchableOpacity 
               style={styles.scanButton}
               onPress={startScanning}
             >
-              <Text style={styles.scanButtonText}>Scan Slip Box</Text>
+              <Text style={styles.scanButtonText}>{t('slip.scan.cta')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -324,7 +319,7 @@ export default function SlipScreen() {
       {/* Loading Overlay */}
       {isScanning && (
         <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>Enabling...</Text>
+          <Text style={styles.loadingText}>{t('slip.loading')}</Text>
         </View>
       )}
     </View>

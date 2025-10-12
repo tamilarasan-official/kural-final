@@ -139,15 +139,15 @@ export default function DrawerScreen() {
 
 
   const menuItems = [
-    { id: 'profile', title: 'My Profile', iconName: 'person', route: '/(drawer)/my_profile' },
-    { id: 'elections', title: 'Your Election', iconName: 'how-to-vote', route: '/(drawer)/your_election' },
-    { id: 'settings', title: 'Settings', iconName: 'settings', route: '/(drawer)/settings' },
-    { id: 'language', title: 'App Language', iconName: 'language', route: '/(drawer)/app_language' },
-    { id: 'password', title: 'Change Password', iconName: 'lock', route: '/(drawer)/change_password' },
-    { id: 'privacy', title: 'Privacy Policy', iconName: 'security', route: '/(drawer)/privacy_policy' },
-    { id: 'terms', title: 'Terms & Conditions', iconName: 'description', route: '/(drawer)/terms_condition' },
-    { id: 'help', title: 'Help', iconName: 'help', route: '/(drawer)/help' },
-    { id: 'about', title: 'About', iconName: 'info', route: '/(drawer)/about' },
+    { id: 'profile', title: t('nav.profile'), iconName: 'person', route: '/(drawer)/my_profile' },
+    { id: 'elections', title: t('elections.title'), iconName: 'how-to-vote', route: '/(drawer)/your_election' },
+    { id: 'settings', title: t('settings.title'), iconName: 'settings', route: '/(drawer)/settings' },
+    { id: 'language', title: t('settings.language'), iconName: 'language', route: '/(drawer)/app_language' },
+    { id: 'password', title: t('drawer.changePassword'), iconName: 'lock', route: '/(drawer)/change_password' },
+    { id: 'privacy', title: t('drawer.privacy'), iconName: 'security', route: '/(drawer)/privacy_policy' },
+    { id: 'terms', title: t('drawer.terms'), iconName: 'description', route: '/(drawer)/terms_condition' },
+    { id: 'help', title: t('drawer.help'), iconName: 'help', route: '/(drawer)/help' },
+    { id: 'about', title: t('drawer.about'), iconName: 'info', route: '/(drawer)/about' },
   ];
 
   const handleMenuPress = (route: string, id: string) => {
@@ -174,11 +174,11 @@ export default function DrawerScreen() {
     // Here you would typically send OTP to the user's phone
     const phoneNumber = profileData.mobileNumber || 'your registered mobile number';
     Alert.alert(
-      'OTP Sent',
-      `OTP has been sent to ${phoneNumber}`,
+      t('drawer.otpSent'),
+      `${t('drawer.otpSentMessage')} ${phoneNumber}`,
       [
         {
-          text: 'OK',
+          text: t('common.ok'),
           onPress: () => {
             setShowChangePasswordModal(false);
             // Navigate to OTP verification screen or show next step
@@ -216,25 +216,25 @@ export default function DrawerScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('drawer.logout'),
+      t('drawer.logoutConfirm'),
       [
         {
-          text: 'Cancel',
+          text: t('drawer.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Logout',
+          text: t('drawer.logout'),
           style: 'destructive',
           onPress: async () => {
             try {
               await clearUserSession();
-              // Navigate to root which should redirect to auth
-              globalRouter.replace('/');
+              // Navigate to auth screen
+              router.replace('/(auth)');
             } catch (error) {
               console.error('Error during logout:', error);
               // Fallback navigation
-              globalRouter.replace('/');
+              router.replace('/(auth)');
             }
           },
         },
@@ -249,7 +249,7 @@ export default function DrawerScreen() {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        Alert.alert(t('drawer.permissionRequired'), t('drawer.cameraPermission'));
         return;
       }
 
@@ -266,7 +266,7 @@ export default function DrawerScreen() {
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      Alert.alert(t('common.error'), t('drawer.imagePickError'));
     }
   };
 
@@ -347,13 +347,13 @@ export default function DrawerScreen() {
             color="#D32F2F" 
             style={styles.menuIcon}
           />
-          <Text style={[styles.menuTitle, { color: '#D32F2F', fontWeight: '700' }]}>Logout</Text>
+          <Text style={[styles.menuTitle, { color: '#D32F2F', fontWeight: '700' }]}>{t('nav.logout')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
       {/* Version Number */}
       <View style={styles.versionContainer}>
-        <Text style={styles.versionText}>V.3.1 |</Text>
+        <Text style={styles.versionText}>{t('drawer.version')}</Text>
       </View>
 
       {/* Change Password Modal */}
@@ -366,21 +366,21 @@ export default function DrawerScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.changePasswordModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Password</Text>
+              <Text style={styles.modalTitle}>{t('drawer.changePassword')}</Text>
               <TouchableOpacity onPress={handleCloseModal}>
                 <Text style={styles.modalCloseIcon}>✕</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.modalContent}>
-              <Text style={styles.otpTitle}>Send OTP</Text>
+              <Text style={styles.otpTitle}>{t('drawer.sendOTP')}</Text>
               <Text style={styles.otpDescription}>
-                OTP will be sent to {profileData.mobileNumber || 'your registered mobile number'}
+                {t('drawer.otpDescription')} {profileData.mobileNumber || t('drawer.registeredMobile')}
               </Text>
             </View>
             
             <TouchableOpacity style={styles.sendOTPButton} onPress={handleSendOTP}>
-              <Text style={styles.sendOTPButtonText}>Send OTP</Text>
+              <Text style={styles.sendOTPButtonText}>{t('drawer.sendOTP')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -396,7 +396,7 @@ export default function DrawerScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.aboutModal}>
             <View style={styles.aboutHeader}>
-              <Text style={styles.aboutTitle}>About</Text>
+              <Text style={styles.aboutTitle}>{t('drawer.about')}</Text>
               <TouchableOpacity onPress={() => setShowAboutModal(false)}>
                 <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
@@ -406,7 +406,7 @@ export default function DrawerScreen() {
               {contentLoading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#1976D2" />
-                  <Text style={styles.loadingText}>Loading content...</Text>
+                  <Text style={styles.loadingText}>{t('drawer.loadingContent')}</Text>
                 </View>
               ) : (
                 <View style={styles.aboutSection}>
@@ -428,7 +428,7 @@ export default function DrawerScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.helpModal}>
             <View style={styles.helpHeader}>
-              <Text style={styles.helpTitle}>Help</Text>
+              <Text style={styles.helpTitle}>{t('drawer.help')}</Text>
               <TouchableOpacity onPress={() => setShowHelpModal(false)}>
                 <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
@@ -438,7 +438,7 @@ export default function DrawerScreen() {
               {contentLoading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#1976D2" />
-                  <Text style={styles.loadingText}>Loading content...</Text>
+                  <Text style={styles.loadingText}>{t('drawer.loadingContent')}</Text>
                 </View>
               ) : (
                 <View style={styles.helpSection}>
@@ -460,7 +460,7 @@ export default function DrawerScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.termsModal}>
             <View style={styles.termsHeader}>
-              <Text style={styles.termsTitle}>Terms & Conditions</Text>
+              <Text style={styles.termsTitle}>{t('drawer.terms')}</Text>
               <TouchableOpacity onPress={() => setShowTermsModal(false)}>
                 <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
@@ -470,7 +470,7 @@ export default function DrawerScreen() {
               {contentLoading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#1976D2" />
-                  <Text style={styles.loadingText}>Loading content...</Text>
+                  <Text style={styles.loadingText}>{t('drawer.loadingContent')}</Text>
                 </View>
               ) : (
                 <View style={styles.termsSection}>
@@ -492,7 +492,7 @@ export default function DrawerScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.privacyModal}>
             <View style={styles.privacyHeader}>
-              <Text style={styles.privacyTitle}>Privacy Policy</Text>
+              <Text style={styles.privacyTitle}>{t('drawer.privacy')}</Text>
               <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
                 <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
@@ -502,7 +502,7 @@ export default function DrawerScreen() {
               {contentLoading ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#1976D2" />
-                  <Text style={styles.loadingText}>Loading content...</Text>
+                  <Text style={styles.loadingText}>{t('drawer.loadingContent')}</Text>
                 </View>
               ) : (
                 <View style={styles.privacySection}>

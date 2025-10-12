@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Image } from 'react-native';
 
 interface Banner {
   id: number;
@@ -17,18 +18,22 @@ interface BannerContextType {
 const BannerContext = createContext<BannerContextType | undefined>(undefined);
 
 export const BannerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Resolve local asset URIs for banners in assets/images
+  const admk1 = Image.resolveAssetSource(require('../assets/images/ADMK 1.jpg')).uri;
+  const admk2 = Image.resolveAssetSource(require('../assets/images/admk 2.jpg')).uri;
+
   const [banners, setBanners] = useState<Banner[]>([
     {
       id: 1,
       filename: 'ADMK 1.jpg',
-      imageUri: 'https://via.placeholder.com/300x150/4CAF50/FFFFFF?text=ADMK+1',
-      localUri: null,
+      imageUri: admk1,
+      localUri: admk1,
     },
     {
       id: 2,
       filename: 'admk 2.jpg',
-      imageUri: 'https://via.placeholder.com/300x150/2196F3/FFFFFF?text=ADMK+2',
-      localUri: null,
+      imageUri: admk2,
+      localUri: admk2,
     },
   ]);
 

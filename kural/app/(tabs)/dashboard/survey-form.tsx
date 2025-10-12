@@ -179,7 +179,7 @@ export default function SurveyFormScreen() {
           <TextInput
             key={question.questionId}
             style={styles.textInput}
-            placeholder={`Enter ${question.questionText}`}
+            placeholder={`${t('surveyForm.enter')} ${question.questionText}`}
             value={currentAnswer || ''}
             onChangeText={(text: string) => handleAnswerChange(question.questionId, text)}
             multiline={question.questionText.length > 50}
@@ -257,12 +257,12 @@ export default function SurveyFormScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Survey Form</Text>
+          <Text style={styles.headerTitle}>{t('surveyForm.title')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading survey form...</Text>
+          <Text style={styles.loadingText}>{t('surveyForm.loading')}</Text>
         </View>
       </View>
     );
@@ -275,13 +275,13 @@ export default function SurveyFormScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Survey Form</Text>
+          <Text style={styles.headerTitle}>{t('surveyForm.title')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadSurveyForm}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -295,11 +295,11 @@ export default function SurveyFormScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Survey Form</Text>
+          <Text style={styles.headerTitle}>{t('surveyForm.title')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Survey form not found</Text>
+          <Text style={styles.emptyText}>{t('surveyForm.notFound')}</Text>
         </View>
       </View>
     );
@@ -321,7 +321,7 @@ export default function SurveyFormScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Survey</Text>
+        <Text style={styles.headerTitle}>{t('survey.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -352,7 +352,7 @@ export default function SurveyFormScreen() {
           disabled={submitting}
         >
           <Text style={styles.submitButtonText}>
-            {submitting ? 'Submitting...' : 'Submit Form'}
+            {submitting ? t('surveyForm.submitting') : t('surveyForm.submitForm')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

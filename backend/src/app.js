@@ -29,6 +29,7 @@ require('./models/guardianVoter');
 require('./models/mobileVoter');
 require('./models/age80AboveVoter');
 require('./models/catalogue');
+require('./models/soonVoter');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -49,11 +50,14 @@ const guardianRoutes = require('./routes/guardianRoutes');
 const mobileRoutes = require('./routes/mobileRoutes');
 const age80AboveRoutes = require('./routes/age80AboveRoutes');
 const catalogueRoutes = require('./routes/catalogueRoutes');
+const soonVoterRoutes = require('./routes/soonVoterRoutes');
 
 const app = express();
 
 // Trust proxy
 app.set('trust proxy', 1);
+// Disable ETag to avoid 304 Not Modified responses for API consumers that expect bodies
+app.set('etag', false);
 
 // Security middleware
 app.use(helmet());
@@ -73,6 +77,14 @@ app.use(limiter);
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Disable caching for API responses
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
 
 // Data sanitization
 app.use(mongoSanitize());
@@ -113,6 +125,7 @@ app.use('/api/v1/guardian-voters', guardianRoutes);
 app.use('/api/v1/mobile-voters', mobileRoutes);
 app.use('/api/v1/age80above-voters', age80AboveRoutes);
 app.use('/api/v1/catalogue', catalogueRoutes);
+app.use('/api/v1/soon-voters', soonVoterRoutes);
 
 // 404 handler
 app.use(notFound);

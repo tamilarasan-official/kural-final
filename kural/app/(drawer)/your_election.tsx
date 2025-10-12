@@ -35,10 +35,10 @@ export default function YourElectionScreen() {
           
           {/* Card Details */}
           <View style={styles.cardDetails}>
-            <Text style={styles.constituencyNumber}>119 -</Text>
-            <Text style={styles.constituencyName}>Thondamuthur</Text>
-            <Text style={styles.bodyText}>Body not</Text>
-            <Text style={styles.stateText}>Tamil Nadu</Text>
+            <Text style={styles.constituencyNumber}>{t('yourElection.constituencyNumber')}</Text>
+            <Text style={styles.constituencyName}>{t('yourElection.constituencyName')}</Text>
+            <Text style={styles.bodyText}>{t('yourElection.bodyText')}</Text>
+            <Text style={styles.stateText}>{t('yourElection.stateText')}</Text>
           </View>
         </TouchableOpacity>
 

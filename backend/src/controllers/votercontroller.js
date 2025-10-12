@@ -42,7 +42,11 @@ const searchVoters = asyncHandler(async (req, res) => {
   if (partNo) {
     const partNum = parseInt(partNo.toString());
     if (!isNaN(partNum)) {
-      searchQuery.Part_no = partNum;
+      // Support both field variants in DB: 'Part_no' and 'part_no'
+      searchQuery.$or = [
+        { Part_no: partNum },
+        { part_no: partNum }
+      ];
     }
   }
 
@@ -162,12 +166,12 @@ const getVotersByPart = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
 
   try {
-    const voters = await Voter.find({ Part_no: parseInt(partNumber) })
+    const voters = await Voter.find({ $or: [ { Part_no: parseInt(partNumber) }, { part_no: parseInt(partNumber) } ] })
       .sort({ sr: 1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    const total = await Voter.countDocuments({ Part_no: parseInt(partNumber) });
+    const total = await Voter.countDocuments({ $or: [ { Part_no: parseInt(partNumber) }, { part_no: parseInt(partNumber) } ] });
 
     res.json({
       success: true,
@@ -192,7 +196,7 @@ const getPartGenderStats = asyncHandler(async (req, res) => {
 
   try {
     const stats = await Voter.aggregate([
-      { $match: { Part_no: parseInt(partNumber) } },
+      { $match: { $or: [ { Part_no: parseInt(partNumber) }, { part_no: parseInt(partNumber) } ] } },
       {
         $group: {
           _id: null,
@@ -230,15 +234,19 @@ const getPartNames = asyncHandler(async (req, res) => {
   try {
     const partNames = await Voter.aggregate([
       {
+        // Normalize possible field names into one key for grouping
+        $addFields: {
+          part_no_normalized: { $ifNull: ['$Part_no', '$part_no'] }
+        }
+      },
+      {
         $group: {
-          _id: '$Part_no',
+          _id: '$part_no_normalized',
           partName: { $first: '$Part Name' },
           partNameTamil: { $first: '$Part Name Tamil' }
         }
       },
-      {
-        $sort: { _id: 1 }
-      },
+      { $sort: { _id: 1 } },
       {
         $project: {
           partNumber: '$_id',

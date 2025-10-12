@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Alert, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { useBanner } from '../../../contexts/BannerContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -9,7 +8,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 export default function AppBannerScreen() {
   const router = useRouter();
   const { t } = useLanguage();
-  const { banners, addBanner, removeBanner } = useBanner();
+  const { banners } = useBanner();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredBanners, setFilteredBanners] = useState(banners);
 
@@ -25,50 +24,7 @@ export default function AppBannerScreen() {
     }
   }, [searchQuery, banners]);
 
-  // Handle image picker
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Sorry, we need camera roll permissions to upload photos!');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [2, 1], // Banner aspect ratio
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      const newBanner = {
-        filename: `Banner_${Date.now()}.jpg`,
-        imageUri: result.assets[0].uri,
-        localUri: result.assets[0].uri,
-      };
-      
-      addBanner(newBanner);
-      Alert.alert('Success', 'Banner added successfully!');
-    }
-  };
-
-  // Handle banner deletion
-  const deleteBanner = (id: number) => {
-    Alert.alert(
-      'Delete Banner',
-      'Are you sure you want to delete this banner?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            removeBanner(id);
-          },
-        },
-      ]
-    );
-  };
+  // Adding and deleting banners disabled per requirement
 
   return (
     <View style={styles.container}>
@@ -77,7 +33,7 @@ export default function AppBannerScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>App Home Banners</Text>
+        <Text style={styles.headerTitle}>{t('banner.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -86,7 +42,7 @@ export default function AppBannerScreen() {
         <View style={styles.searchBox}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search App Banners"
+            placeholder={t('banner.searchPlaceholder')}
             placeholderTextColor="#999999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -97,17 +53,11 @@ export default function AppBannerScreen() {
         </View>
       </View>
 
-      {/* Add Banner Button */}
-      <View style={styles.addBannerContainer}>
-        <TouchableOpacity style={styles.addBannerButton} onPress={pickImage}>
-          <Icon name="photo-camera" size={18} color="#666666" />
-          <Text style={styles.addBannerText}>Add New Banner</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Add Banner Button removed */}
 
       {/* Existing Banners Section */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Existing Banners</Text>
+        <Text style={styles.sectionTitle}>{t('banner.existingBanners')}</Text>
         
         <ScrollView style={styles.bannersList} showsVerticalScrollIndicator={false}>
           {filteredBanners.map((banner) => (
@@ -118,23 +68,12 @@ export default function AppBannerScreen() {
                   style={styles.bannerImage}
                   resizeMode="cover"
                 />
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => deleteBanner(banner.id)}
-                >
-                  <Text style={styles.deleteIcon}>🗑️</Text>
-                </TouchableOpacity>
               </View>
               <Text style={styles.bannerFilename}>{banner.filename}</Text>
             </View>
           ))}
           
-          {filteredBanners.length === 0 && (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No banners found</Text>
-              <Text style={styles.emptyStateSubtext}>Add a new banner to get started</Text>
-            </View>
-          )}
+          {filteredBanners.length === 0 && null}
         </ScrollView>
       </View>
     </View>

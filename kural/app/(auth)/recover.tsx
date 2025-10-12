@@ -1,10 +1,12 @@
+import { useLanguage } from '../../contexts/LanguageContext';
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Dimensions, Image, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
 export default function Recover() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [mobileNumber, setMobileNumber] = useState('');
 
@@ -26,41 +28,25 @@ export default function Recover() {
     // Navigate to OTP screen or show success message
   };
 
-  const renderBackgroundPattern = () => {
-    const icons = [
-      '📢', '👆', '🗳️', '💬', '✊', '✏️', '✅', '📊', '📋', '📝',
-      '🎯', '📈', '📉', '📊', '📋', '📝', '🎯', '📈', '📉', '📊'
-    ];
-    
-    const rows = Math.ceil(height / 80);
-    const cols = Math.ceil(width / 80);
-    
-    return (
-      <View style={styles.patternContainer}>
-        {Array.from({ length: rows * cols }).map((_, index) => (
-          <View key={index} style={styles.patternItem}>
-            <Text style={styles.patternIcon}>
-              {icons[index % icons.length]}
-            </Text>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      {/* Background Pattern */}
-      {renderBackgroundPattern()}
-      
-      {/* Reset Password Modal */}
-      <View style={styles.modal}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>Reset Password</Text>
+      {/* LSI Image Background - Top */}
+      <View style={styles.topBackgroundSection}>
+        <Image
+          source={require('../../assets/images/LSI.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+      </View>
+
+      {/* Reset Password Modal - Center */}
+      <View style={styles.modalOverlay}>
+        <View style={styles.modal}>
+          <Text style={styles.title}>{t('auth.resetPassword')}</Text>
           
           <TextInput
             style={styles.input}
-            placeholder="Mobile number"
+            placeholder={t('auth.mobileNumber')}
             placeholderTextColor="#999999"
             value={mobileNumber}
             onChangeText={setMobileNumber}
@@ -83,16 +69,18 @@ export default function Recover() {
             <Text style={[
               styles.sendButtonText,
               !mobileNumber.trim() && styles.sendButtonTextDisabled
-            ]}>Send OTP for Reset</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>Back to Login</Text>
+            ]}>{t('auth.sendOtpForReset')}</Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* LSI Image Background - Bottom */}
+      <View style={styles.bottomBackgroundSection}>
+        <Image
+          source={require('../../assets/images/LSI.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
       </View>
     </View>
   );
@@ -101,38 +89,24 @@ export default function Recover() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
-  },
-  patternContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    opacity: 0.1,
-  },
-  patternItem: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    margin: 1,
-    borderRadius: 8,
   },
-  patternIcon: {
-    fontSize: 24,
-    color: '#1976D2',
+  topBackgroundSection: {
+    flex: 0.3,
+    backgroundColor: '#E6F0FA',
   },
-  modal: {
-    flex: 1,
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
+  modalOverlay: {
+    flex: 0.4,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  modalContent: {
+  modal: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
@@ -146,6 +120,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
+  },
+  bottomBackgroundSection: {
+    flex: 0.3,
+    backgroundColor: '#E6F0FA',
   },
   title: {
     fontSize: 24,
@@ -196,13 +174,5 @@ const styles = StyleSheet.create({
   },
   sendButtonTextDisabled: {
     color: '#999999',
-  },
-  backButton: {
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#1976D2',
-    fontSize: 14,
-    textDecorationLine: 'underline',
   },
 });

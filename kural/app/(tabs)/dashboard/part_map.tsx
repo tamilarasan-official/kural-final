@@ -2,11 +2,13 @@ import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 export const options = { headerShown: false };
 
 export default function PartMapScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const mapRef = useRef<MapView | null>(null);
 
   const initialRegion: Region = {
@@ -24,7 +26,7 @@ export default function PartMapScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={{ color: '#1976D2', fontSize: 18 }}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Part Map</Text>
+        <Text style={styles.title}>{t('partMap.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -48,7 +50,7 @@ export default function PartMapScreen() {
               mapRef.current?.animateToRegion(initialRegion, 600);
             }}
           >
-            <Text style={styles.actionText}>Reload</Text>
+            <Text style={styles.actionText}>{t('common.reload')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtn}
@@ -56,7 +58,7 @@ export default function PartMapScreen() {
               // clear: future hook to clear drawn shapes/markers; for now no-op
             }}
           >
-            <Text style={styles.actionText}>Clear</Text>
+            <Text style={styles.actionText}>{t('common.clear')}</Text>
           </TouchableOpacity>
         </View>
 

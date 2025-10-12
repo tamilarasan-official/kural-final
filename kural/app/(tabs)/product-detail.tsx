@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Dimensions, StatusBar, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ProductDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useLanguage();
   
   const {
     title = '',
@@ -50,7 +52,7 @@ export default function ProductDetailScreen() {
             <Text style={styles.productTitle}>{title}</Text>
             <Text style={styles.productPrice}>{price}</Text>
             
-            <Text style={styles.descriptionTitle}>Description</Text>
+            <Text style={styles.descriptionTitle}>{t('product.description')}</Text>
             <Text style={styles.descriptionText}>{description}</Text>
             
             {fullDescription && (
@@ -60,7 +62,7 @@ export default function ProductDetailScreen() {
             {/* Features */}
             {featuresList && featuresList.length > 0 && (
               <View style={styles.featuresContainer}>
-                <Text style={styles.featuresTitle}>Key Features</Text>
+                <Text style={styles.featuresTitle}>{t('product.keyFeatures')}</Text>
                 {featuresList.map((feature: string, index: number) => (
                   <View key={index} style={styles.featureItem}>
                     <Icon name="check-circle" size={16} color="#4CAF50" />

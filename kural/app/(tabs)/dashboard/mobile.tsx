@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { voterAPI } from '../../../services/api/voter';
 import { settingsAPI } from '../../../services/api/settings';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 export const options = { headerShown: false };
 
@@ -41,7 +42,16 @@ const AgeLabel = ({
 };
 
 export default function MobileScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
+  const handleVoterPress = (voter: any) => {
+    try {
+      router.push({
+        pathname: '/(tabs)/dashboard/voter_info',
+        params: { voterData: JSON.stringify(voter) },
+      });
+    } catch (e) {}
+  };
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Mobile[]>([]);
   const [allItems, setAllItems] = useState<Mobile[]>([]);
@@ -137,7 +147,7 @@ export default function MobileScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mobile</Text>
+        <Text style={styles.headerTitle}>{t('dashboard.mobile')}</Text>
         <TouchableOpacity style={styles.headerIcon} onPress={() => setFiltersVisible(true)}>
           <Icon name="tune" size={22} color="#0D47A1" />
         </TouchableOpacity>
@@ -145,19 +155,19 @@ export default function MobileScreen() {
 
       <View style={styles.countersRow}>
         <View style={[styles.counterCard, { backgroundColor: '#C8E6C9' }]}>
-          <Text style={styles.counterTitle}>Male</Text>
+          <Text style={styles.counterTitle}>{t('common.male')}</Text>
           <Text style={styles.counterValue}>{stats.male}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#F8BBD9' }]}>
-          <Text style={styles.counterTitle}>Female</Text>
+          <Text style={styles.counterTitle}>{t('common.female')}</Text>
           <Text style={styles.counterValue}>{stats.female}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#E0E0E0' }]}>
-          <Text style={styles.counterTitle}>Others</Text>
+          <Text style={styles.counterTitle}>{t('common.others')}</Text>
           <Text style={styles.counterValue}>{stats.other}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#BBDEFB' }]}>
-          <Text style={styles.counterTitle}>Total</Text>
+          <Text style={styles.counterTitle}>{t('common.total')}</Text>
           <Text style={styles.counterValue}>{stats.total}</Text>
         </View>
       </View>
@@ -167,7 +177,7 @@ export default function MobileScreen() {
           <Icon name="search" size={18} color="#90A4AE" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Voter Id or Voter Name"
+            placeholder={t('dashboard.searchPlaceholder')}
             placeholderTextColor="#999"
             value={query}
             onChangeText={setQuery}
@@ -183,11 +193,11 @@ export default function MobileScreen() {
       ) : (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {items.map((it, idx) => (
-            <View key={it._id} style={styles.voterCard}>
+            <TouchableOpacity key={it._id} style={styles.voterCard} activeOpacity={0.8} onPress={() => handleVoterPress(it)}>
               <View style={styles.rowTop}>
-                <Text style={styles.linkText}>Serial : {idx + 1}</Text>
-                <Text style={styles.linkText}>Section : {it.Anubhag_number ?? '-'}</Text>
-                <Text style={styles.linkText}>Part : {it.part_no ?? '-'}</Text>
+                <Text style={styles.linkText}>{t('dashboard.serial')} : {idx + 1}</Text>
+                <Text style={styles.linkText}>{t('dashboard.section')} : {it.Anubhag_number ?? '-'}</Text>
+                <Text style={styles.linkText}>{t('dashboard.part')} : {it.part_no ?? '-'}</Text>
               </View>
               <View style={{ flexDirection: 'row' }}>
                 <View style={styles.imagePlaceholder}>
@@ -199,7 +209,7 @@ export default function MobileScreen() {
                     <Text style={styles.voterIdBadge}>{it.Number}</Text>
                   )}
                   <Text style={styles.relationName}>{it['Father Name'] || ''}</Text>
-                  <Text style={styles.address}>Door No {it.Door_no ?? '-'}</Text>
+                  <Text style={styles.address}>{t('dashboard.doorNo')} {it.Door_no ?? '-'}</Text>
                 </View>
               </View>
               <View style={styles.bottomRow}>
@@ -219,7 +229,7 @@ export default function MobileScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       )}
@@ -228,11 +238,11 @@ export default function MobileScreen() {
       {filtersVisible && (
         <View style={styles.filterOverlay}>
           <View style={styles.filterCard}>
-            <Text style={styles.filterTitle}>Filter Voters</Text>
-            <Text style={styles.filterSubtitle}>Select filters to narrow down the voter list</Text>
+            <Text style={styles.filterTitle}>{t('dashboard.filterVoters')}</Text>
+            <Text style={styles.filterSubtitle}>{t('dashboard.filterSubtitle')}</Text>
 
             <ScrollView style={{ maxHeight: 420 }}>
-              <Text style={styles.sectionTitle}>Age</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
               <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
                 <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
                   <MultiSlider
@@ -259,7 +269,7 @@ export default function MobileScreen() {
                 </View>
               </View>
 
-              <Text style={styles.sectionTitle}>Gender</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
               <View style={styles.chipsRow}>
                 {['male','female','other'].map(g => (
                   <TouchableOpacity
@@ -277,7 +287,7 @@ export default function MobileScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Voter History</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
               <View style={styles.chipsRowWrap}>
                 {histories.map((h:any) => (
                   <TouchableOpacity
@@ -295,7 +305,7 @@ export default function MobileScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Voter Category</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
               <View style={styles.chipsRowWrap}>
                 {categories.map((c:any) => (
                   <TouchableOpacity
@@ -313,7 +323,7 @@ export default function MobileScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Political Party</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
               <View style={styles.chipsRowWrap}>
                 {parties.map((p:any) => (
                   <TouchableOpacity
@@ -331,7 +341,7 @@ export default function MobileScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Religion</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.religion')}</Text>
               <View style={styles.chipsRowWrap}>
                 {religions.map((r:any) => (
                   <TouchableOpacity
@@ -359,7 +369,7 @@ export default function MobileScreen() {
                   setItems(allItems);
                 }}
               >
-                <Text style={styles.clearText}>Clear All</Text>
+                <Text style={styles.clearText}>{t('dashboard.clearAll')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}
@@ -373,12 +383,12 @@ export default function MobileScreen() {
                   setFiltersVisible(false);
                 }}
               >
-                <Text style={styles.applyText}>Apply Filters</Text>
+                <Text style={styles.applyText}>{t('dashboard.applyFilters')}</Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.closeBar} onPress={() => setFiltersVisible(false)}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={styles.closeText}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>

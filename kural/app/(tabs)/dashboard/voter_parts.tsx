@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { voterAPI } from '../../../services/api/voter';
 import { vulnerabilityAPI } from '../../../services/api/vulnerability';
 import { partColorAPI } from '../../../services/api/partColor';
@@ -32,7 +33,8 @@ interface PartColor {
   vulnerability: Vulnerability;
 }
 
-export default function PartNumbersForVoterIconScreen() {
+export default function VoterPartsScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showPartsModal, setShowPartsModal] = useState(false);
@@ -56,9 +58,9 @@ export default function PartNumbersForVoterIconScreen() {
 
   const filteredParts = allParts.filter((p) => p.toString().includes(searchQuery));
   const filteredPartNames = partNames.filter((p) =>
-    p.partNumber.toString().includes(partsSearchQuery) ||
-    p.partName.toLowerCase().includes(partsSearchQuery.toLowerCase()) ||
-    p.partNameTamil.includes(partsSearchQuery)
+    String(p.partNumber ?? '').includes(partsSearchQuery) ||
+    (p.partName ? p.partName.toLowerCase() : '').includes(partsSearchQuery.toLowerCase()) ||
+    (p.partNameTamil || '').includes(partsSearchQuery)
   );
 
   const loadPartNames = async () => {
@@ -140,7 +142,7 @@ export default function PartNumbersForVoterIconScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Part Numbers</Text>
+        <Text style={styles.headerTitle}>{t('partNumbers.title')}</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon} onPress={handleMenuPress}>
             <Icon name="menu" size={24} color="#1976D2" />
@@ -156,7 +158,7 @@ export default function PartNumbersForVoterIconScreen() {
           <Icon name="search" size={20} color="#999999" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by part number"
+            placeholder={t('partNumbers.searchByPart')}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -192,7 +194,7 @@ export default function PartNumbersForVoterIconScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.colorModalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Vulnerability</Text>
+              <Text style={styles.modalTitle}>{t('partNumbers.selectVulnerability')}</Text>
               <TouchableOpacity style={styles.closeButton} onPress={() => setShowColorModal(false)}>
                 <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
@@ -219,7 +221,7 @@ export default function PartNumbersForVoterIconScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.partsModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Part Numbers</Text>
+              <Text style={styles.modalTitle}>{t('partNumbers.partsListTitle')}</Text>
               <TouchableOpacity style={styles.closeButton} onPress={() => setShowPartsModal(false)}>
                 <Icon name="close" size={20} color="#666666" />
               </TouchableOpacity>
@@ -230,7 +232,7 @@ export default function PartNumbersForVoterIconScreen() {
                 <Icon name="search" size={20} color="#999999" style={styles.searchIcon} />
                 <TextInput
                   style={styles.modalSearchInput}
-                  placeholder="Search by part number or name"
+                  placeholder={t('partNumbers.partsSearchPlaceholder')}
                   placeholderTextColor="#999"
                   value={partsSearchQuery}
                   onChangeText={setPartsSearchQuery}
@@ -314,5 +316,3 @@ const styles = StyleSheet.create({
   colorSubmitButton: { backgroundColor: '#0D6EFD', paddingVertical: 12, paddingHorizontal: 28, borderRadius: 16, alignItems: 'center', minWidth: 160 },
   colorSubmitText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
 });
-
-

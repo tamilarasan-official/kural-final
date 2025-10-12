@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Modal,
   Image,
   Dimensions,
   ActivityIndicator,
@@ -15,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { voterAPI } from '../../../services/api/voter';
+import { settingsAPI } from '../../../services/api/settings';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 
@@ -61,7 +61,7 @@ export default function StarScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(false);
   const [genderSummary, setGenderSummary] = useState<GenderSummary>({
     male: 0,
     female: 0,
@@ -76,8 +76,23 @@ export default function StarScreen() {
     part: [],
   });
 
+  // Mobile-like filter controls
+  const [minAge, setMinAge] = useState<number>(18);
+  const [maxAge, setMaxAge] = useState<number>(100);
+  const [genderFilter, setGenderFilter] = useState<Set<string>>(new Set());
+
   const [availableCommunities, setAvailableCommunities] = useState<string[]>([]);
   const [availableParts, setAvailableParts] = useState<string[]>([]);
+
+  // Settings-driven filter options (match Mobile/Fatherless)
+  const [histories, setHistories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [parties, setParties] = useState<any[]>([]);
+  const [religions, setReligions] = useState<any[]>([]);
+  const [selectedHistory, setSelectedHistory] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
+  const [selectedParty, setSelectedParty] = useState<Set<string>>(new Set());
+  const [selectedReligion, setSelectedReligion] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
@@ -139,6 +154,26 @@ export default function StarScreen() {
       setLoading(false);
     }
   };
+
+  // Load filter dropdown options (same as Mobile/Fatherless)
+  useEffect(() => {
+    (async () => {
+      try {
+        const [hist, cats, prts, rels] = await Promise.all([
+          settingsAPI.getHistories?.() || Promise.resolve({ data: [] }),
+          settingsAPI.getCategories() || Promise.resolve({ data: [] }),
+          settingsAPI.getParties() || Promise.resolve({ data: [] }),
+          settingsAPI.getReligions() || Promise.resolve({ data: [] }),
+        ]);
+        setHistories(Array.isArray(hist?.data) ? hist.data : (hist?.data ? hist.data : (hist?.items || hist) || []));
+        setCategories(Array.isArray(cats?.data) ? cats.data : (cats?.items || cats) || []);
+        setParties(Array.isArray(prts?.data) ? prts.data : (prts?.items || prts) || []);
+        setReligions(Array.isArray(rels?.data) ? rels.data : (rels?.items || rels) || []);
+      } catch (e) {
+        // silent
+      }
+    })();
+  }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -229,9 +264,9 @@ export default function StarScreen() {
   const renderVoterCard = (voter: StarVoter, index: number) => (
     <View key={voter._id} style={styles.voterCard}>
       <View style={styles.voterHeader}>
-        <Text style={styles.serialText}>Serial: {voter.serial}</Text>
-        <Text style={styles.sectionText}>Section: {voter.section}</Text>
-        <Text style={styles.partText}>Part: {voter.part}</Text>
+        <Text style={styles.serialText}>{t('dashboard.serial')}: {voter.serial}</Text>
+        <Text style={styles.sectionText}>{t('dashboard.section')}: {voter.section}</Text>
+        <Text style={styles.partText}>{t('dashboard.part')}: {voter.part}</Text>
       </View>
 
       <View style={styles.voterImageContainer}>
@@ -262,18 +297,15 @@ export default function StarScreen() {
           </>
         )}
 
-        <Text style={styles.doorNoText}>Door No {voter.doorNo}</Text>
+        <Text style={styles.doorNoText}>{t('dashboard.doorNo')} {voter.doorNo}</Text>
       </View>
 
       <View style={styles.voterFooter}>
         <View style={styles.ageContainer}>
           <Icon name="person" size={16} color="#666" />
           <Text style={styles.ageText}>{voter.age}</Text>
-          <Text style={styles.relationshipText}>{voter.relationship || 'Husban'}</Text>
+          <Text style={styles.relationshipText}>{voter.relationship || t('star.relationshipDefault')}</Text>
         </View>
-        <TouchableOpacity style={styles.actionButton}>
-          <Icon name="download" size={20} color="#1976D2" />
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -282,7 +314,7 @@ export default function StarScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>Loading star voters...</Text>
+        <Text style={styles.loadingText}>{t('star.loading')}</Text>
       </View>
     );
   }
@@ -294,8 +326,8 @@ export default function StarScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Star</Text>
-        <TouchableOpacity onPress={() => setShowFilterModal(true)}>
+        <Text style={styles.headerTitle}>{t('star.title')}</Text>
+        <TouchableOpacity onPress={() => setFiltersVisible(true)}>
           <Icon name="filter-list" size={24} color="#000" />
         </TouchableOpacity>
       </View>
@@ -303,19 +335,19 @@ export default function StarScreen() {
       {/* Gender Summary */}
       <View style={styles.summaryContainer}>
         <View style={[styles.summaryCard, { backgroundColor: '#4CAF50' }]}>
-          <Text style={styles.summaryLabel}>Male</Text>
+          <Text style={styles.summaryLabel}>{t('common.male')}</Text>
           <Text style={styles.summaryValue}>{genderSummary.male}</Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: '#E91E63' }]}>
-          <Text style={styles.summaryLabel}>Female</Text>
+          <Text style={styles.summaryLabel}>{t('common.female')}</Text>
           <Text style={styles.summaryValue}>{genderSummary.female}</Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: '#9E9E9E' }]}>
-          <Text style={styles.summaryLabel}>Others</Text>
+          <Text style={styles.summaryLabel}>{t('common.others')}</Text>
           <Text style={styles.summaryValue}>{genderSummary.other}</Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: '#2196F3' }]}>
-          <Text style={styles.summaryLabel}>Total</Text>
+          <Text style={styles.summaryLabel}>{t('common.total')}</Text>
           <Text style={styles.summaryValue}>{genderSummary.total}</Text>
         </View>
       </View>
@@ -325,7 +357,7 @@ export default function StarScreen() {
         <Icon name="search" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Voter Id or Voter Name"
+          placeholder={t('dashboard.searchPlaceholder')}
           value={searchQuery}
           onChangeText={handleSearch}
           placeholderTextColor="#999"
@@ -337,126 +369,166 @@ export default function StarScreen() {
         {voters.map((voter, index) => renderVoterCard(voter, index))}
       </ScrollView>
 
-      {/* Filter Modal */}
-      <Modal
-        visible={showFilterModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter Voters</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Icon name="close" size={24} color="#000" />
-              </TouchableOpacity>
-            </View>
+      {/* Filters Modal (match Mobile/Fatherless screens) */}
+      {filtersVisible && (
+        <View style={styles.filterOverlay}>
+          <View style={styles.filterCard}>
+            <Text style={styles.filterTitleSheet}>{t('dashboard.filterVoters')}</Text>
+            <Text style={styles.filterSubtitle}>{t('dashboard.filterSubtitle')}</Text>
 
-            <ScrollView style={styles.filterContent}>
-              {/* Gender Filter */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Gender</Text>
-                <View style={styles.chipContainer}>
-                  {['Male', 'Female', 'Third'].map(gender => (
-                    <TouchableOpacity
-                      key={gender}
-                      style={[
-                        styles.filterChip,
-                        filters.gender.includes(gender) && styles.activeChip
-                      ]}
-                      onPress={() => toggleFilter('gender', gender)}
-                    >
-                      <Text style={[
-                        styles.chipText,
-                        filters.gender.includes(gender) && styles.activeChipText
-                      ]}>
-                        {gender}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+            <ScrollView style={{ maxHeight: 420 }}>
+              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
+              <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
+                <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
+                  <MultiSlider
+                    values={[minAge, maxAge]}
+                    min={0}
+                    max={120}
+                    step={1}
+                    sliderLength={width - 64}
+                    onValuesChange={(vals) => {
+                      const a = Math.round(Math.min(vals[0], vals[1]));
+                      const b = Math.round(Math.max(vals[0], vals[1]));
+                      setMinAge(a);
+                      setMaxAge(b);
+                    }}
+                    allowOverlap={false}
+                    snapped
+                    selectedStyle={{ backgroundColor: '#1976D2' }}
+                    unselectedStyle={{ backgroundColor: '#BBDEFB' }}
+                    markerStyle={{ height: 22, width: 22, backgroundColor: '#1976D2' }}
+                    trackStyle={{ height: 4 }}
+                    enableLabel
+                    customLabel={AgeLabel}
+                  />
                 </View>
               </View>
 
-              {/* Age Range Filter */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Age Range</Text>
-                <MultiSlider
-                  values={filters.ageRange}
-                  sliderLength={width - 80}
-                  onValuesChange={(values) => setFilters(prev => ({ ...prev, ageRange: values as [number, number] }))}
-                  min={18}
-                  max={100}
-                  step={1}
-                  allowOverlap={false}
-                  customLabel={AgeLabel}
-                />
+              <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
+              <View style={styles.chipsRow}>
+                {['male','female','other'].map(g => (
+                  <TouchableOpacity
+                    key={g}
+                    style={[styles.chip, genderFilter.has(g) && styles.chipActive]}
+                    onPress={() => {
+                      const s = new Set(genderFilter);
+                      s.has(g) ? s.delete(g) : s.add(g);
+                      setGenderFilter(s);
+                    }}
+                  >
+                    <Icon name="person" size={16} color={genderFilter.has(g) ? '#1976D2' : '#607D8B'} />
+                    <Text style={[styles.chipText, genderFilter.has(g) && styles.chipTextActive]}>{g.charAt(0).toUpperCase()+g.slice(1)}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
-              {/* Community Filter */}
-              {availableCommunities.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterTitle}>Community</Text>
-                  <View style={styles.chipContainer}>
-                    {availableCommunities.map(community => (
-                      <TouchableOpacity
-                        key={community}
-                        style={[
-                          styles.filterChip,
-                          filters.community.includes(community) && styles.activeChip
-                        ]}
-                        onPress={() => toggleFilter('community', community)}
-                      >
-                        <Text style={[
-                          styles.chipText,
-                          filters.community.includes(community) && styles.activeChipText
-                        ]}>
-                          {community}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
+              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {histories.map((h:any) => (
+                  <TouchableOpacity
+                    key={h.id || h._id}
+                    style={[styles.circleChip, selectedHistory.has(h.id || h._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedHistory);
+                      const id = h.id || h._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedHistory(s);
+                    }}
+                  >
+                    <Text style={styles.circleChipText}>{h.tag || h.title?.[0] || 'H'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-              {/* Part Filter */}
-              {availableParts.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterTitle}>Part</Text>
-                  <View style={styles.chipContainer}>
-                    {availableParts.map(part => (
-                      <TouchableOpacity
-                        key={part}
-                        style={[
-                          styles.filterChip,
-                          filters.part.includes(part) && styles.activeChip
-                        ]}
-                        onPress={() => toggleFilter('part', part)}
-                      >
-                        <Text style={[
-                          styles.chipText,
-                          filters.part.includes(part) && styles.activeChipText
-                        ]}>
-                          {part}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
+              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {categories.map((c:any) => (
+                  <TouchableOpacity
+                    key={c.id || c._id}
+                    style={[styles.circleChip, selectedCategory.has(c.id || c._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedCategory);
+                      const id = c.id || c._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedCategory(s);
+                    }}
+                  >
+                    <Icon name="check-circle" size={18} color={selectedCategory.has(c.id || c._id) ? '#1976D2' : '#90A4AE'} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {parties.map((p:any) => (
+                  <TouchableOpacity
+                    key={p.id || p._id}
+                    style={[styles.circleChip, selectedParty.has(p.id || p._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedParty);
+                      const id = p.id || p._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedParty(s);
+                    }}
+                  >
+                    <Icon name="flag" size={18} color={selectedParty.has(p.id || p._id) ? '#1976D2' : '#90A4AE'} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.sectionTitle}>{t('dashboard.religion')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {religions.map((r:any) => (
+                  <TouchableOpacity
+                    key={r.id || r._id}
+                    style={[styles.circleChip, selectedReligion.has(r.id || r._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedReligion);
+                      const id = r.id || r._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedReligion(s);
+                    }}
+                  >
+                    <Icon name="temple-buddhist" size={18} color={selectedReligion.has(r.id || r._id) ? '#1976D2' : '#90A4AE'} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </ScrollView>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-                <Text style={styles.clearButtonText}>Clear All</Text>
+            <View style={styles.filterFooter}>
+              <TouchableOpacity
+                style={styles.clearButtonSheet}
+                onPress={() => {
+                  setMinAge(18); setMaxAge(100); setGenderFilter(new Set());
+                  setSelectedHistory(new Set()); setSelectedCategory(new Set()); setSelectedParty(new Set()); setSelectedReligion(new Set());
+                  setVoters(allVoters);
+                }}
+              >
+                <Text style={styles.clearText}>{t('dashboard.clearAll')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                <Text style={styles.applyButtonText}>Apply Filters</Text>
+              <TouchableOpacity
+                style={styles.applyButtonSheet}
+                onPress={() => {
+                  const filtered = allVoters.filter(v => {
+                    const withinAge = (v.age ?? 0) >= minAge && (v.age ?? 0) <= maxAge;
+                    const genderVal = (v.gender || '').toLowerCase();
+                    const genderOk = genderFilter.size === 0 || genderFilter.has(genderVal === 'third' ? 'other' : genderVal);
+                    return withinAge && genderOk;
+                  });
+                  setVoters(filtered);
+                  setFiltersVisible(false);
+                }}
+              >
+                <Text style={styles.applyText}>{t('dashboard.applyFilters')}</Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity style={styles.closeBar} onPress={() => setFiltersVisible(false)}>
+              <Text style={styles.closeText}>{t('common.close')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      )}
     </View>
   );
 }
@@ -660,100 +732,41 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  // Bottom sheet filter styles (aligned with Mobile screen)
+  filterOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
-  modalContainer: {
+  filterCard: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  filterContent: {
-    maxHeight: 400,
-    padding: 20,
-  },
-  filterSection: {
-    marginBottom: 20,
-  },
-  filterTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 12,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  activeChip: {
-    backgroundColor: '#1976D2',
-  },
-  chipText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  activeChipText: {
-    color: '#fff',
-  },
-  ageLabelContainer: {
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  ageLabelText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  clearButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  clearButtonText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  applyButton: {
-    flex: 1,
-    backgroundColor: '#1976D2',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  applyButtonText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
+  filterTitleSheet: { fontSize: 24, fontWeight: '700', color: '#1F2937' },
+  filterSubtitle: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 12, marginBottom: 8 },
+  chipsRow: { flexDirection: 'row', gap: 10 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EAF2FE', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  chipActive: { backgroundColor: '#E3F2FD', borderWidth: 1, borderColor: '#1976D2' },
+  chipText: { color: '#455A64', fontSize: 14 },
+  chipTextActive: { color: '#1976D2', fontWeight: '600' },
+  chipsRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  circleChip: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#EAF2FE', alignItems: 'center', justifyContent: 'center' },
+  circleChipActive: { backgroundColor: '#E3F2FD', borderWidth: 1, borderColor: '#1976D2' },
+  circleChipText: { color: '#1976D2', fontWeight: '700' },
+  filterFooter: { flexDirection: 'row', gap: 12, marginTop: 14 },
+  clearButtonSheet: { flex: 1, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12 },
+  applyButtonSheet: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: '#90CAF9', borderRadius: 12 },
+  applyText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  clearText: { color: '#64748B', fontSize: 16, fontWeight: '600' },
+  closeBar: { marginTop: 12, backgroundColor: '#111827', borderRadius: 12, alignItems: 'center', paddingVertical: 14 },
+  closeText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 });

@@ -33,11 +33,11 @@ export default function VoterCategoryScreen() {
       if (response.success) {
         setCategoryData(response.data);
       } else {
-        setError('Failed to load categories');
+        setError(t('voterCategory.error'));
       }
     } catch (err) {
       console.error('Error loading categories:', err);
-      setError('Failed to load categories');
+      setError(t('voterCategory.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function VoterCategoryScreen() {
           setEditName('');
           setEditDescription('');
           setSelectedCategory(null);
-          Alert.alert('Success', 'Category updated successfully');
+          Alert.alert(t('voterCategory.success'), t('voterCategory.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update category');
+          Alert.alert(t('common.error'), t('voterCategory.updateError'));
         }
       } catch (err) {
         console.error('Error updating category:', err);
-        Alert.alert('Error', 'Failed to update category');
+        Alert.alert(t('common.error'), t('voterCategory.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter a category name');
+      Alert.alert(t('common.error'), t('voterCategory.validationError'));
     }
   };
 
@@ -124,7 +124,7 @@ export default function VoterCategoryScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading categories...</Text>
+          <Text style={styles.loadingText}>{t('voterCategory.loading')}</Text>
         </View>
       </View>
     );
@@ -143,7 +143,7 @@ export default function VoterCategoryScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('voterCategory.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

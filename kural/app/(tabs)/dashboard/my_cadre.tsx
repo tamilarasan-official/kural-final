@@ -120,7 +120,7 @@ export default function MyCadreScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Cadre</Text>
+        <Text style={styles.headerTitle}>{t('myCadre.title')}</Text>
         <TouchableOpacity 
           style={styles.addButton} 
           onPress={() => router.push('/(tabs)/dashboard/create_cadre')}
@@ -134,7 +134,7 @@ export default function MyCadreScreen() {
         <View style={styles.searchInputContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by name, mobile or booth"
+            placeholder={t('myCadre.searchPlaceholder')}
             placeholderTextColor="#999999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -157,7 +157,7 @@ export default function MyCadreScreen() {
           style={[styles.tab, activeTab === 'active' && styles.activeTab]} 
           onPress={() => setActiveTab('active')}
         >
-          <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>Active</Text>
+          <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>{t('myCadre.active')}</Text>
           <View style={[styles.tabBadge, { backgroundColor: '#4CAF50' }]}>
             <Text style={styles.tabBadgeText}>{getTabCount('active')}</Text>
           </View>
@@ -167,7 +167,7 @@ export default function MyCadreScreen() {
           style={[styles.tab, activeTab === 'inactive' && styles.activeTab]} 
           onPress={() => setActiveTab('inactive')}
         >
-          <Text style={[styles.tabText, activeTab === 'inactive' && styles.activeTabText]}>Inactive</Text>
+          <Text style={[styles.tabText, activeTab === 'inactive' && styles.activeTabText]}>{t('myCadre.inactive')}</Text>
           <View style={[styles.tabBadge, { backgroundColor: '#F44336' }]}>
             <Text style={styles.tabBadgeText}>{getTabCount('inactive')}</Text>
           </View>
@@ -177,7 +177,7 @@ export default function MyCadreScreen() {
           style={[styles.tab, activeTab === 'all' && styles.activeTab]} 
           onPress={() => setActiveTab('all')}
         >
-          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>All</Text>
+          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>{t('myCadre.all')}</Text>
           <View style={[styles.tabBadge, { backgroundColor: '#9E9E9E' }]}>
             <Text style={styles.tabBadgeText}>{getTabCount('all')}</Text>
           </View>
@@ -189,13 +189,13 @@ export default function MyCadreScreen() {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1976D2" />
-            <Text style={styles.loadingText}>Loading cadres...</Text>
+            <Text style={styles.loadingText}>{t('myCadre.loading')}</Text>
           </View>
         ) : cadres.length > 0 ? (
           cadres.map(renderCadreCard)
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No Cadres Found</Text>
+            <Text style={styles.emptyText}>{t('myCadre.noCadres')}</Text>
           </View>
         )}
       </ScrollView>
@@ -210,14 +210,14 @@ export default function MyCadreScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter Cadres</Text>
+              <Text style={styles.modalTitle}>{t('myCadre.filterTitle')}</Text>
             </View>
             
             <View style={styles.modalContent}>
-              <Text style={styles.filterLabel}>Search by booth number</Text>
+              <Text style={styles.filterLabel}>{t('myCadre.searchByBooth')}</Text>
               <TextInput
                 style={styles.boothInput}
-                placeholder="Enter booth number"
+                placeholder={t('myCadre.enterBooth')}
                 placeholderTextColor="#999999"
                 value={boothFilter}
                 onChangeText={setBoothFilter}
@@ -230,14 +230,14 @@ export default function MyCadreScreen() {
                 style={styles.applyButton}
                 onPress={handleApplyFilter}
               >
-                <Text style={styles.applyButtonText}>Apply</Text>
+                <Text style={styles.applyButtonText}>{t('common.apply')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={styles.clearButton}
                 onPress={handleClearFilter}
               >
-                <Text style={styles.clearButtonText}>Clear Filter</Text>
+                <Text style={styles.clearButtonText}>{t('myCadre.clearFilter')}</Text>
               </TouchableOpacity>
             </View>
           </View>

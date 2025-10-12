@@ -33,11 +33,11 @@ export default function CasteScreen() {
       if (response.success) {
         setData(response.data);
       } else {
-        setError('Failed to load data');
+        setError(t('caste.error'));
       }
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Failed to load data');
+      setError(t('caste.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function CasteScreen() {
           setEditenglishName('');
           setEdittamilName('');
           setSelectedItem(null);
-          Alert.alert('Success', 'Item updated successfully');
+          Alert.alert(t('caste.success'), t('caste.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update item');
+          Alert.alert(t('common.error'), t('caste.updateError'));
         }
       } catch (err) {
         console.error('Error updating item:', err);
-        Alert.alert('Error', 'Failed to update item');
+        Alert.alert(t('common.error'), t('caste.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please fill all required fields');
+      Alert.alert(t('common.error'), t('caste.validationError'));
     }
   };
 
@@ -109,7 +109,7 @@ export default function CasteScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading data...</Text>
+          <Text style={styles.loadingText}>{t('caste.loading')}</Text>
         </View>
       </View>
     );
@@ -128,7 +128,7 @@ export default function CasteScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('caste.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -33,11 +33,11 @@ export default function SubCastesScreen() {
       if (response.success) {
         setSubCastesData(response.data);
       } else {
-        setError('Failed to load sub-castes');
+        setError(t('subCastes.error'));
       }
     } catch (err) {
       console.error('Error loading sub-castes:', err);
-      setError('Failed to load sub-castes');
+      setError(t('subCastes.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function SubCastesScreen() {
           setEditName('');
           setEditParentCaste('');
           setSelectedSubCaste(null);
-          Alert.alert('Success', 'Sub-caste updated successfully');
+          Alert.alert(t('subCastes.success'), t('subCastes.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update sub-caste');
+          Alert.alert(t('common.error'), t('subCastes.updateError'));
         }
       } catch (err) {
         console.error('Error updating sub-caste:', err);
-        Alert.alert('Error', 'Failed to update sub-caste');
+        Alert.alert(t('common.error'), t('subCastes.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter both name and parent caste');
+      Alert.alert(t('common.error'), t('subCastes.validationError'));
     }
   };
 
@@ -109,7 +109,7 @@ export default function SubCastesScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading sub-castes...</Text>
+          <Text style={styles.loadingText}>{t('subCastes.loading')}</Text>
         </View>
       </View>
     );
@@ -128,7 +128,7 @@ export default function SubCastesScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadSubCastes}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('subCastes.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

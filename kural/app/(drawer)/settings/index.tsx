@@ -12,43 +12,43 @@ export default function SettingsScreen() {
   const settingsOptions = [
     {
       id: 'set-election',
-      title: 'Set Election',
+      title: t('settings.setElection'),
       icon: require('../../../assets/images/set election.png'),
       disabled: false,
     },
     {
       id: 'app-banner',
-      title: 'App Banner',
+      title: t('settings.appBanner'),
       icon: require('../../../assets/images/App banner.png'),
       disabled: false,
     },
     {
       id: 'history',
-      title: 'History',
+      title: t('settings.history'),
       icon: require('../../../assets/images/History.png'),
       disabled: false,
     },
     {
       id: 'category',
-      title: 'Category',
+      title: t('settings.category'),
       icon: require('../../../assets/images/Category.png'),
       disabled: false,
     },
     {
       id: 'voter-slip',
-      title: 'Voter Slip',
+      title: t('settings.voterSlip'),
       icon: require('../../../assets/images/voter slip.png'),
       disabled: false,
     },
     {
       id: 'party',
-      title: 'Party',
+      title: t('settings.party'),
       icon: require('../../../assets/images/party.png'),
       disabled: false,
     },
     {
       id: 'religion',
-      title: 'Religion',
+      title: t('settings.religion'),
       icon: require('../../../assets/images/religion.png'),
       disabled: false,
     },
@@ -159,7 +159,7 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 

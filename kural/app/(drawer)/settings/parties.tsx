@@ -33,11 +33,11 @@ export default function PartiesScreen() {
       if (response.success) {
         setPartiesData(response.data);
       } else {
-        setError('Failed to load parties');
+        setError(t('parties.error'));
       }
     } catch (err) {
       console.error('Error loading parties:', err);
-      setError('Failed to load parties');
+      setError(t('parties.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function PartiesScreen() {
           setEditTamilName('');
           setEditEnglishName('');
           setSelectedParty(null);
-          Alert.alert('Success', 'Party updated successfully');
+          Alert.alert(t('parties.success'), t('parties.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update party');
+          Alert.alert(t('common.error'), t('parties.updateError'));
         }
       } catch (err) {
         console.error('Error updating party:', err);
-        Alert.alert('Error', 'Failed to update party');
+        Alert.alert(t('common.error'), t('parties.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter both Tamil and English names');
+      Alert.alert(t('common.error'), t('parties.validationError'));
     }
   };
 
@@ -115,7 +115,7 @@ export default function PartiesScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading parties...</Text>
+          <Text style={styles.loadingText}>{t('parties.loading')}</Text>
         </View>
       </View>
     );
@@ -134,7 +134,7 @@ export default function PartiesScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadParties}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('parties.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

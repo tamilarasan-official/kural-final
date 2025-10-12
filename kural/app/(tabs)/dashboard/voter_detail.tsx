@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimens
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { settingsAPI } from '../../../services/api/settings';
 import { voterAPI } from '../../../services/api/voter';
 
@@ -38,6 +39,7 @@ interface GenderSummary {
 }
 
 export default function VoterDetailScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { partNumber } = useLocalSearchParams();
   const [voters, setVoters] = useState<Voter[]>([]);
@@ -102,30 +104,37 @@ export default function VoterDetailScreen() {
     try {
       setLoading(true);
       
-      // Fetch both voters and gender statistics in parallel using API service
-      const [votersData, statsData] = await Promise.all([
+      // Try preferred endpoints first
+      const [resByPart, resStats] = await Promise.allSettled([
         voterAPI.getVotersByPart(part),
         voterAPI.getVoterStats(part)
       ]);
-      
-      if (votersData.success) {
-        setVoters(votersData.voters);
-        setFilteredVoters(votersData.voters);
-        
-        // Use the actual gender statistics from the database
-        if (statsData.success && statsData.stats) {
-          setGenderSummary({
-            male: statsData.stats.male || 0,
-            female: statsData.stats.female || 0,
-            other: statsData.stats.other || 0,
-            total: statsData.stats.total || 0
-          });
-        } else {
-          // Fallback to calculating from current page data
-          calculateGenderSummary(votersData.voters);
+
+      let list: any[] | null = null;
+      if (resByPart.status === 'fulfilled') {
+        const data = resByPart.value;
+        list = Array.isArray(data?.voters) ? data.voters : (Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : null));
+      }
+
+      // Fallback to search API by part number when list is missing
+      if (!list) {
+        try {
+          const s = await voterAPI.searchVoters({ partNo: String(part), limit: 1000, page: 1 });
+          list = Array.isArray(s?.data) ? s.data : (Array.isArray(s?.voters) ? s.voters : (Array.isArray(s) ? s : []));
+        } catch {
+          list = [];
         }
+      }
+
+      setVoters(list as any);
+      setFilteredVoters(list as any);
+
+      // Stats if available; else compute client-side
+      if (resStats.status === 'fulfilled' && resStats.value?.stats) {
+        const stats = resStats.value.stats;
+        setGenderSummary({ male: stats.male || 0, female: stats.female || 0, other: stats.other || 0, total: stats.total || list.length });
       } else {
-        console.error('Failed to load voters:', votersData.error);
+        calculateGenderSummary(list as any);
       }
     } catch (error) {
       console.error('Error loading voters:', error);
@@ -221,7 +230,7 @@ export default function VoterDetailScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>Loading voters...</Text>
+        <Text style={styles.loadingText}>{t('voterDetail.loading')}</Text>
       </View>
     );
   }
@@ -233,8 +242,8 @@ export default function VoterDetailScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Part Number {partNumber}</Text>
-        <TouchableOpacity style={styles.locationButton}>
+        <Text style={styles.headerTitle}>{t('voterDetail.partNumber')} {partNumber}</Text>
+        <TouchableOpacity style={styles.locationButton} onPress={() => router.push({ pathname: '/(tabs)/dashboard/voters_map', params: { partNumber: String(partNumber || '') } })}>
           <Icon name="location-on" size={24} color="#1976D2" />
         </TouchableOpacity>
       </View>
@@ -243,19 +252,19 @@ export default function VoterDetailScreen() {
       <View style={styles.summaryContainer}>
         <View style={styles.summaryCard}>
           <View style={[styles.summaryItem, { backgroundColor: '#C8E6C9' }]}>
-            <Text style={styles.summaryLabel}>Male</Text>
+            <Text style={styles.summaryLabel}>{t('common.male')}</Text>
             <Text style={styles.summaryValue}>{genderSummary.male}</Text>
           </View>
           <View style={[styles.summaryItem, { backgroundColor: '#F8BBD9' }]}>
-            <Text style={styles.summaryLabel}>Female</Text>
+            <Text style={styles.summaryLabel}>{t('common.female')}</Text>
             <Text style={styles.summaryValue}>{genderSummary.female}</Text>
           </View>
           <View style={[styles.summaryItem, { backgroundColor: '#E0E0E0' }]}>
-            <Text style={styles.summaryLabel}>Other</Text>
+            <Text style={styles.summaryLabel}>{t('common.others')}</Text>
             <Text style={styles.summaryValue}>{genderSummary.other}</Text>
           </View>
           <View style={[styles.summaryItem, { backgroundColor: '#BBDEFB' }]}>
-            <Text style={styles.summaryLabel}>Total</Text>
+            <Text style={styles.summaryLabel}>{t('common.total')}</Text>
             <Text style={styles.summaryValue}>{genderSummary.total}</Text>
           </View>
         </View>
@@ -267,7 +276,7 @@ export default function VoterDetailScreen() {
               <Icon name="search" size={18} color="#90A4AE" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Voter Id or Voter Name"
+            placeholder={t('dashboard.searchPlaceholder')}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -293,7 +302,7 @@ export default function VoterDetailScreen() {
             {/* Serial Number */}
             <View style={styles.serialContainer}>
               <Icon name="star" size={18} color="#FFD54F" />
-              <Text style={styles.serialText}>Serial No: {voter.sr}</Text>
+              <Text style={styles.serialText}>{t('dashboard.serial')} No: {voter.sr}</Text>
             </View>
 
             <View style={styles.voterContent}>
@@ -312,7 +321,7 @@ export default function VoterDetailScreen() {
               <View style={styles.voterDetails}>
                 <Text style={styles.voterName}>{voter.Name}</Text>
                 <Text style={styles.relationName}>{voter['Father Name']}</Text>
-                <Text style={styles.address}>Door No {voter.Door_No}</Text>
+                <Text style={styles.address}>{t('dashboard.doorNo')} {voter.Door_No}</Text>
               </View>
             </View>
 
@@ -335,11 +344,11 @@ export default function VoterDetailScreen() {
       {filtersVisible && (
         <View style={styles.filterOverlay}>
           <View style={styles.filterCard}>
-            <Text style={styles.filterTitle}>Filter Voters</Text>
-            <Text style={styles.filterSubtitle}>Select filters to narrow down the voter list</Text>
+            <Text style={styles.filterTitle}>{t('dashboard.filterVoters')}</Text>
+            <Text style={styles.filterSubtitle}>{t('dashboard.filterSubtitle')}</Text>
 
             <ScrollView style={{ maxHeight: 420 }}>
-              <Text style={styles.sectionTitle}>Age</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
               <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
                 <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
                   <MultiSlider
@@ -366,7 +375,7 @@ export default function VoterDetailScreen() {
                 </View>
               </View>
 
-              <Text style={styles.sectionTitle}>Gender</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
               <View style={styles.chipsRow}>
                 {['male','female','other'].map(g => (
                   <TouchableOpacity
@@ -384,7 +393,7 @@ export default function VoterDetailScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Voter History</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
               <View style={styles.chipsRowWrap}>
                 {histories.map((h:any) => (
                   <TouchableOpacity
@@ -402,7 +411,7 @@ export default function VoterDetailScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Voter Category</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
               <View style={styles.chipsRowWrap}>
                 {categories.map((c:any) => (
                   <TouchableOpacity
@@ -420,7 +429,7 @@ export default function VoterDetailScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Political Party</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
               <View style={styles.chipsRowWrap}>
                 {parties.map((p:any) => (
                   <TouchableOpacity
@@ -438,7 +447,7 @@ export default function VoterDetailScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>Religion</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.religion')}</Text>
               <View style={styles.chipsRowWrap}>
                 {religions.map((r:any) => (
                   <TouchableOpacity
@@ -466,7 +475,7 @@ export default function VoterDetailScreen() {
                   setFilteredVoters(voters);
                 }}
               >
-                <Text style={styles.clearText}>Clear All</Text>
+                <Text style={styles.clearText}>{t('dashboard.clearAll')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}
@@ -480,12 +489,12 @@ export default function VoterDetailScreen() {
                   setFiltersVisible(false);
                 }}
               >
-                <Text style={styles.applyText}>Apply Filters</Text>
+                <Text style={styles.applyText}>{t('dashboard.applyFilters')}</Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.closeBar} onPress={() => setFiltersVisible(false)}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={styles.closeText}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -1,8 +1,9 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { voterAPI } from '../../../services/api/voter';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 type Voter = {
   _id: string;
@@ -20,6 +21,7 @@ type Voter = {
 export const options = { headerShown: false };
 
 export default function FamilyManagerScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { partNumber } = useLocalSearchParams();
   const [voters, setVoters] = useState<Voter[]>([]);
@@ -31,6 +33,8 @@ export default function FamilyManagerScreen() {
   const [pagination, setPagination] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [advOpen, setAdvOpen] = useState(false);
+  const [showPartsModal, setShowPartsModal] = useState(false);
+  const [partsSearch, setPartsSearch] = useState('');
   const [adv, setAdv] = useState({
     mobileNo: '',
     Number: '',
@@ -48,16 +52,26 @@ export default function FamilyManagerScreen() {
     (async () => {
       try {
         setLoading(true);
-        const res = await voterAPI.getVotersByPart(partNumber as string);
-        if (res?.success && Array.isArray(res.voters)) {
-          setVoters(res.voters);
-        } else if (Array.isArray(res)) {
-          setVoters(res as any);
-        } else {
-          setVoters([]);
+        // Try primary endpoint
+        let list: any[] | null = null;
+        try {
+          const res = await voterAPI.getVotersByPart(partNumber as string, { page: 1, limit: 1000 });
+          if (res?.success && Array.isArray(res.voters)) list = res.voters;
+          else if (Array.isArray(res?.data)) list = res.data;
+          else if (Array.isArray(res)) list = res as any[];
+        } catch {}
+
+        // Fallback: search API by part number
+        if (!list) {
+          try {
+            const s = await voterAPI.searchVoters({ partNo: String(partNumber), page: 1, limit: 1000 });
+            if (Array.isArray(s?.data)) list = s.data as any[];
+            else if (Array.isArray(s?.voters)) list = s.voters as any[];
+            else if (Array.isArray(s)) list = s as any[];
+          } catch { list = []; }
         }
-      } catch (e) {
-        setVoters([]);
+
+        setVoters(list || []);
       } finally {
         setLoading(false);
       }
@@ -67,7 +81,7 @@ export default function FamilyManagerScreen() {
   const doSearch = async () => {
     if (!query.trim()) { setResults([]); setShowSearchModal(false); return; }
     try {
-      const resp = await voterAPI.searchVoters({ voterFirstName: query.trim(), partNo: String(partNumber || ''), page: 1, limit: 10 });
+      const resp = await voterAPI.searchVoters({ Name: query.trim(), partNo: String(partNumber || ''), page: 1, limit: 10 });
       if (resp?.success) {
         setResults(resp.data || []);
         setPagination(resp.pagination);
@@ -106,12 +120,43 @@ export default function FamilyManagerScreen() {
     }
   };
 
+  const handleNoFamilyPress = () => {
+    if (partNumber) {
+      router.push(`/(tabs)/dashboard/no_family?partNumber=${partNumber}`);
+    }
+  };
+
+  // Clear search data when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      // Clear search data when screen comes into focus
+      return () => {
+        setQuery('');
+        setResults([]);
+        setPagination(null);
+        setCurrentPage(1);
+        setAdvOpen(false);
+        setAdv({
+          mobileNo: '',
+          Number: '',
+          age: '',
+          partNo: '',
+          serialNo: '',
+          Name: '',
+          'Father Name': '',
+          relationFirstName: '',
+          relationLastName: '',
+        });
+      };
+    }, [])
+  );
+
   const changePage = async (dir: 'prev' | 'next') => {
     if (!pagination) return;
     const next = dir === 'prev' ? Math.max(1, (pagination.currentPage || 1) - 1) : Math.min(pagination.totalPages || 1, (pagination.currentPage || 1) + 1);
     if (next === pagination.currentPage) return;
     try {
-      const resp = await voterAPI.searchVoters({ voterFirstName: query.trim(), partNo: String(partNumber || ''), page: next, limit: pagination.limit || 10 });
+      const resp = await voterAPI.searchVoters({ Name: query.trim(), partNo: String(partNumber || ''), page: next, limit: pagination.limit || 10 });
       if (resp?.success) {
         setResults(resp.data || []);
         setPagination(resp.pagination);
@@ -161,7 +206,7 @@ export default function FamilyManagerScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>Loading families...</Text>
+        <Text style={styles.loadingText}>{t('dashboard.loadingFamilies')}</Text>
       </View>
     );
   }
@@ -173,16 +218,16 @@ export default function FamilyManagerScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Family Manager</Text>
+          <Text style={styles.headerTitle}>{t('dashboard.familyManager')}</Text>
           <View style={styles.headerActions} />
         </View>
         <View style={{ padding: 20 }}>
-          <Text style={{ color: '#374151', fontSize: 16, marginBottom: 12 }}>Select a Part to view families.</Text>
+          <Text style={{ color: '#374151', fontSize: 16, marginBottom: 12 }}>{t('dashboard.selectPartToViewFamilies')}</Text>
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/dashboard/part_numbers')}
+            onPress={() => router.push('/(tabs)/dashboard/part_management')}
             style={{ backgroundColor: '#1976D2', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>Choose Part</Text>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>{t('dashboard.choosePart')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -196,26 +241,34 @@ export default function FamilyManagerScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Part-{partNumber} Family</Text>
+        <Text style={styles.headerTitle}>{t('dashboard.partFamily', { partNumber })}</Text>
         <View style={styles.headerActions}>
-          <Icon name="tune" size={22} color="#0D47A1" />
+          <TouchableOpacity onPress={handleNoFamilyPress}>
+            <Icon name="group-off" size={22} color="#0D47A1" />
+          </TouchableOpacity>
           <View style={{ width: 12 }} />
-          <Icon name="filter-list" size={22} color="#0D47A1" />
+          <TouchableOpacity>
+            <Icon name="tune" size={22} color="#0D47A1" />
+          </TouchableOpacity>
+          <View style={{ width: 12 }} />
+          <TouchableOpacity onPress={() => setShowPartsModal(true)}>
+            <Icon name="filter-list" size={22} color="#0D47A1" />
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Counters */}
       <View style={styles.countersRow}>
         <View style={[styles.counterCard, { backgroundColor: '#C8E6C9' }]}>
-          <Text style={styles.counterTitle}>Part Voter</Text>
+          <Text style={styles.counterTitle}>{t('dashboard.partVoter')}</Text>
           <Text style={styles.counterValue}>{totalVoters}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#F8BBD9' }]}>
-          <Text style={styles.counterTitle}>Family Voters</Text>
+          <Text style={styles.counterTitle}>{t('dashboard.familyVoters')}</Text>
           <Text style={styles.counterValue}>{selectedFamilyKey ? families.get(selectedFamilyKey)?.length ?? 0 : 0}</Text>
         </View>
         <View style={[styles.counterCard, { backgroundColor: '#1565C0' }]}>
-          <Text style={[styles.counterTitle, { color: '#fff' }]}>Total family</Text>
+          <Text style={[styles.counterTitle, { color: '#fff' }]}>{t('dashboard.totalFamily')}</Text>
           <Text style={[styles.counterValue, { color: '#fff' }]}>{totalFamilies}</Text>
         </View>
       </View>
@@ -224,7 +277,7 @@ export default function FamilyManagerScreen() {
       <View style={styles.searchWrap}>
         <View style={styles.searchBar}>
           <TextInput
-            placeholder="Voter Id or Voter Name"
+            placeholder={t('dashboard.searchPlaceholder')}
             placeholderTextColor="#90A4AE"
             style={styles.searchInput}
             value={query}
@@ -261,13 +314,13 @@ export default function FamilyManagerScreen() {
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ backgroundColor: '#fff', width: '92%', maxWidth: 560, borderRadius: 16, overflow: 'hidden' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827' }}>Search Results</Text>
+                <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827' }}>{t('dashboard.searchResults')}</Text>
                 <TouchableOpacity onPress={() => setShowSearchModal(false)}><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
               </View>
 
               {pagination && (
                 <Text style={{ textAlign: 'center', color: '#22C55E', fontWeight: '700', paddingVertical: 10 }}>
-                  {`Showing ${((pagination.currentPage-1)*(pagination.limit||10))+1}-${Math.min((pagination.currentPage)*(pagination.limit||10), pagination.totalCount)} of ${pagination.totalCount} Voters`}
+                  {`${t('dashboard.showingResults', { start: ((pagination.currentPage-1)*(pagination.limit||10))+1, end: Math.min((pagination.currentPage)*(pagination.limit||10), pagination.totalCount), total: pagination.totalCount })}`}
                 </Text>
               )}
 
@@ -275,9 +328,9 @@ export default function FamilyManagerScreen() {
                 {results.map((v: any) => (
                   <View key={v._id} style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12, marginVertical: 6, borderWidth: 1, borderColor: '#E5E7EB', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ color: '#2563EB', fontWeight: '800' }}>Serial : {v.sr ?? '-'}</Text>
-                      <Text style={{ color: '#2563EB', fontWeight: '800' }}>Section : {v.Anubhag_number ?? '-'}</Text>
-                      <Text style={{ color: '#2563EB', fontWeight: '800' }}>Part : {v.Part_no ?? '-'}</Text>
+                      <Text style={{ color: '#2563EB', fontWeight: '800' }}>{t('dashboard.serial')} : {v.sr ?? '-'}</Text>
+                      <Text style={{ color: '#2563EB', fontWeight: '800' }}>{t('dashboard.section')} : {v.Anubhag_number ?? '-'}</Text>
+                      <Text style={{ color: '#2563EB', fontWeight: '800' }}>{t('dashboard.part')} : {v.Part_no ?? '-'}</Text>
                     </View>
                     <View style={{ flexDirection: 'row' }}>
                       <View style={{ width: 58, height: 58, borderRadius: 8, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
@@ -286,7 +339,7 @@ export default function FamilyManagerScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 16, fontWeight: '800', color: '#111827' }}>{v.Name}</Text>
                         <Text style={{ fontSize: 14, color: '#374151' }}>{v['Father Name']}</Text>
-                        <Text style={{ fontSize: 13, color: '#6B7280' }}>Door No {v.Door_No}</Text>
+                        <Text style={{ fontSize: 13, color: '#6B7280' }}>{t('dashboard.doorNo')} {v.Door_No}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                           <Icon name="person" size={14} color="#E91E63" />
                           <Text style={{ marginLeft: 6, color: '#374151' }}>{v.age ?? '-'} | {v.sex ?? '-'}</Text>
@@ -296,7 +349,7 @@ export default function FamilyManagerScreen() {
                   </View>
                 ))}
                 {results.length === 0 && (
-                  <Text style={{ textAlign: 'center', color: '#6B7280', paddingVertical: 20 }}>No results</Text>
+                  <Text style={{ textAlign: 'center', color: '#6B7280', paddingVertical: 20 }}>{t('dashboard.noResults')}</Text>
                 )}
               </ScrollView>
 
@@ -324,7 +377,7 @@ export default function FamilyManagerScreen() {
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '90%', maxWidth: 400, maxHeight: '80%' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>Advance Search</Text>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>{t('dashboard.advanceSearch')}</Text>
                 <TouchableOpacity onPress={() => setAdvOpen(false)}><Text style={{ fontSize: 18 }}>✕</Text></TouchableOpacity>
               </View>
               <ScrollView>
@@ -351,12 +404,53 @@ export default function FamilyManagerScreen() {
               </ScrollView>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
                 <TouchableOpacity style={{ flex: 1, backgroundColor: '#1976D2', paddingVertical: 12, borderRadius: 8, alignItems: 'center' }} onPress={doAdvanceSearch}>
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>Search</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700' }}>{t('dashboard.search')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={{ flex: 1, borderWidth: 1, borderColor: '#1976D2', paddingVertical: 12, borderRadius: 8, alignItems: 'center' }} onPress={() => setAdvOpen(false)}>
-                  <Text style={{ color: '#1976D2', fontWeight: '700' }}>Cancel</Text>
+                  <Text style={{ color: '#1976D2', fontWeight: '700' }}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Parts selection modal */}
+      {showPartsModal && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setShowPartsModal(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, maxHeight: '70%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>{t('dashboard.selectPart')}</Text>
+                <TouchableOpacity onPress={() => setShowPartsModal(false)}><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
+              </View>
+              <View style={{ backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 }}>
+                <TextInput
+                  placeholder={t('dashboard.searchPartNumber')}
+                  placeholderTextColor="#94A3B8"
+                  value={partsSearch}
+                  onChangeText={setPartsSearch}
+                  style={{ color: '#0F172A' }}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <ScrollView style={{ maxHeight: '80%' }}>
+                {Array.from({ length: 299 }, (_, i) => i + 1)
+                  .filter(n => n.toString().includes(partsSearch))
+                  .map((n) => (
+                    <TouchableOpacity
+                      key={n}
+                      onPress={() => {
+                        setShowPartsModal(false);
+                        setSelectedFamilyKey(null);
+                        router.replace({ pathname: '/(tabs)/dashboard/family_manager', params: { partNumber: String(n) } });
+                      }}
+                      style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+                    >
+                      <Text style={{ color: '#0F172A', fontSize: 16 }}>{t('dashboard.partNumber', { number: n })}</Text>
+                    </TouchableOpacity>
+                  ))}
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -386,10 +480,10 @@ const styles = StyleSheet.create({
   searchBar: { flex: 1, backgroundColor: '#fff', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, marginRight: 10 },
   searchInput: { flex: 1, color: '#000' },
   roundIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
-  familiesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 16, paddingTop: 8 },
-  familyChip: { backgroundColor: '#D7EBFF', paddingHorizontal: 22, paddingVertical: 12, borderRadius: 36 },
+  familiesWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8 },
+  familyChip: { backgroundColor: '#D7EBFF', width: '22%', aspectRatio: 1, borderRadius: 9999, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   familyChipActive: { backgroundColor: '#BBDEFB', borderWidth: 1, borderColor: '#1976D2' },
-  familyChipText: { color: '#0D47A1', fontWeight: '700', fontSize: 16 },
+  familyChipText: { color: '#0D47A1', fontWeight: '700', fontSize: 18 },
   familyChipTextActive: { color: '#0D47A1' },
 });
 

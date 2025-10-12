@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Dimensions, Modal } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { API_CONFIG } from '../../services/api/config';
 import { useBanner } from '../../contexts/BannerContext';
@@ -27,6 +27,12 @@ export default function DashboardScreen() {
   const [currentPage, setCurrentPage] = useState(1); // State for current page
   const [showElectionModal, setShowElectionModal] = useState(false); // State for election dropdown modal
   const [selectedElection, setSelectedElection] = useState('119 - Thondamuthur'); // State for selected election
+  const [showElectionDropdown, setShowElectionDropdown] = useState(false); // State for election dropdown
+  
+  // Election options (restricted to the configured default)
+  const electionOptions = [
+    '119 - Thondamuthur',
+  ];
   const [showAdvanceSearchModal, setShowAdvanceSearchModal] = useState(false); // State for advance search modal
   const [advanceSearchData, setAdvanceSearchData] = useState({
     mobileNo: '',
@@ -56,6 +62,36 @@ export default function DashboardScreen() {
     }
   }, [bannerIndex, width, banners.length]);
 
+  // Clear search data when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      // Clear search data when screen comes into focus
+      return () => {
+        setSearchQuery('');
+        setSearchResults([]);
+        setPagination(null);
+        setCurrentPage(1);
+        setShowSearchModal(false);
+        setShowAdvanceSearchModal(false);
+        setAdvanceSearchData({
+          mobileNo: '',
+          Number: '',
+          age: '',
+          partNo: '',
+          serialNo: '',
+          Name: '',
+          'Father Name': '',
+          relationFirstName: '',
+          relationLastName: '',
+        });
+        setVoterSearchResults([]);
+        setVoterSearchPagination(null);
+        setShowVoterSearchModal(false);
+        setVoterSearchLoading(false);
+      };
+    }, [])
+  );
+
   // Function to handle advance search
   const handleAdvanceSearch = async () => {
     try {
@@ -67,7 +103,7 @@ export default function DashboardScreen() {
         .reduce((obj, [key, value]) => ({ ...obj, [key]: value.trim() }), {});
 
       if (Object.keys(searchParams).length === 0) {
-        alert('Please fill at least one search field');
+        alert(t('dashboard.pleaseFillAtLeastOne'));
         setVoterSearchLoading(false);
         return;
       }
@@ -87,27 +123,27 @@ export default function DashboardScreen() {
         setShowAdvanceSearchModal(false);
         setShowVoterSearchModal(true);
       } else {
-        alert(response.message || 'Search failed. Please try again.');
+        alert(response.message || t('dashboard.searchFailed'));
       }
       
     } catch (error) {
       console.error('Advance search error:', error);
-      alert('Search failed. Please try again.');
+      alert(t('dashboard.searchFailed'));
     } finally {
       setVoterSearchLoading(false);
     }
   };
 
-  // Function to clear advance search form
+  // Function to clear advance search form (keys must match backend contract)
   const clearAdvanceSearch = () => {
     setAdvanceSearchData({
       mobileNo: '',
-      epicId: '',
+      Number: '',
       age: '',
       partNo: '',
       serialNo: '',
-      voterFirstName: '',
-      voterLastName: '',
+      Name: '',
+      'Father Name': '',
       relationFirstName: '',
       relationLastName: ''
     });
@@ -132,15 +168,36 @@ export default function DashboardScreen() {
         setVoterSearchResults(response.data);
         setVoterSearchPagination(response.pagination);
       } else {
-        alert(response.message || 'Failed to load page');
+        alert(response.message || t('dashboard.failedToLoadPage'));
       }
       
     } catch (error) {
       console.error('Voter search pagination error:', error);
-      alert('Failed to load page. Please try again.');
+      alert(t('dashboard.failedToLoadPage'));
     } finally {
       setVoterSearchLoading(false);
     }
+  };
+
+  // Build params based on the free-text search query (mobile/EPIC/name/serial)
+  const buildQuickSearchParams = (q: string) => {
+    const trimmed = q.trim();
+    const params: any = { page: 1, limit: 10 };
+    
+    if (/^\d{10}$/.test(trimmed)) {
+      // Mobile number (10 digits)
+      params.mobileNo = trimmed;
+    } else if (/^[A-Za-z0-9]{6,}$/.test(trimmed)) {
+      // Likely EPIC Id
+      params.Number = trimmed.toUpperCase();
+    } else if (/^\d{1,3}$/.test(trimmed)) {
+      // Serial number (1-3 digits) - search by serialNo field (backend parameter)
+      params.serialNo = trimmed;
+    } else {
+      // Name fallback
+      params.Name = trimmed;
+    }
+    return params;
   };
 
   // Function to handle search when search icon is clicked
@@ -155,14 +212,7 @@ export default function DashboardScreen() {
     setCurrentPage(1);
 
     try {
-      // Use the voter search API with the search query as voter name
-      const searchParams = {
-        Name: searchQuery.trim(),
-        page: 1,
-        limit: 10
-      };
-
-      const response = await voterAPI.searchVoters(searchParams);
+      const response = await voterAPI.searchVoters(buildQuickSearchParams(searchQuery));
       
       if (response.success) {
         setSearchResults(response.data);
@@ -170,11 +220,11 @@ export default function DashboardScreen() {
         setShowSearchModal(true);
       } else {
         console.error('Search failed:', response.message);
-        alert('Search failed. Please try again.');
+        alert(t('dashboard.searchFailed'));
       }
     } catch (error) {
       console.error('Error fetching search results:', error.message);
-      alert('Search failed. Please try again.');
+      alert(t('dashboard.searchFailed'));
     }
   };
 
@@ -185,25 +235,20 @@ export default function DashboardScreen() {
     setCurrentPage(newPage);
     
     try {
-      // Use the voter search API with the search query as voter name
-      const searchParams = {
-        Name: searchQuery.trim(),
-        page: newPage,
-        limit: 10
-      };
-
-      const response = await voterAPI.searchVoters(searchParams);
+      const params = buildQuickSearchParams(searchQuery);
+      params.page = newPage;
+      const response = await voterAPI.searchVoters(params);
       
       if (response.success) {
         setSearchResults(response.data);
         setPagination(response.pagination);
       } else {
         console.error('Search failed:', response.message);
-        alert('Failed to load page. Please try again.');
+        alert(t('dashboard.failedToLoadPage'));
       }
     } catch (error) {
       console.error('Error fetching search results:', error.message);
-      alert('Failed to load page. Please try again.');
+      alert(t('dashboard.failedToLoadPage'));
     }
   };
 
@@ -247,39 +292,42 @@ export default function DashboardScreen() {
       {/* Top area with blue background */}
       <View style={styles.topArea}>
         <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/(drawer)/drawerscreen')}>
-            <View style={styles.menuBar} />
-            <View style={styles.menuBar} />
-            <View style={styles.menuBar} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.selector} activeOpacity={0.8} onPress={handleElectionSelect}>
-            <Text style={styles.selectorText}>{constituency}</Text>
-            <Text style={styles.selectorChevron}>▾</Text>
-          </TouchableOpacity>
+          <View style={styles.leftSection}>
+            <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/(drawer)/drawerscreen')}>
+              <View style={styles.menuBar} />
+              <View style={styles.menuBar} />
+              <View style={styles.menuBar} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.selector} activeOpacity={0.8} onPress={handleElectionSelect}>
+              <Text style={styles.selectorText}>{constituency}</Text>
+              <Text style={styles.selectorChevron}>▾</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity style={styles.bell}>
-            <Icon name="notifications" size={24} color="#1976D2" />
+            <Icon name="notifications" size={24} color="#0D47A1" />
+            <View style={styles.notificationBadge} />
           </TouchableOpacity>
         </View>
 
         {/* Manager quick actions */}
         <View style={styles.quickRow}>
           <ManagerCard 
-            title="Cadre Manager" 
+            title={t('dashboard.cadreManager')} 
             source={require('../../assets/images/cadre_manager.png')} 
             onPress={() => router.push('/(tabs)/dashboard/my_cadre')}
           />
           <ManagerCard 
-            title="Voter Manager" 
+            title={t('dashboard.voterManager')} 
             source={require('../../assets/images/voter_manager.png')} 
-            onPress={() => router.push('/(tabs)/dashboard/part_number1')}
+            onPress={() => router.push('/(tabs)/dashboard/voter_manager_parts')}
           />
           <ManagerCard 
-            title="Family Manager" 
+            title={t('dashboard.familyManager')} 
             source={require('../../assets/images/family_manager.png')} 
             onPress={() => router.push('/(tabs)/dashboard/family_manager?partNumber=1')}
           />
           <ManagerCard 
-            title="Survey Manager" 
+            title={t('dashboard.surveyManager')} 
             source={require('../../assets/images/survey_manager.png')} 
             onPress={() => router.push('/(tabs)/dashboard/survey')}
           />
@@ -289,50 +337,47 @@ export default function DashboardScreen() {
       {/* Search */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
-          <Icon name="search" size={18} color="#90A4AE" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Voter Id or Voter Name"
+            placeholder={t('dashboard.searchPlaceholder')}
             placeholderTextColor="#B0BEC5"
             value={searchQuery} // Bind search input to state
             onChangeText={setSearchQuery} // Update state on text change
             onSubmitEditing={handleSearch} // Search when user presses enter
           />
+          <Icon name="search" size={18} color="#90A4AE" />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
               <Text style={styles.clearIcon}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Icon name="search" size={18} color="#fff" />
-        </TouchableOpacity>
         <TouchableOpacity 
           style={styles.filterButton}
           onPress={() => setShowAdvanceSearchModal(true)}
         >
-          <Text style={styles.filterText}>☰</Text>
+          <Icon name="tune" size={18} color="#90A4AE" />
         </TouchableOpacity>
       </View>
 
       {/* Feature grid (icons + labels, no squares) */}
       <View style={styles.grid}>
         <IconTile 
-          title="Cadre" 
+          title={t('dashboard.cadre')} 
           src={require('../../assets/images/cadre.png')} 
           onPress={() => router.push('/(tabs)/dashboard/volunteers_tracking')}
         />
-        <IconTile title="Part" src={require('../../assets/images/part.png')} onPress={() => router.push('/(tabs)/dashboard/part_map')} />
-        <IconTile title="Voter" src={require('../../assets/images/voter.png')} onPress={() => router.push('/(tabs)/dashboard/part_number2')} />
-        <IconTile title="New" src={require('../../assets/images/New.png')} />
-        <IconTile title="Transgender" src={require('../../assets/images/transegender.png')} onPress={() => router.push('/(tabs)/dashboard/transgender')} />
-        <IconTile title="Fatherless" src={require('../../assets/images/fatherless.png')} onPress={() => router.push('/(tabs)/dashboard/fatherless')} />
-        <IconTile title="Guardian" src={require('../../assets/images/guardian.png')} onPress={() => router.push('/(tabs)/dashboard/guardian')} />
-        <IconTile title="Overseas" src={require('../../assets/images/overseas.png')} />
-        <IconTile title="Birthday" src={require('../../assets/images/birthday.png')} />
-        <IconTile title="Star" src={require('../../assets/images/star.png')} onPress={() => router.push('/(tabs)/dashboard/star')} />
-        <IconTile title="Mobile" src={require('../../assets/images/Mobile.png')} onPress={() => router.push('/(tabs)/dashboard/mobile')} />
-        <IconTile title="80 Above" src={require('../../assets/images/80 Above.png')} onPress={() => router.push('/(tabs)/dashboard/age80above')} />
+        <IconTile title={t('dashboard.part')} src={require('../../assets/images/part.png')} onPress={() => router.push('/(tabs)/dashboard/part_map')} />
+        <IconTile title={t('dashboard.voter')} src={require('../../assets/images/voter.png')} onPress={() => router.push('/(tabs)/dashboard/voter_parts')} />
+        <IconTile title={t('dashboard.new')} src={require('../../assets/images/New.png')} onPress={() => router.push('/(tabs)/dashboard/soon_to_be_voter')} />
+        <IconTile title={t('dashboard.transgender')} src={require('../../assets/images/transegender.png')} onPress={() => router.push('/(tabs)/dashboard/transgender')} />
+        <IconTile title={t('dashboard.fatherless')} src={require('../../assets/images/fatherless.png')} onPress={() => router.push('/(tabs)/dashboard/fatherless')} />
+        <IconTile title={t('dashboard.guardian')} src={require('../../assets/images/guardian.png')} onPress={() => router.push('/(tabs)/dashboard/guardian')} />
+        <IconTile title={t('dashboard.overseas')} src={require('../../assets/images/overseas.png')} />
+        <IconTile title={t('dashboard.birthday')} src={require('../../assets/images/birthday.png')} />
+        <IconTile title={t('dashboard.star')} src={require('../../assets/images/star.png')} onPress={() => router.push('/(tabs)/dashboard/star')} />
+        <IconTile title={t('dashboard.mobile')} src={require('../../assets/images/Mobile.png')} onPress={() => router.push('/(tabs)/dashboard/mobile')} />
+        <IconTile title={t('dashboard.age80above')} src={require('../../assets/images/80 Above.png')} onPress={() => router.push('/(tabs)/dashboard/age80above')} />
       </View>
 
       {/* Banners - auto swipe */}
@@ -364,33 +409,33 @@ export default function DashboardScreen() {
       </View>
 
       {/* Cadre Overview */}
-      <Text style={styles.sectionTitle}>Cadre Overview</Text>
+      <Text style={styles.sectionTitle}>{t('dashboard.cadreOverview')}</Text>
       <View style={styles.overviewRow}>
         <OverviewCard 
-          title={'Total\nCadres'} 
+          title={t('dashboard.totalCadres')} 
           value={'0'} 
           accent="#1976D2" 
           large 
-          iconEmoji="🚶" 
+          iconName="directions-walk" 
           onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')}
         />
         <View style={styles.overviewColSmall}>
           <OverviewCard 
-            title={'Cadre\nActive'} 
+            title={t('dashboard.cadreActive')} 
             value={'0'} 
             accent="#2E7D32" 
             onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')}
           />
-          <OverviewCard title={'Logged\nIn'} value={'0'} accent="#2E7D32" />
+          <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
         </View>
         <View style={styles.overviewColSmall}>
           <OverviewCard 
-            title={'Cadre\nInActive'} 
+            title={t('dashboard.cadreInActive')} 
             value={'0'} 
             accent="#D32F2F" 
             onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=inactive')}
           />
-          <OverviewCard title={'Not\nLogged'} value={'0'} accent="#D32F2F" />
+          <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
         </View>
       </View>
 
@@ -403,7 +448,7 @@ export default function DashboardScreen() {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Search Results</Text>
+              <Text style={styles.modalTitle}>{t('dashboard.searchResults')}</Text>
               <TouchableOpacity 
                 onPress={() => setShowSearchModal(false)}
                 style={styles.closeButton}
@@ -414,38 +459,70 @@ export default function DashboardScreen() {
             
             {pagination && (
               <Text style={styles.resultsCount}>
-                Showing {((pagination.currentPage - 1) * 10) + 1}-{Math.min(pagination.currentPage * 10, pagination.totalCount)} of {pagination.totalCount} Voters
+                {t('dashboard.showingResults', { start: ((pagination.currentPage - 1) * 10) + 1, end: Math.min(pagination.currentPage * 10, pagination.totalCount), total: pagination.totalCount })}
               </Text>
             )}
 
             <ScrollView style={styles.modalContent}>
               {searchResults.map((voter, index) => (
-                <View key={index} style={styles.voterCard}>
-                  <View style={styles.voterHeader}>
-                    <Text style={styles.serialText}>Serial : {voter.sr}</Text>
-                    <Text style={styles.sectionText}>Section : {voter.Anubhag_number}</Text>
-                    <Text style={styles.partText}>Part : {voter.bhag_no}</Text>
-                  </View>
-                  
-                  <View style={styles.voterContent}>
-                    <View style={styles.voterImageContainer}>
-                      <View style={styles.voterImagePlaceholder}>
-                        <Icon name="image" size={18} color="#B0BEC5" />
-                      </View>
-                      <Text style={styles.voterId}>{voter.Number}</Text>
-                    </View>
-                    
-                    <View style={styles.voterDetails}>
-                      <Text style={styles.voterName}>{voter.Name}</Text>
-                      <Text style={styles.voterRelation}>{voter.Relation}</Text>
-                      <Text style={styles.voterFather}>{voter['Father Name']}</Text>
-                      <Text style={styles.voterAddress}>Door No {voter.makan}</Text>
-                      <View style={styles.voterFooter}>
-                        <Text style={styles.voterAge}>{voter.age} | {voter.Relation}</Text>
-                      </View>
+                <TouchableOpacity key={index} style={styles.voterCard} activeOpacity={0.85} onPress={() => {
+                  try { router.push({ pathname: '/(tabs)/dashboard/voter_info', params: { voterData: JSON.stringify(voter) } }); } catch {}
+                }}>
+                  {/* Voter Card Header */}
+                  <View style={styles.voterCardHeader}>
+                    <View style={styles.serialContainer}>
+                      <TouchableOpacity 
+                        style={styles.starButton}
+                        onPress={() => {
+                          // Toggle favorite status
+                          console.log('Toggle favorite for voter:', voter.Number);
+                        }}
+                      >
+                        <Icon name="star-border" size={20} color="#FFD700" style={styles.starIcon} />
+                      </TouchableOpacity>
+                      <Text style={styles.serialText}>{t('dashboard.serial')} : {voter.sr || index + 1}</Text>
                     </View>
                   </View>
-                </View>
+
+                  {/* Voter Card Content */}
+                  <View style={styles.voterCardContent}>
+                    {/* Voter Image and ID */}
+                    <View style={styles.voterImageSection}>
+                      <View style={styles.voterImageContainer}>
+                        <View style={styles.voterImagePlaceholder}>
+                          <Icon name="person" size={32} color="#90A4AE" />
+                        </View>
+                        <View style={styles.noImageOverlay}>
+                          <Icon name="block" size={16} color="#F44336" />
+                        </View>
+                      </View>
+                      <View style={styles.voterIdBadge}>
+                        <Text style={styles.voterIdText}>{voter.Number}</Text>
+                      </View>
+                    </View>
+
+                    {/* Voter Details */}
+                    <View style={styles.voterInfoSection}>
+                      <Text style={styles.voterNameEnglish}>{voter.Name}</Text>
+                      <Text style={styles.voterNameTamil}>{voter.NameTamil || voter.Name}</Text>
+                      <Text style={styles.voterRelationEnglish}>{voter['Father Name']}</Text>
+                      <Text style={styles.voterRelationTamil}>{voter.RelationNameTamil || voter['Father Name']}</Text>
+                      <Text style={styles.voterAddress}>{t('dashboard.doorNo')} {voter.makan || voter.Door_No}</Text>
+                    </View>
+                  </View>
+
+                  {/* Age and Gender Footer */}
+                  <View style={styles.voterAgeGenderContainer}>
+                    <View style={styles.genderIconContainer}>
+                      <Icon 
+                        name={voter.sex === 'Male' ? 'male' : voter.sex === 'Female' ? 'female' : 'person'} 
+                        size={18} 
+                        color={voter.sex === 'Male' ? '#2196F3' : voter.sex === 'Female' ? '#E91E63' : '#9E9E9E'} 
+                      />
+                    </View>
+                    <Text style={styles.voterAgeGender}>{voter.age} {voter.Relation || 'Husband'}</Text>
+                  </View>
+                </TouchableOpacity>
               ))}
             </ScrollView>
 
@@ -481,31 +558,58 @@ export default function DashboardScreen() {
       {showElectionModal && (
         <Modal
           visible={showElectionModal}
-          animationType="fade"
+          animationType="slide"
           transparent={true}
           onRequestClose={handleElectionClose}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.electionModalContainer}>
-              <Text style={styles.electionModalTitle}>Set Default Election</Text>
+              <Text style={styles.electionModalTitle}>{t('dashboard.setDefaultElection')}</Text>
               
               <View style={styles.electionInputContainer}>
-                <TextInput
-                  style={styles.electionInput}
-                  value={selectedElection}
-                  onChangeText={setSelectedElection}
-                  placeholder="Select election"
-                  placeholderTextColor="#999999"
-                />
+                <TouchableOpacity 
+                  style={styles.electionDropdown}
+                  onPress={() => setShowElectionDropdown(!showElectionDropdown)}
+                >
+                  <Text style={styles.electionDropdownText}>{selectedElection}</Text>
+                  <Icon name={showElectionDropdown ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={24} color="#666" />
+                </TouchableOpacity>
+                
+                {showElectionDropdown && (
+                  <View style={styles.electionDropdownList}>
+                    <ScrollView style={styles.electionScrollView}>
+                      {electionOptions.map((option, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={[
+                            styles.electionOption,
+                            selectedElection === option && styles.electionOptionSelected
+                          ]}
+                          onPress={() => {
+                            setSelectedElection(option);
+                            setShowElectionDropdown(false);
+                          }}
+                        >
+                          <Text style={[
+                            styles.electionOptionText,
+                            selectedElection === option && styles.electionOptionTextSelected
+                          ]}>
+                            {option}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
               
               <View style={styles.electionButtonContainer}>
                 <TouchableOpacity style={styles.updateButton} onPress={handleElectionUpdate}>
-                  <Text style={styles.updateButtonText}>UPDATE</Text>
+                  <Text style={styles.updateButtonText}>{t('dashboard.update')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.electionCloseButton} onPress={handleElectionClose}>
-                  <Text style={styles.electionCloseButtonText}>CLOSE</Text>
+                  <Text style={styles.electionCloseButtonText}>{t('dashboard.close')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -519,16 +623,22 @@ export default function DashboardScreen() {
           visible={showAdvanceSearchModal}
           animationType="slide"
           transparent={true}
-          onRequestClose={() => setShowAdvanceSearchModal(false)}
+          onRequestClose={() => {
+            setShowAdvanceSearchModal(false);
+            clearAdvanceSearch();
+          }}
         >
           <View style={styles.advanceSearchModalOverlay}>
             <View style={styles.advanceSearchModalContainer}>
               {/* Header */}
               <View style={styles.advanceSearchHeader}>
-                <Text style={styles.advanceSearchTitle}>Advance Search</Text>
+                <Text style={styles.advanceSearchTitle}>{t('dashboard.advanceSearch')}</Text>
                 <TouchableOpacity 
                   style={styles.advanceSearchCloseButton}
-                  onPress={() => setShowAdvanceSearchModal(false)}
+                  onPress={() => {
+                    setShowAdvanceSearchModal(false);
+                    clearAdvanceSearch();
+                  }}
                 >
                   <Text style={styles.advanceSearchCloseIcon}>✕</Text>
                 </TouchableOpacity>
@@ -539,7 +649,7 @@ export default function DashboardScreen() {
                 {/* Full width fields */}
                 <TextInput
                   style={styles.advanceSearchInputFull}
-                  placeholder="Mobile No"
+                  placeholder={t('dashboard.mobileNo')}
                   placeholderTextColor="#999999"
                   value={advanceSearchData.mobileNo}
                   onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, mobileNo: text }))}
@@ -548,7 +658,7 @@ export default function DashboardScreen() {
                 
                 <TextInput
                   style={styles.advanceSearchInputFull}
-                  placeholder="EPIC Id"
+                  placeholder={t('dashboard.epicId')}
                   placeholderTextColor="#999999"
                   value={advanceSearchData.Number}
                   onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, Number: text }))}
@@ -556,7 +666,7 @@ export default function DashboardScreen() {
                 
                 <TextInput
                   style={styles.advanceSearchInputFull}
-                  placeholder="Age"
+                  placeholder={t('dashboard.age')}
                   placeholderTextColor="#999999"
                   value={advanceSearchData.age}
                   onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, age: text }))}
@@ -567,7 +677,7 @@ export default function DashboardScreen() {
                 <View style={styles.advanceSearchRow}>
                   <TextInput
                     style={styles.advanceSearchInputHalf}
-                    placeholder="Part No"
+                    placeholder={t('dashboard.partNo')}
                     placeholderTextColor="#999999"
                     value={advanceSearchData.partNo}
                     onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, partNo: text }))}
@@ -575,7 +685,7 @@ export default function DashboardScreen() {
                   />
                   <TextInput
                     style={styles.advanceSearchInputHalf}
-                    placeholder="Serial No"
+                    placeholder={t('dashboard.serialNo')}
                     placeholderTextColor="#999999"
                     value={advanceSearchData.serialNo}
                     onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, serialNo: text }))}
@@ -588,14 +698,14 @@ export default function DashboardScreen() {
                 <View style={styles.advanceSearchRow}>
                   <TextInput
                     style={styles.advanceSearchInputHalf}
-                    placeholder="Voter First Name"
+                    placeholder={t('dashboard.voterFirstName')}
                     placeholderTextColor="#999999"
                     value={advanceSearchData.Name}
                     onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, Name: text }))}
                   />
                   <TextInput
                     style={styles.advanceSearchInputHalf}
-                    placeholder="Voter Last Name"
+                    placeholder={t('dashboard.voterLastName')}
                     placeholderTextColor="#999999"
                     value={advanceSearchData['Father Name']}
                     onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, 'Father Name': text }))}
@@ -606,14 +716,14 @@ export default function DashboardScreen() {
                 <View style={styles.advanceSearchRow}>
                   <TextInput
                     style={styles.advanceSearchInputHalf}
-                    placeholder="Relation First Name"
+                    placeholder={t('dashboard.relationFirstName')}
                     placeholderTextColor="#999999"
                     value={advanceSearchData.relationFirstName}
                     onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, relationFirstName: text }))}
                   />
                   <TextInput
                     style={styles.advanceSearchInputHalf}
-                    placeholder="Relation Last Name"
+                    placeholder={t('dashboard.relationLastName')}
                     placeholderTextColor="#999999"
                     value={advanceSearchData.relationLastName}
                     onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, relationLastName: text }))}
@@ -628,14 +738,17 @@ export default function DashboardScreen() {
                   style={styles.advanceSearchButton}
                   onPress={handleAdvanceSearch}
                 >
-                  <Text style={styles.advanceSearchButtonText}>Search</Text>
+                  <Text style={styles.advanceSearchButtonText}>{t('dashboard.search')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
                   style={styles.advanceSearchCancelButton}
-                  onPress={() => setShowAdvanceSearchModal(false)}
+                  onPress={() => {
+                    setShowAdvanceSearchModal(false);
+                    clearAdvanceSearch();
+                  }}
                 >
-                  <Text style={styles.advanceSearchCancelButtonText}>Cancel</Text>
+                  <Text style={styles.advanceSearchCancelButtonText}>{t('dashboard.cancel')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -655,7 +768,7 @@ export default function DashboardScreen() {
             <View style={styles.voterSearchModalContainer}>
               {/* Header */}
               <View style={styles.voterSearchHeader}>
-                <Text style={styles.voterSearchTitle}>Search Results</Text>
+                <Text style={styles.voterSearchTitle}>{t('dashboard.searchResults')}</Text>
                 <TouchableOpacity 
                   style={styles.voterSearchCloseButton}
                   onPress={() => setShowVoterSearchModal(false)}
@@ -667,7 +780,7 @@ export default function DashboardScreen() {
               {/* Results Summary */}
               {voterSearchPagination && (
                 <Text style={styles.voterSearchSummary}>
-                  Showing {((voterSearchPagination.currentPage - 1) * voterSearchPagination.limit) + 1}-{Math.min(voterSearchPagination.currentPage * voterSearchPagination.limit, voterSearchPagination.totalCount)} of {voterSearchPagination.totalCount} Voters
+                  {t('dashboard.showingResults', { start: ((voterSearchPagination.currentPage - 1) * voterSearchPagination.limit) + 1, end: Math.min(voterSearchPagination.currentPage * voterSearchPagination.limit, voterSearchPagination.totalCount), total: voterSearchPagination.totalCount })}
                 </Text>
               )}
 
@@ -675,44 +788,68 @@ export default function DashboardScreen() {
               <ScrollView style={styles.voterSearchResults}>
                 {voterSearchLoading ? (
                   <View style={styles.voterSearchLoading}>
-                    <Text style={styles.voterSearchLoadingText}>Loading...</Text>
+                    <Text style={styles.voterSearchLoadingText}>{t('dashboard.loading')}</Text>
                   </View>
                 ) : voterSearchResults.length > 0 ? (
                   voterSearchResults.map((voter: any, index: number) => (
-                    <View key={voter._id || index} style={styles.voterCard}>
-                      {/* Voter Info Header */}
+                    <TouchableOpacity key={voter._id || index} style={styles.voterCard} activeOpacity={0.85} onPress={() => {
+                      try { router.push({ pathname: '/(tabs)/dashboard/voter_info', params: { voterData: JSON.stringify(voter) } }); } catch {}
+                    }}>
+                      {/* Voter Card Header with Star and Serial */}
                       <View style={styles.voterCardHeader}>
-                        <Text style={styles.voterSerial}>Serial : {voter.sr}</Text>
-                        <Text style={styles.voterSection}>Section : {voter.Anubhag_number}</Text>
-                        <Text style={styles.voterPart}>Part : {voter.Part_no}</Text>
+                        <TouchableOpacity 
+                          style={styles.starButton}
+                          onPress={() => {
+                            // Toggle favorite status
+                            console.log('Toggle favorite for voter:', voter.Number);
+                          }}
+                        >
+                          <Icon name="star" size={20} color="#FFD700" />
+                        </TouchableOpacity>
+                        <Text style={styles.serialText}>{t('dashboard.serial')} No: {voter.sr || index + 1}</Text>
                       </View>
 
-                      {/* Voter Details */}
+                      {/* Voter Card Content - Two Column Layout */}
                       <View style={styles.voterCardContent}>
-                        {/* Voter Image Placeholder */}
-                        <View style={styles.voterImageContainer}>
-                          <View style={styles.voterImagePlaceholder}>
-                            <Icon name="person" size={18} color="#90A4AE" />
+                        {/* Left Column - Image and ID */}
+                        <View style={styles.voterImageSection}>
+                          <View style={styles.voterImageContainer}>
+                            <View style={styles.voterImagePlaceholder}>
+                              <Icon name="person" size={32} color="#90A4AE" />
+                            </View>
+                            <View style={styles.noImageOverlay}>
+                              <Icon name="block" size={16} color="#F44336" />
+                            </View>
                           </View>
-                          <Text style={styles.voterId}>{voter.Number}</Text>
+                          <View style={styles.voterIdBadge}>
+                            <Text style={styles.voterIdText}>{voter.Number}</Text>
+                          </View>
                         </View>
 
-                        {/* Voter Information */}
-                        <View style={styles.voterDetails}>
-                          <Text style={styles.voterName}>{voter.Name}</Text>
-                          <Text style={styles.voterRelation}>{voter.Relation}</Text>
-                          <Text style={styles.voterFather}>{voter['Father Name']}</Text>
-                          <Text style={styles.voterAddress}>Door No {voter.Door_No}</Text>
-                          <View style={styles.voterAgeContainer}>
-                            <Text style={styles.voterAge}>{voter.age} | {voter.sex}</Text>
-                          </View>
+                        {/* Right Column - Voter Details */}
+                        <View style={styles.voterInfoSection}>
+                          <Text style={styles.voterNameEnglish}>{voter.Name}</Text>
+                          <Text style={styles.voterNameTamil}>{voter.NameTamil || voter.Name}</Text>
+                          <Text style={styles.voterRelationEnglish}>{voter['Father Name']}</Text>
+                          <Text style={styles.voterRelationTamil}>{voter.RelationNameTamil || voter['Father Name']}</Text>
+                          <Text style={styles.voterAddress}>{t('dashboard.doorNo')} {voter.Door_No}</Text>
                         </View>
                       </View>
-                    </View>
+
+                      {/* Bottom Footer - Gender Icon and Age */}
+                      <View style={styles.voterAgeGenderContainer}>
+                        <Icon 
+                          name={voter.sex === 'Male' ? 'male' : voter.sex === 'Female' ? 'female' : 'person'} 
+                          size={18} 
+                          color={voter.sex === 'Male' ? '#4CAF50' : voter.sex === 'Female' ? '#E91E63' : '#9E9E9E'} 
+                        />
+                        <Text style={styles.voterAgeGender}>{voter.age} {voter.Relation || 'Husband'}</Text>
+                      </View>
+                    </TouchableOpacity>
                   ))
                 ) : (
                   <View style={styles.voterSearchEmpty}>
-                    <Text style={styles.voterSearchEmptyText}>No voters found matching your search criteria</Text>
+                    <Text style={styles.voterSearchEmptyText}>{t('dashboard.noVotersFound')}</Text>
                   </View>
                 )}
               </ScrollView>
@@ -785,22 +922,34 @@ type OverviewCardProps = {
   accent: string;
   large?: boolean;
   iconEmoji?: string;
+  iconName?: string;
   onPress?: () => void;
 };
 
-const OverviewCard = ({ title, value, accent, large, iconEmoji, onPress }: OverviewCardProps) => (
-  <TouchableOpacity 
-    style={[large ? styles.overviewLarge : styles.overviewSmall]} 
-    onPress={onPress}
-    activeOpacity={0.8}
-  >
-    {iconEmoji ? <Text style={styles.overviewIcon}>{iconEmoji}</Text> : null}
-    <Text style={styles.overviewTitle}>{title}</Text>
-    <View style={[styles.badge, { backgroundColor: accent }]}>
-      <Text style={styles.badgeText}>{value}</Text>
-    </View>
-  </TouchableOpacity>
-);
+const OverviewCard = ({ title, value, accent, large, iconEmoji, iconName, onPress }: OverviewCardProps) => {
+  const { language } = useLanguage();
+  const isTamilOrMalayalam = language === 'ta' || language === 'ml';
+  
+  return (
+    <TouchableOpacity 
+      style={[large ? styles.overviewLarge : styles.overviewSmall]} 
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      {iconEmoji ? <Text style={styles.overviewIcon}>{iconEmoji}</Text> : null}
+      {iconName ? <Icon name={iconName} size={large ? 32 : 24} color={accent} style={styles.overviewIconVector} /> : null}
+      <View style={styles.titleContainer}>
+        <Text style={[
+          styles.overviewTitle,
+          isTamilOrMalayalam && styles.overviewTitleTamilMalayalam
+        ]}>{title}</Text>
+      </View>
+      <View style={[styles.badge, { backgroundColor: accent }]}>
+        <Text style={styles.badgeText}>{value}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -808,20 +957,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F6FB',
   },
   topArea: {
-    backgroundColor: '#E6F0FE',
+    backgroundColor: '#E3F2FD',
     paddingBottom: 32,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 36,
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   menuButton: {
     width: 44,
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 8,
   },
   menuBar: {
     width: 20,
@@ -831,24 +987,21 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   selector: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 10,
-    marginHorizontal: 8,
-    elevation: 2,
+    flex: 1,
   },
   selectorText: {
-    flex: 1,
-    fontWeight: '600',
-    color: '#263238',
+    fontWeight: '700',
+    color: '#000000',
+    fontSize: 16,
   },
   selectorChevron: {
     marginLeft: 8,
-    color: '#607D8B',
+    color: '#0D47A1',
     fontSize: 16,
   },
   bell: {
@@ -857,6 +1010,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D32F2F',
   },
 
   quickRow: {
@@ -864,37 +1027,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     marginTop: 12,
+    flexWrap: 'nowrap',
   },
   managerCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     width: '23%',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: '#DCE4EC',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  managerIcon: { width: 28, height: 28, resizeMode: 'contain', marginBottom: 8 },
-  managerLabel: { textAlign: 'center', fontSize: 12, color: '#263238' },
+  managerIcon: { width: 32, height: 32, resizeMode: 'contain', marginBottom: 8 },
+  managerLabel: { textAlign: 'center', fontSize: 13, color: '#263238', fontWeight: '500' },
 
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     marginTop: 16,
+    gap: 12,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    paddingHorizontal: 12,
+    borderRadius: 25,
+    paddingHorizontal: 16,
     height: 48,
     flex: 1,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
   },
   searchIcon: { fontSize: 18, color: '#90A4AE' },
-  searchInput: { flex: 1, marginLeft: 8, color: '#263238' },
+  searchInput: { flex: 1, color: '#263238', fontSize: 16 },
   clearButton: {
     width: 24,
     height: 24,
@@ -908,29 +1080,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
   },
-  searchButton: {
-    width: 48,
-    height: 48,
-    marginLeft: 8,
-    borderRadius: 12,
-    backgroundColor: '#1976D2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
-  },
-  searchButtonIcon: {
-    fontSize: 18,
-    color: '#FFFFFF',
-  },
   filterButton: {
     width: 48,
     height: 48,
-    marginLeft: 12,
-    borderRadius: 12,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
   },
   filterText: { fontSize: 18, color: '#263238' },
 
@@ -947,7 +1105,15 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   tileIcon: { width: 48, height: 48, resizeMode: 'contain', marginBottom: 8 },
-  tileLabel: { fontSize: 12, color: '#263238', textAlign: 'center' },
+  tileLabel: { 
+    fontSize: 11, 
+    color: '#263238', 
+    textAlign: 'center',
+    fontWeight: '600',
+    lineHeight: 13,
+    minHeight: 26,
+    paddingHorizontal: 2,
+  },
 
   bannerScroller: { marginTop: 8 },
   banner: {
@@ -980,17 +1146,48 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 140,
   },
   overviewSmall: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
     marginBottom: 12,
     alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 120,
   },
-  overviewColSmall: { width: 130, marginLeft: 12 },
-  overviewIcon: { fontSize: 32, marginBottom: 8 },
-  overviewTitle: { textAlign: 'center', color: '#263238', marginBottom: 12, fontWeight: '700', fontSize: 18 },
+  overviewColSmall: { width: 135, marginLeft: 12 },
+  overviewIcon: { fontSize: 32, marginBottom: 6 },
+  overviewIconVector: { marginBottom: 6 },
+  titleContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    minHeight: 70,
+    paddingHorizontal: 1,
+    flex: 1,
+  },
+  overviewTitle: { 
+    textAlign: 'center', 
+    color: '#263238', 
+    fontWeight: '700', 
+    fontSize: 13,
+    lineHeight: 15,
+    flexWrap: 'wrap',
+    maxWidth: '100%',
+    flexShrink: 1,
+  },
+  overviewTitleTamilMalayalam: {
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexWrap: 'wrap',
+    maxWidth: '100%',
+    flexShrink: 1,
+  },
   badge: { minWidth: 56, height: 56, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   badgeText: { color: '#FFFFFF', fontSize: 22, fontWeight: '900' },
 
@@ -1082,84 +1279,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  voterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  serialText: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '500',
-  },
-  sectionText: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '500',
-  },
-  partText: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '500',
-  },
-  voterContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  voterImageContainer: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  voterImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  voterImageIcon: {
-    fontSize: 24,
-  },
-  voterId: {
-    fontSize: 12,
-    color: '#1976D2',
-    fontWeight: '600',
-  },
-  voterDetails: {
-    flex: 1,
-  },
-  voterName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  voterRelation: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 2,
-  },
-  voterFather: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 2,
-  },
-  voterAddress: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 8,
-  },
-  voterFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  voterAge: {
-    fontSize: 12,
-    color: '#1976D2',
-    fontWeight: '500',
-  },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -1195,15 +1314,29 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
+  selectedItemBox: {
+    backgroundColor: '#424242',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  selectedItemText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   electionModalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 24,
-    width: '90%',
-    maxWidth: 400,
+    width: '100%',
+    maxHeight: '60%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1230,32 +1363,92 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     color: '#000000',
   },
+  electionDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  electionDropdownText: {
+    fontSize: 16,
+    color: '#000000',
+    flex: 1,
+  },
+  electionDropdownList: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    maxHeight: 200,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  electionScrollView: {
+    maxHeight: 200,
+  },
+  electionOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  electionOptionSelected: {
+    backgroundColor: '#E3F2FD',
+  },
+  electionOptionText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  electionOptionTextSelected: {
+    color: '#1976D2',
+    fontWeight: '600',
+  },
   electionButtonContainer: {
-    gap: 12,
+    flexDirection: 'row',
+    marginTop: 20,
   },
   updateButton: {
     backgroundColor: '#1976D2',
     borderRadius: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
   },
   updateButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   electionCloseButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#1976D2',
+    backgroundColor: '#E0E0E0',
     borderRadius: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     alignItems: 'center',
+    flex: 1,
+    marginLeft: 8,
   },
   electionCloseButtonText: {
-    color: '#1976D2',
+    color: '#424242',
     fontSize: 16,
     fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   
   // Advance Search Modal Styles
@@ -1422,93 +1615,112 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   voterCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   voterCardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  voterSerial: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '500',
+  starButton: {
+    marginRight: 8,
   },
-  voterSection: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '500',
-  },
-  voterPart: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '500',
+  serialText: {
+    fontSize: 14,
+    color: '#1976D2',
+    fontWeight: '600',
   },
   voterCardContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  voterImageSection: {
+    alignItems: 'center',
+    marginRight: 16,
   },
   voterImageContainer: {
-    alignItems: 'center',
-    marginRight: 15,
+    position: 'relative',
+    marginBottom: 8,
   },
   voterImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+    width: 70,
+    height: 70,
+    borderRadius: 12,
     backgroundColor: '#E3F2FD',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  voterImageIcon: {
-    fontSize: 24,
+  noImageOverlay: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  voterId: {
-    fontSize: 12,
-    color: '#1976D2',
+  voterIdBadge: {
+    backgroundColor: '#1976D2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  voterIdText: {
+    fontSize: 11,
+    color: '#FFFFFF',
     fontWeight: '600',
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
   },
-  voterDetails: {
+  voterInfoSection: {
     flex: 1,
+    justifyContent: 'center',
   },
-  voterName: {
+  voterNameEnglish: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1A1A1A',
     marginBottom: 4,
   },
-  voterRelation: {
+  voterNameTamil: {
     fontSize: 14,
     color: '#666666',
-    marginBottom: 2,
+    marginBottom: 6,
   },
-  voterFather: {
+  voterRelationEnglish: {
     fontSize: 14,
-    color: '#666666',
-    marginBottom: 2,
-  },
-  voterAddress: {
-    fontSize: 14,
-    color: '#666666',
+    color: '#1A1A1A',
     marginBottom: 4,
   },
-  voterAgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  voterAge: {
+  voterRelationTamil: {
     fontSize: 12,
     color: '#666666',
+    marginBottom: 6,
+  },
+  voterAddress: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  voterAgeGenderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  voterAgeGender: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 8,
   },
   voterSearchPagination: {
     flexDirection: 'row',
@@ -1544,4 +1756,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginHorizontal: 15,
   },
-});
+})

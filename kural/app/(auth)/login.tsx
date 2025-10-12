@@ -1,14 +1,17 @@
+import { useLanguage } from '../../contexts/LanguageContext';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { db } from '../../services/api/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { saveUserSession } from '../../services/api/userSession';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
+  const { t } = useLanguage();
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -21,8 +24,6 @@ export default function LoginScreen() {
     }
 
     try {
-      setSubmitting(true);
-
       // First try with mobile as Number (if Firestore stored as number)
       let q = query(
         collection(db, 'kural app'),
@@ -44,63 +45,97 @@ export default function LoginScreen() {
       if (!querySnapshot.empty) {
         // Auth success → save user session and go to tabs
         await saveUserSession(trimmedMobile);
-        router.replace('/(tabs)');
+        // Use push instead of replace to ensure proper navigation
+        router.push('/(tabs)');
       } else {
         Alert.alert('Login Failed', 'Invalid mobile number or password');
       }
     } catch (error) {
       console.log(error);
       Alert.alert('Error', (error as Error).message ?? 'Something went wrong');
-    } finally {
-      setSubmitting(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoContainer}>
+      {/* LSI Image Section - Top 50% */}
+      <View style={styles.lsiImageSection}>
         <Image
-          source={require('../../assets/images/icon.png')}
-          style={styles.logo}
+          source={require('../../assets/images/LSI.png')}
+          style={styles.lsiImage}
+          resizeMode="cover"
         />
       </View>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Sign In to your account</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Mobile number"
-          placeholderTextColor="#bdbdbd"
-          keyboardType="phone-pad"
-          value={mobile}
-          onChangeText={setMobile}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#bdbdbd"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-        <View style={styles.recoverWrapper}>
+
+      {/* Curved Modal Section - Bottom 50% */}
+      <View style={styles.modalSection}>
+        <View style={styles.curvedModal}>
+          {/* Title */}
+          <Text style={styles.modalTitle}>Sign In to your{'\n'}account</Text>
+
+          {/* Mobile Input Field */}
+          <TextInput
+            style={styles.inputField}
+            placeholder={t('auth.mobileNumber')}
+            placeholderTextColor="#999"
+            keyboardType="phone-pad"
+            value={mobile}
+            onChangeText={setMobile}
+          />
+
+          {/* Password Input Field */}
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <MaterialIcons
+                name={showPassword ? 'visibility' : 'visibility-off'}
+                size={24}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Recover Password Link */}
+          <View style={styles.recoverWrapper}>
+            <TouchableOpacity 
+              style={styles.recoverContainer}
+              onPress={() => router.push('/(auth)/recover')}
+            >
+              <Text style={styles.recoverText}>Recover Password?</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Login Button */}
           <TouchableOpacity 
-            style={styles.recoverContainer}
-            onPress={() => router.push('/(auth)/recover')}
+            style={styles.modalLoginButton} 
+            onPress={handleLogin}
           >
-            <Text style={styles.recover}>Recover Password?</Text>
+            <Text style={styles.modalLoginText}>
+              {t('auth.login')}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Or Text */}
+          <Text style={styles.orText}>{t('auth.orSignInWithMobile')}</Text>
+
+          {/* OTP Button */}
+          <TouchableOpacity 
+            style={styles.otpButton}
+            onPress={() => router.push('/(auth)/otp')}
+          >
+            <Text style={styles.otpText}>{t('auth.loginWithOtp')}</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-        style={styles.loginButton} onPress={handleLogin} disabled={submitting}>
-          <Text style={styles.loginText}>{submitting ? 'Logging in…' : 'Login'}</Text>
-        </TouchableOpacity>
-        <Text style={styles.orText}>Or Sign in with your mobile number</Text>
-        <TouchableOpacity 
-          style={styles.otpButton}
-          onPress={() => router.push('/(auth)/otp')}
-        >
-          <Text style={styles.otpText}>Login with OTP</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -109,93 +144,120 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
   },
-  logoContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 40,
-    marginBottom: 32,
-    elevation: 4,
+  lsiImageSection: {
+    flex: 0.45,
+    backgroundColor: '#E6F0FA',
+  },
+  lsiImage: {
+    width: '100%',
+    height: '100%',
+  },
+  modalSection: {
+    flex: 0.55,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'flex-end',
+  },
+  curvedModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 30,
+    paddingTop: 40,
+    paddingBottom: 50,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    minHeight: 400,
   },
-  logo: {
-    width: 300,
-    height: 280,
-    resizeMode: 'contain',
-  },
-  formContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 0,
-  },
-  title: {
-    fontSize: 22,
+  modalTitle: {
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#212121',
-    marginBottom: 24,
+    color: '#1a237e',
     textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 40,
   },
-  input: {
-    width: '100%',
+  inputField: {
     backgroundColor: '#424242',
-    color: '#fff',
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderRadius: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    marginBottom: 20,
     fontSize: 16,
-    marginBottom: 16,
+    color: '#fff',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#424242',
+    borderRadius: 15,
+    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 0,
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#fff',
+    paddingVertical: 18,
+  },
+  eyeButton: {
+    padding: 4,
   },
   recoverWrapper: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 30,
   },
   recoverContainer: {
     alignSelf: 'flex-end',
     paddingHorizontal: 4,
   },
-  recover: {
+  recoverText: {
     color: '#1976D2',
     fontSize: 14,
     textAlign: 'right',
     fontWeight: '500',
   },
-  loginButton: {
-    backgroundColor: '#000',
-    borderRadius: 8,
-    paddingVertical: 14,
-    width: '100%',
+  modalLoginButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 18,
+    borderRadius: 15,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  loginText: {
-    color: '#fff',
+  modalLoginText: {
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
   },
   orText: {
-    color: '#616161',
+    color: '#666',
     fontSize: 15,
-    marginBottom: 16,
+    marginBottom: 20,
     textAlign: 'center',
   },
   otpButton: {
     backgroundColor: '#1976D2',
-    borderRadius: 8,
-    paddingVertical: 14,
-    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 15,
     alignItems: 'center',
-    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   otpText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
   },

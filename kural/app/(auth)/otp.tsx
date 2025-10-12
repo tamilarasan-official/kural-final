@@ -1,3 +1,4 @@
+import { useLanguage } from '../../contexts/LanguageContext';
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Dimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -6,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 const { width, height } = Dimensions.get('window');
 
 export default function OTP() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [mobileNumber, setMobileNumber] = useState('');
 
@@ -32,47 +34,25 @@ export default function OTP() {
     }
   };
 
-  const renderBackgroundPattern = () => {
-    const icons = [
-      '📢', '👆', '🗳️', '💬', '✊', '✏️', '✅', '📊', '📋', '📝',
-      '🎯', '📈', '📉', '📊', '📋', '📝', '🎯', '📈', '📉', '📊'
-    ];
-    
-    const rows = Math.ceil(height / 80);
-    const cols = Math.ceil(width / 80);
-    
-    return (
-      <View style={styles.patternContainer}>
-        {Array.from({ length: rows * cols }).map((_, index) => (
-          <View key={index} style={[
-            styles.patternItem,
-            { backgroundColor: index % 2 === 0 ? '#E3F2FD' : '#FFFFFF' }
-          ]}>
-            <Text style={styles.patternIcon}>
-              {icons[index % icons.length]}
-            </Text>
-            {index % 8 === 0 && (
-              <Text style={styles.teamText}>TEAM</Text>
-            )}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      {/* Background Pattern */}
-      {renderBackgroundPattern()}
-      
-      {/* Login with OTP Modal */}
-      <View style={styles.modal}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>Login with OTP</Text>
+      {/* LSI Image Background - Top */}
+      <View style={styles.topBackgroundSection}>
+        <Image
+          source={require('../../assets/images/LSI.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+      </View>
+
+      {/* Login with OTP Modal - Center */}
+      <View style={styles.modalOverlay}>
+        <View style={styles.modal}>
+          <Text style={styles.title}>{t('auth.loginWithOtp')}</Text>
           
           <TextInput
             style={styles.input}
-            placeholder="Mobile number"
+            placeholder={t('auth.mobileNumber')}
             placeholderTextColor="#999999"
             value={mobileNumber}
             onChangeText={setMobileNumber}
@@ -95,16 +75,18 @@ export default function OTP() {
             <Text style={[
               styles.sendButtonText,
               !mobileNumber.trim() && styles.sendButtonTextDisabled
-            ]}>Send OTP</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>Back to Login</Text>
+            ]}>{t('auth.sendOtp')}</Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* LSI Image Background - Bottom */}
+      <View style={styles.bottomBackgroundSection}>
+        <Image
+          source={require('../../assets/images/LSI.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
       </View>
     </View>
   );
@@ -113,45 +95,24 @@ export default function OTP() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#FFFFFF',
   },
-  patternContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    opacity: 0.3,
+  topBackgroundSection: {
+    flex: 0.3,
+    backgroundColor: '#E6F0FA',
   },
-  patternItem: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 1,
-    borderRadius: 8,
-    position: 'relative',
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
   },
-  patternIcon: {
-    fontSize: 20,
-    color: '#1976D2',
-  },
-  teamText: {
-    position: 'absolute',
-    bottom: 4,
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#1976D2',
-  },
-  modal: {
-    flex: 1,
+  modalOverlay: {
+    flex: 0.4,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  modalContent: {
+  modal: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
@@ -165,6 +126,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
+  },
+  bottomBackgroundSection: {
+    flex: 0.3,
+    backgroundColor: '#E6F0FA',
   },
   title: {
     fontSize: 24,
@@ -215,13 +180,5 @@ const styles = StyleSheet.create({
   },
   sendButtonTextDisabled: {
     color: '#999999',
-  },
-  backButton: {
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#1976D2',
-    fontSize: 14,
-    textDecorationLine: 'underline',
   },
 });

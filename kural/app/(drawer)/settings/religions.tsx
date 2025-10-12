@@ -32,11 +32,11 @@ export default function ReligionsScreen() {
       if (response.success) {
         setReligionsData(response.data);
       } else {
-        setError('Failed to load religions');
+        setError(t('religions.error'));
       }
     } catch (err) {
       console.error('Error loading religions:', err);
-      setError('Failed to load religions');
+      setError(t('religions.error'));
     } finally {
       setLoading(false);
     }
@@ -66,18 +66,18 @@ export default function ReligionsScreen() {
           setShowEditModal(false);
           setEditName('');
           setSelectedReligion(null);
-          Alert.alert('Success', 'Religion updated successfully');
+          Alert.alert(t('religions.success'), t('religions.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update religion');
+          Alert.alert(t('common.error'), t('religions.updateError'));
         }
       } catch (err) {
         console.error('Error updating religion:', err);
-        Alert.alert('Error', 'Failed to update religion');
+        Alert.alert(t('common.error'), t('religions.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter a religion name');
+      Alert.alert(t('common.error'), t('religions.validationError'));
     }
   };
 
@@ -109,7 +109,7 @@ export default function ReligionsScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading religions...</Text>
+          <Text style={styles.loadingText}>{t('religions.loading')}</Text>
         </View>
       </View>
     );
@@ -128,7 +128,7 @@ export default function ReligionsScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadReligions}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('religions.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

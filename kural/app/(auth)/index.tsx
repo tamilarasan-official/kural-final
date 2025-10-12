@@ -1,3 +1,4 @@
+import { useLanguage } from '../../contexts/LanguageContext';
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -7,32 +8,40 @@ export const options = {
 };
 
 export default function IndexScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
-      <Image
-        source={require('@/assets/images/icon.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      {/* LSI Image Section - Top 50% */}
+      <View style={styles.lsiImageSection}>
+        <Image
+          source={require('@/assets/images/LSI.png')}
+          style={styles.lsiImage}
+          resizeMode="cover"
+        />
+      </View>
 
-      {/* Title */}
-      <Text style={styles.title}>Thedal Election Analytics Manager</Text>
+      {/* Curved Modal Section - Bottom 50% */}
+      <View style={styles.modalSection}>
+        <View style={styles.curvedModal}>
+          {/* Title */}
+          <Text style={styles.modalTitle}>Thedal Election Analytics Manager</Text>
 
-      {/* Subtitle */}
-      <Text style={styles.subtitle}>
-        The first-ever SaaS-based comprehensive election campaign management tool for all candidates
-      </Text>
+          {/* Subtitle */}
+          <Text style={styles.modalSubtitle}>
+            The first-ever SaaS-based comprehensive election campaign management tool for all candidates
+          </Text>
 
-      {/* Login Button */}
-      <TouchableOpacity
-        style={styles.loginButton}
-        onPress={() => router.push('/(auth)/login')}
-      >
-        <Text style={styles.loginText}>Login</Text>
-      </TouchableOpacity>
+          {/* Login Button */}
+          <TouchableOpacity
+            style={styles.modalLoginButton}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <Text style={styles.modalLoginText}>{t('auth.login')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -40,39 +49,66 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  lsiImageSection: {
+    flex: 0.5,
     backgroundColor: '#E6F0FA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
   },
-  logo: {
-    width: 250,
-    height: 250,
-    marginBottom: 30,
+  lsiImage: {
+    width: '100%',
+    height: '100%',
   },
-  title: {
-    fontSize: 22,
+  modalSection: {
+    flex: 0.5,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'flex-end',
+  },
+  curvedModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 30,
+    paddingTop: 50,
+    paddingBottom: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    minHeight: 350,
+    justifyContent: 'space-between',
+  },
+  modalTitle: {
+    fontSize: 32,
     fontWeight: 'bold',
+    color: '#1a237e',
     textAlign: 'center',
-    color: '#1a1a1a',
-    marginBottom: 10,
+    marginBottom: 30,
+    lineHeight: 40,
   },
-  subtitle: {
-    fontSize: 14,
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#666',
     textAlign: 'center',
-    color: '#555',
-    marginBottom: 40,
+    lineHeight: 24,
+    marginBottom: 50,
     paddingHorizontal: 10,
   },
-  loginButton: {
-    backgroundColor: '#000',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 8,
+  modalLoginButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 18,
+    borderRadius: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  loginText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  modalLoginText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

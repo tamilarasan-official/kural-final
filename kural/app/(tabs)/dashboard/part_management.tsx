@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Modal, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { vulnerabilityAPI } from '../../../services/api/vulnerability';
 import { partColorAPI } from '../../../services/api/partColor';
@@ -34,8 +35,9 @@ interface PartName {
   partNameTamil: string;
 }
 
-export default function PartNumbersScreen() {
+export default function PartManagementScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [showVulnerabilityModal, setShowVulnerabilityModal] = useState(false);
   const [showColorModal, setShowColorModal] = useState(false);
@@ -202,7 +204,7 @@ export default function PartNumbersScreen() {
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          Part Numbers {isVulnerabilityMode && '(Vulnerability Mode)'}
+          {t('partNumbers.title')} {isVulnerabilityMode && `(${t('partNumbers.vulnerabilityMode')})`}
         </Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon} onPress={handleMenuPress}>
@@ -230,7 +232,7 @@ export default function PartNumbersScreen() {
           <Icon name="search" size={20} color="#999999" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by part number"
+            placeholder={t('partNumbers.searchByPart')}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -276,7 +278,7 @@ export default function PartNumbersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Vulnerability</Text>
+              <Text style={styles.modalTitle}>{t('partNumbers.selectVulnerability')}</Text>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setShowVulnerabilityModal(false)}
@@ -297,9 +299,9 @@ export default function PartNumbersScreen() {
                     setShowVulnerabilityModal(false);
                     setIsVulnerabilityMode(true);
                     Alert.alert(
-                      'Vulnerability Mode Enabled', 
-                      'Now click on any part number to assign a vulnerability color to it.',
-                      [{ text: 'OK' }]
+                      t('partNumbers.vulnEnabledTitle'), 
+                      t('partNumbers.vulnEnabledDesc'),
+                      [{ text: t('common.ok') }]
                     );
                   }}
                 />
@@ -310,7 +312,7 @@ export default function PartNumbersScreen() {
               style={styles.submitButton}
               onPress={() => setShowVulnerabilityModal(false)}
             >
-              <Text style={styles.submitButtonText}>Submit</Text>
+              <Text style={styles.submitButtonText}>{t('common.submit')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -326,7 +328,7 @@ export default function PartNumbersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Vulnerability</Text>
+              <Text style={styles.modalTitle}>{t('partNumbers.selectVulnerability')}</Text>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setShowColorModal(false)}
@@ -335,7 +337,7 @@ export default function PartNumbersScreen() {
               </TouchableOpacity>
             </View>
             
-            <Text style={styles.selectedPartText}>Part {selectedPartNumber}</Text>
+            <Text style={styles.selectedPartText}>{t('dashboard.part')} {selectedPartNumber}</Text>
             
             <View style={styles.colorOptions}>
               {vulnerabilities.map((vulnerability) => (
@@ -360,7 +362,7 @@ export default function PartNumbersScreen() {
                 }}
                 disabled={loading}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -369,7 +371,7 @@ export default function PartNumbersScreen() {
                 disabled={loading}
               >
                 <Text style={styles.submitButtonText}>
-                  {loading ? 'Updating...' : 'Submit'}
+                  {loading ? t('common.updating') : t('common.submit')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -387,7 +389,7 @@ export default function PartNumbersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.partsModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Part Numbers</Text>
+              <Text style={styles.modalTitle}>{t('partNumbers.title')}</Text>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setShowPartsModal(false)}
@@ -402,7 +404,7 @@ export default function PartNumbersScreen() {
                 <Icon name="search" size={20} color="#999999" style={styles.searchIcon} />
                 <TextInput
                   style={styles.modalSearchInput}
-                  placeholder="Search by part number or name"
+                  placeholder={t('partNumbers.searchByPartOrName')}
                   placeholderTextColor="#999"
                   value={partsSearchQuery}
                   onChangeText={setPartsSearchQuery}

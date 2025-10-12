@@ -33,11 +33,11 @@ export default function CasteCategoryScreen() {
       if (response.success) {
         setCasteData(response.data);
       } else {
-        setError('Failed to load caste categories');
+        setError(t('casteCategory.error'));
       }
     } catch (err) {
       console.error('Error loading caste categories:', err);
-      setError('Failed to load caste categories');
+      setError(t('casteCategory.error'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +70,18 @@ export default function CasteCategoryScreen() {
           setEditAbbreviation('');
           setEditNumber('');
           setSelectedCaste(null);
-          Alert.alert('Success', 'Caste category updated successfully');
+          Alert.alert(t('casteCategory.success'), t('casteCategory.updatedSuccessfully'));
         } else {
-          Alert.alert('Error', 'Failed to update caste category');
+          Alert.alert(t('common.error'), t('casteCategory.updateError'));
         }
       } catch (err) {
         console.error('Error updating caste category:', err);
-        Alert.alert('Error', 'Failed to update caste category');
+        Alert.alert(t('common.error'), t('casteCategory.updateError'));
       } finally {
         setSaving(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter both abbreviation and number');
+      Alert.alert(t('common.error'), t('casteCategory.validationError'));
     }
   };
 
@@ -120,7 +120,7 @@ export default function CasteCategoryScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Loading caste categories...</Text>
+          <Text style={styles.loadingText}>{t('casteCategory.loading')}</Text>
         </View>
       </View>
     );
@@ -139,7 +139,7 @@ export default function CasteCategoryScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCasteCategories}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('casteCategory.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -202,12 +202,12 @@ export default function CasteCategoryScreen() {
             </View>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Number</Text>
+              <Text style={styles.inputLabel}>{t('casteCategory.number')}</Text>
               <TextInput
                 style={styles.textInput}
                 value={editNumber}
                 onChangeText={setEditNumber}
-                placeholder="Enter number"
+                placeholder={t('casteCategory.enterNumber')}
                 placeholderTextColor="#999999"
                 keyboardType="numeric"
               />
