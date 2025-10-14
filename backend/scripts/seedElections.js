@@ -7,8 +7,8 @@ const config = require('../config/config');
 const sampleElections = [
   {
     electionId: 'EL001',
-    electionName: '119 - Thondamuthur',
-    constituency: '119 - Thondamuthur',
+    electionName: '118 - Thondamuthur',
+    constituency: '118 - Thondamuthur',
     category: 'General',
     partName: 'Part 1',
     anubhagName: 'Anubhag 1',
@@ -27,8 +27,8 @@ const sampleElections = [
   },
   {
     electionId: 'EL002',
-    electionName: '119 - Thondamuthur',
-    constituency: '119 - Thondamuthur',
+    electionName: '118 - Thondamuthur',
+    constituency: '118 - Thondamuthur',
     category: 'General',
     partName: 'Part 2',
     anubhagName: 'Anubhag 2',

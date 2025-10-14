@@ -94,7 +94,7 @@ const createSurvey = asyncHandler(async (req, res) => {
     description: description || '',
     status: status || 'Active',
     questions: questions || [],
-    activeElection: activeElection || '119 - Thondamuthur',
+    activeElection: activeElection || '118 - Thondamuthur',
     startDate: startDate || new Date(),
     endDate,
     isPublished: isPublished || false,

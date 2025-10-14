@@ -5,7 +5,7 @@ const cadreSchema = new mongoose.Schema({
   activeElection: {
     type: String,
     required: true,
-    default: '119 - Thondamuthur'
+    default: '118 - Thondamuthur'
   },
   firstName: {
     type: String,

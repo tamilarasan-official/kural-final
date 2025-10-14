@@ -96,7 +96,7 @@ const createSurveyForm = asyncHandler(async (req, res) => {
     instructions: instructions || 'Please fill out the form below. Fields marked with * are required.',
     status: status || 'Active',
     questions: questions || [],
-    activeElection: activeElection || '119 - Thondamuthur',
+    activeElection: activeElection || '118 - Thondamuthur',
     startDate: startDate || new Date(),
     endDate,
     createdBy: req.user?.id || new mongoose.Types.ObjectId()

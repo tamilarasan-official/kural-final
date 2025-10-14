@@ -241,7 +241,7 @@ export default function FamilyManagerScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('dashboard.partFamily', { partNumber })}</Text>
+        <Text style={styles.headerTitle}>Part-{partNumber} Family</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleNoFamilyPress}>
             <Icon name="group-off" size={22} color="#0D47A1" />

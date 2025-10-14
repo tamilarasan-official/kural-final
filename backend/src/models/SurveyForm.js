@@ -64,7 +64,7 @@ const surveyFormSchema = new mongoose.Schema({
   questions: [questionSchema],
   activeElection: {
     type: String,
-    default: '119 - Thondamuthur'
+    default: '118 - Thondamuthur'
   },
   isPublished: {
     type: Boolean,

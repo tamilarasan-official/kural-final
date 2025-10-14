@@ -55,7 +55,7 @@ const seedSurveys = async () => {
             order: 2
           }
         ],
-        activeElection: '119 - Thondamuthur',
+        activeElection: '118 - Thondamuthur',
         isPublished: true,
         createdBy: new mongoose.Types.ObjectId()
       },
@@ -82,7 +82,7 @@ const seedSurveys = async () => {
             order: 2
           }
         ],
-        activeElection: '119 - Thondamuthur',
+        activeElection: '118 - Thondamuthur',
         isPublished: true,
         createdBy: new mongoose.Types.ObjectId()
       },
@@ -115,7 +115,7 @@ const seedSurveys = async () => {
             order: 2
           }
         ],
-        activeElection: '119 - Thondamuthur',
+        activeElection: '118 - Thondamuthur',
         isPublished: true,
         createdBy: new mongoose.Types.ObjectId()
       }

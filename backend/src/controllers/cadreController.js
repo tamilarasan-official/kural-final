@@ -94,7 +94,7 @@ const createCadre = asyncHandler(async (req, res) => {
   }
 
   const cadre = await Cadre.create({
-    activeElection: activeElection || '119 - Thondamuthur',
+    activeElection: activeElection || '118 - Thondamuthur',
     firstName,
     lastName: lastName || '',
     mobileNumber,
