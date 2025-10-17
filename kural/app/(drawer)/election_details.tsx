@@ -42,9 +42,9 @@ export default function ElectionDetailsScreen() {
   
   // Form data state - using database field names (camelCase)
   const [formData, setFormData] = useState({
-    electionId: '119',
-    electionName: '119 - Thondamuthur',
-    constituency: '119 - Thondamuthur',
+  electionId: '118',
+  electionName: '118 - Thondamuthur',
+  constituency: '118 - Thondamuthur',
     category: 'Political',
     electionType: 'General',
     electionBody: 'State Body (MLA)',
@@ -152,8 +152,8 @@ export default function ElectionDetailsScreen() {
           setFormData(prev => ({
             ...prev,
             electionId: election.electionId || '',
-            electionName: election.electionName || '119 - Thondamuthur',
-            constituency: election.constituency || '119 - Thondamuthur',
+            electionName: election.electionName || '118 - Thondamuthur',
+            constituency: election.constituency || '118 - Thondamuthur',
             category: election.category || 'Political',
             electionType: election.electionType || 'General',
             electionBody: election.electionBody || 'State Body (MLA)',

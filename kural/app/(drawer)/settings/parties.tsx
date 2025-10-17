@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal,
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { partyAPI } from '../../../services/api/settings';
+import HeaderBack from '../../components/HeaderBack';
 
 const { width } = Dimensions.get('window');
 
@@ -107,9 +108,7 @@ export default function PartiesScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('parties.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -125,9 +124,7 @@ export default function PartiesScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('parties.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -145,9 +142,7 @@ export default function PartiesScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('parties.title')}</Text>
         <View style={styles.headerRight} />
       </View>

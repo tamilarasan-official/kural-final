@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Alert, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import HeaderBack from '../../components/HeaderBack';
 import { useBanner } from '../../../contexts/BannerContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -30,9 +31,7 @@ export default function AppBannerScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('banner.title')}</Text>
         <View style={styles.headerRight} />
       </View>

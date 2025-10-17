@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Modal, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { vulnerabilityAPI } from '../../../services/api/vulnerability';
@@ -200,9 +201,7 @@ export default function PartManagementScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Icon name="arrow-back" size={24} color="#1976D2" />
-        </TouchableOpacity>
+        <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
         <Text style={styles.headerTitle}>
           {t('partNumbers.title')} {isVulnerabilityMode && `(${t('partNumbers.vulnerabilityMode')})`}
         </Text>

@@ -66,7 +66,7 @@ export default function CreateCadreScreen() {
       
       if (response.success) {
         Alert.alert(t('common.success'), t('cadre.createdSuccessfully'), [
-          { text: t('common.ok'), onPress: () => router.back() }
+          { text: t('common.ok'), onPress: () => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } } }
         ]);
       } else {
         Alert.alert(t('common.error'), response.message || t('cadre.failedToCreate'));
@@ -345,7 +345,7 @@ export default function CreateCadreScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('cadre.createCadre')}</Text>

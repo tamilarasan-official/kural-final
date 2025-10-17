@@ -139,7 +139,16 @@ export default function VoterPartsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            try {
+              router.back();
+            } catch (e) {
+              router.replace('/(tabs)/' as any);
+            }
+          }}
+        >
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('partNumbers.title')}</Text>

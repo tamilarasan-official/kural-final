@@ -11,6 +11,7 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { surveyFormAPI } from '../../../services/api/surveyForm';
 import { surveyAPI } from '../../../services/api/survey';
@@ -155,7 +156,7 @@ export default function SurveyFormScreen() {
           [
             {
               text: 'OK',
-              onPress: () => router.back()
+              onPress: () => router.push('/(tabs)/')
             }
           ]
         );
@@ -254,9 +255,7 @@ export default function SurveyFormScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('surveyForm.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -272,9 +271,7 @@ export default function SurveyFormScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('surveyForm.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -292,9 +289,7 @@ export default function SurveyFormScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('surveyForm.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -307,20 +302,9 @@ export default function SurveyFormScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        <Text style={styles.timeText}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</Text>
-        <View style={styles.statusIcons}>
-          <Text style={styles.statusText}>5G+</Text>
-          <Text style={styles.batteryText}>100%</Text>
-        </View>
-      </View>
-
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.push('/(tabs)/')} />
         <Text style={styles.headerTitle}>{t('survey.title')}</Text>
         <View style={styles.headerRight} />
       </View>
@@ -365,33 +349,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  statusBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 5,
-  },
-  timeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  statusIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#000000',
-  },
-  batteryText: {
-    fontSize: 12,
-    color: '#000000',
-    fontWeight: 'bold',
-  },
+  /* removed custom status/time/battery UI */
   header: {
     backgroundColor: '#E3F2FD',
     paddingTop: 10,

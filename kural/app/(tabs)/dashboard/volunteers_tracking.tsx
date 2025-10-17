@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { cadreAPI } from '../../../services/api/cadre';
 
@@ -112,9 +113,7 @@ export default function VolunteersTrackingScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Icon name="arrow-back" size={24} color="#1976D2" />
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.push('/(tabs)/')} />
         <Text style={styles.headerTitle}>{t('volunteers.title')}</Text>
         <View style={styles.headerActions} />
       </View>
@@ -216,7 +215,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
   },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  backButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
+  backIcon: { color: '#1976D2', fontSize: 18, fontWeight: '700' },
   headerTitle: { color: '#000', fontSize: 20, fontWeight: '700' },
   headerActions: { width: 40 },
   searchContainer: { paddingHorizontal: 16, paddingVertical: 12 },

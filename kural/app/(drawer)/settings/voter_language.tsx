@@ -101,9 +101,7 @@ export default function VoterLanguageScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('voterLanguage.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -119,9 +117,7 @@ export default function VoterLanguageScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('voterLanguage.title')}</Text>
           <View style={styles.headerRight} />
         </View>

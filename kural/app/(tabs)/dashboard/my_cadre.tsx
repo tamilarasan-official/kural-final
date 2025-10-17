@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator, Modal } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { cadreAPI } from '../../../services/api/cadre';
 
@@ -44,7 +45,7 @@ export default function MyCadreScreen() {
       const response = await cadreAPI.getAll({
         status: activeTab === 'all' ? undefined : activeTab,
         search: searchQuery || undefined,
-        boothNumber: boothFilter || undefined,
+        booth: boothFilter || undefined,
         limit: 50
       });
       
@@ -105,21 +106,9 @@ export default function MyCadreScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        <Text style={styles.timeText}>3:50</Text>
-        <View style={styles.statusIcons}>
-          <Text style={styles.statusText}>Vo1 1.57 LTE2 MB/s</Text>
-          <Text style={styles.statusText}>5G+</Text>
-          <Text style={styles.batteryText}>47%</Text>
-        </View>
-      </View>
-
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
         <Text style={styles.headerTitle}>{t('myCadre.title')}</Text>
         <TouchableOpacity 
           style={styles.addButton} 
@@ -252,36 +241,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  statusBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 5,
-  },
-  timeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  statusIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#000000',
-  },
-  batteryText: {
-    fontSize: 12,
-    color: '#000000',
-    fontWeight: 'bold',
-  },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 10,
+    paddingTop: 45,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -296,22 +258,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1976D2',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E3F2FD',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   backIcon: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1976D2',
   },
   headerTitle: {
     fontSize: 20,

@@ -5,12 +5,12 @@ import { useRouter } from 'expo-router';
 import { useLanguage, Language } from '../../contexts/LanguageContext';
 
 const languages = [
-  { id: 'en' as Language, name: 'English', character: 'A' },
-  { id: 'hi' as Language, name: 'Hindi', character: 'क' },
-  { id: 'ta' as Language, name: 'Tamil', character: 'அ' },
-  { id: 'te' as Language, name: 'Telugu', character: 'ల' },
-  { id: 'kn' as Language, name: 'Kannada', character: 'ಹ' },
-  { id: 'ml' as Language, name: 'Malayalam', character: 'സ' },
+  { id: 'en' as Language, labelKey: 'language.english', character: 'A' },
+  { id: 'hi' as Language, labelKey: 'language.hindi', character: 'क' },
+  { id: 'ta' as Language, labelKey: 'language.tamil', character: 'அ' },
+  { id: 'te' as Language, labelKey: 'language.telugu', character: 'ల' },
+  { id: 'kn' as Language, labelKey: 'language.kannada', character: 'ಹ' },
+  { id: 'ml' as Language, labelKey: 'language.malayalam', character: 'സ' },
 ];
 
 export default function AppLanguageScreen() {
@@ -78,11 +78,16 @@ export default function AppLanguageScreen() {
             ]}>
               {language.character}
             </Text>
-            <Text style={[
-              styles.languageName,
-              selectedLanguage === language.id && styles.selectedLanguageName
-            ]}>
-              {t(`language.${language.id}`)}
+            <Text
+              style={[
+                styles.languageName,
+                selectedLanguage === language.id && styles.selectedLanguageName,
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              allowFontScaling={false}
+            >
+              {t(language.labelKey)}
             </Text>
           </TouchableOpacity>
         ))}

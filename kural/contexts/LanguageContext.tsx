@@ -768,6 +768,7 @@ const translations = {
     'nav.slip': 'Slip',
     'nav.poll': 'Poll',
     'nav.history': 'History',
+    'nav.reportUnavailable': 'Report Feature not available',
     
     // Language Selection
     'language.title': 'Choose Language',
@@ -959,6 +960,7 @@ const translations = {
     'nav.slip': 'स्लिप',
     'nav.poll': 'पोल',
     'nav.history': 'इतिहास',
+    'nav.reportUnavailable': 'रिपोर्ट फीचर उपलब्ध नहीं है',
     'nav.about': 'के बारे में',
     'nav.help': 'सहायता',
     'nav.terms': 'नियम और शर्तें',
@@ -1666,6 +1668,7 @@ const translations = {
     'nav.help': 'உதவி',
     'nav.terms': 'விதிமுறைகள்',
     'nav.privacy': 'தனியுரிமை',
+    'nav.reportUnavailable': 'அறிக்கை அம்சம் கிடைக்கவில்லை',
     
     // Common
     'common.ok': 'சரி',
@@ -2591,6 +2594,7 @@ const translations = {
     'nav.help': 'సహాయం',
     'nav.terms': 'నిబంధనలు',
     'nav.privacy': 'గోప్యత',
+    'nav.reportUnavailable': 'రిపోర్ట్ ఫీచర్ అందుబాటులో లేదు',
     
     // Common
     'common.ok': 'సరే',
@@ -3294,6 +3298,7 @@ const translations = {
     'nav.help': 'ಸಹಾಯ',
     'nav.terms': 'ನಿಯಮಗಳು',
     'nav.privacy': 'ಗೌಪ್ಯತೆ',
+    'nav.reportUnavailable': 'ವರದಿ ವೈಶಿಷ್ಟ್ಯ ಲಭ್ಯವಿಲ್ಲ',
     
     // Common
     'common.ok': 'ಸರಿ',
@@ -3997,6 +4002,7 @@ const translations = {
     'nav.help': 'സഹായം',
     'nav.terms': 'നിബന്ധനകൾ',
     'nav.privacy': 'സ്വകാര്യത',
+    'nav.reportUnavailable': 'റിപ്പോർട്ട് സവിശേഷത ലഭ്യമല്ല',
     
     // Common
     'common.ok': 'ശരി',

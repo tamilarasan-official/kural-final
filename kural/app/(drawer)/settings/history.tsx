@@ -5,6 +5,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
 import { settingsAPI } from '../../../services/api/settings';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import HeaderBack from '../../components/HeaderBack';
 
 const { width } = Dimensions.get('window');
 
@@ -191,9 +192,7 @@ export default function HistoryScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('history.title')}</Text>
         <View style={styles.headerRight} />
       </View>

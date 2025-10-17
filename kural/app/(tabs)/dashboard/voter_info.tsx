@@ -39,7 +39,7 @@ export default function VoterInfoScreen() {
   const { voterData, partNumber } = useLocalSearchParams();
   const [voter, setVoter] = useState<Voter | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('basic');
+  const [activeTab, setActiveTab] = useState<TabType>('share');
   const [searchQuery, setSearchQuery] = useState('');
   const [partSectionInfo, setPartSectionInfo] = useState<any>(null);
 
@@ -85,10 +85,18 @@ export default function VoterInfoScreen() {
     return `${year}-${month}-${day}`;
   };
 
+  // Check if all required fields are filled
+  const isFormFilled = () => {
+    return selectedValues.religion !== '' && 
+           selectedValues.caste !== '' && 
+           selectedValues.category !== '' && 
+           selectedValues.party !== '';
+  };
+
   // Generic picker modal state (replaces Alert with more than 3 options)
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerField, setPickerField] = useState<string>('');
-  const [pickerTitle, setPickerTitle] = useState<string>('Select');
+  const [pickerTitle, setPickerTitle] = useState<string>('');
   const [pickerOptions, setPickerOptions] = useState<any[]>([]);
   const [pickerSearch, setPickerSearch] = useState<string>('');
 
@@ -97,13 +105,19 @@ export default function VoterInfoScreen() {
       try {
         const parsedVoter = JSON.parse(voterData as string);
         console.log('Parsed voter data:', parsedVoter);
-        setVoter(parsedVoter);
+        // Normalize commonly-used fields so UI always finds them
+        const normalizedVoter = {
+          ...parsedVoter,
+          sr: parsedVoter.sr ?? parsedVoter.Sr ?? parsedVoter.serial ?? parsedVoter.Serial ?? parsedVoter['S.No'] ?? parsedVoter['Serial'] ?? 1,
+          Part_no: parsedVoter.Part_no ?? parsedVoter.PartNo ?? parsedVoter.part_no ?? parsedVoter.part ?? parsedVoter.partNo ?? parsedVoter.Part ?? parsedVoter.PartNo ?? parsedVoter.Part_no ?? parsedVoter['Part No'] ?? parsedVoter['Part_no'] ?? parsedVoter['Part'] ?? parsedVoter.Part ?? 1,
+        } as Voter;
+        setVoter(normalizedVoter);
         // Fetch Part & Section Info when voter data is loaded
-        if (parsedVoter['Part Name']) {
-          fetchPartSectionInfo(parsedVoter['Part Name'], parsedVoter);
+        if (normalizedVoter['Part Name'] || normalizedVoter['Part Name']) {
+          fetchPartSectionInfo(normalizedVoter['Part Name'] || parsedVoter['Part Name'], normalizedVoter);
         }
         // Load existing voter info and dropdown options
-        loadVoterAdditionalInfo(parsedVoter._id);
+        loadVoterAdditionalInfo(normalizedVoter._id || parsedVoter._id);
         loadDropdownOptions();
       } catch (error) {
         console.error('Error parsing voter data:', error);
@@ -264,7 +278,7 @@ export default function VoterInfoScreen() {
   const showDropdown = (field: string, options: any[]) => {
     console.log(`showDropdown called for ${field} with ${options?.length || 0} options`);
     if (!options || options.length === 0) {
-      Alert.alert(t('voterInfo.noOptions'), t('voterInfo.noOptionsAvailable', { field }));
+      Alert.alert(t('voterInfo.noOptions'), t('voterInfo.noOptionsAvailable'));
       return;
     }
 
@@ -324,7 +338,7 @@ export default function VoterInfoScreen() {
     const message = `${t('voterInfo.voterInfo')}:\n${t('voterInfo.name')}: ${voter.Name}\n${t('voterInfo.epic')}: ${voter.Number}\n${t('voterInfo.part')}: ${voter.Part_no}`;
     
     // Check if mobile number is available for WhatsApp, SMS, and Share
-    if ((type === 'whatsapp' || type === 'sms' || type === 'share') && (!mobileNumber || mobileNumber.trim() === '')) {
+    if ((type === 'whatsapp' || type === 'sms' || type === 'general') && (!mobileNumber || mobileNumber.trim() === '')) {
       Alert.alert(t('voterInfo.noMobileNumber'), t('voterInfo.noMobileNumberMessage'));
       return;
     }
@@ -335,7 +349,7 @@ export default function VoterInfoScreen() {
           // Open WhatsApp with the voter's mobile number
           const whatsappUrl = `whatsapp://send?phone=${mobileNumber}&text=${encodeURIComponent(message)}`;
           // In a real app, you would use Linking.openURL(whatsappUrl)
-          Alert.alert(t('voterInfo.whatsapp'), t('voterInfo.openingWhatsApp', { mobileNumber }));
+          Alert.alert(t('voterInfo.whatsapp'), t('voterInfo.openingWhatsApp'));
         }
         break;
       case 'sms':
@@ -343,13 +357,13 @@ export default function VoterInfoScreen() {
           // Open SMS with the voter's mobile number
           const smsUrl = `sms:${mobileNumber}?body=${encodeURIComponent(message)}`;
           // In a real app, you would use Linking.openURL(smsUrl)
-          Alert.alert(t('voterInfo.sms'), t('voterInfo.openingSMS', { mobileNumber }));
+          Alert.alert(t('voterInfo.sms'), t('voterInfo.openingSMS'));
         }
         break;
       case 'general':
         if (mobileNumber) {
           // General sharing functionality
-          Alert.alert(t('voterInfo.share'), t('voterInfo.sharingVoterInfo', { mobileNumber }));
+          Alert.alert(t('voterInfo.share'), t('voterInfo.sharingVoterInfo'));
         }
         break;
       case 'print':
@@ -357,8 +371,6 @@ export default function VoterInfoScreen() {
         break;
     }
   };
-
-  // removed emoji-based gender icon; using vector icons inline
 
   const getGenderColor = (gender: string) => {
     switch (gender.toLowerCase()) {
@@ -385,7 +397,16 @@ export default function VoterInfoScreen() {
       <View style={styles.errorContainer}>
         <Icon name="error" size={48} color="#f44336" />
         <Text style={styles.errorText}>{t('voterInfo.voterNotFound')}</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            try {
+              router.back();
+            } catch (e) {
+              router.replace('/(tabs)/dashboard' as any);
+            }
+          }}
+        >
           <Text style={styles.backButtonText}>{t('common.goBack')}</Text>
         </TouchableOpacity>
       </View>
@@ -393,7 +414,7 @@ export default function VoterInfoScreen() {
   }
 
   const renderBasicTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.tabContent}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('voterInfo.contactInformation')}</Text>
         
@@ -650,7 +671,7 @@ export default function VoterInfoScreen() {
           />
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 
   const renderFamilyTab = () => (
@@ -707,50 +728,60 @@ export default function VoterInfoScreen() {
 
   const renderShareTab = () => (
     <View style={styles.tabContent}>
-      <View style={styles.shareContainer}>
+      <View style={[styles.shareContainer, { paddingBottom: 6 }]}>
         <Text style={styles.sectionTitle}>{t('voterInfo.shareVoterInformation')}</Text>
-        
-        <View style={styles.shareButtons}>
-          <TouchableOpacity 
-            style={styles.shareButton} 
-            onPress={() => handleShare('whatsapp')}
-          >
-            <Icon name="chat" size={24} color="#25D366" />
-            <Text style={styles.shareButtonText}>{t('voterInfo.whatsapp')}</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.shareButton} 
-            onPress={() => handleShare('sms')}
-          >
-            <Icon name="message" size={24} color="#2196F3" />
-            <Text style={styles.shareButtonText}>{t('voterInfo.sms')}</Text>
-          </TouchableOpacity>
+        <View style={[styles.shareCard, { paddingVertical: 8 }] }>
+          <View style={[styles.horizontalShareButtons, { justifyContent: 'space-around' }]}>
+            <TouchableOpacity 
+              style={[styles.horizontalShareButton, { width: 84 }]} 
+              onPress={() => handleShare('whatsapp')}
+            >
+              <View style={styles.shareIconCircle}>
+                <Icon name="chat" size={20} color="#25D366" />
+              </View>
+              <Text style={styles.horizontalShareButtonText} numberOfLines={1} ellipsizeMode="tail">WhatsApp</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.shareButton} 
-            onPress={() => handleShare('general')}
-          >
-            <Icon name="share" size={24} color="#2196F3" />
-            <Text style={styles.shareButtonText}>{t('voterInfo.share')}</Text>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.horizontalShareButton, { width: 64 }]} 
+              onPress={() => handleShare('sms')}
+            >
+              <View style={styles.shareIconCircle}>
+                <Icon name="message" size={20} color="#2196F3" />
+              </View>
+              <Text style={styles.horizontalShareButtonText} numberOfLines={1} ellipsizeMode="tail">SMS</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.shareButton} 
-            onPress={() => handleShare('print')}
-          >
-            <Icon name="print" size={24} color="#666" />
-            <Text style={styles.shareButtonText}>{t('voterInfo.takePrint')}</Text>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.horizontalShareButton, { width: 72 }]} 
+              onPress={() => handleShare('general')}
+            >
+              <View style={styles.shareIconCircle}>
+                <Icon name="share" size={20} color="#2196F3" />
+              </View>
+              <Text style={styles.horizontalShareButtonText} numberOfLines={1} ellipsizeMode="tail">Share</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.horizontalShareButton, { width: 64 }]} 
+              onPress={() => handleShare('print')}
+            >
+              <View style={styles.shareIconCircle}>
+                <Icon name="print" size={18} color="#666" />
+              </View>
+              <Text style={styles.horizontalShareButtonText} numberOfLines={1} ellipsizeMode="tail">Print</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.partSectionContainer}>
           <Text style={styles.partSectionTitle}>{t('voterInfo.partSectionInfo')}</Text>
           
           {partSectionInfo ? (
-            <>
+            <View style={styles.locationInfo}>
               <View style={styles.locationCard}>
-                <Icon name="location-on" size={20} color="#666" />
+                <Icon name="location-on" size={20} color="#1976D2" />
                 <View style={styles.locationDetails}>
                   <Text style={styles.locationTitle}>{t('voterInfo.pollingStation')}</Text>
                   <Text style={styles.locationText}>{partSectionInfo.pollingStation.english}</Text>
@@ -759,14 +790,14 @@ export default function VoterInfoScreen() {
               </View>
 
               <View style={styles.locationCard}>
-                <Icon name="home" size={20} color="#666" />
+                <Icon name="home" size={20} color="#1976D2" />
                 <View style={styles.locationDetails}>
                   <Text style={styles.locationTitle}>{t('voterInfo.addressWard')}</Text>
                   <Text style={styles.locationText}>{partSectionInfo.address.english}</Text>
                   <Text style={styles.locationTextTamil}>{partSectionInfo.address.tamil}</Text>
                 </View>
               </View>
-            </>
+            </View>
           ) : (
             <View style={styles.loadingInfo}>
               <Text style={styles.loadingInfoText}>{t('voterInfo.loadingPartSectionInfo')}</Text>
@@ -779,10 +810,19 @@ export default function VoterInfoScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with back arrow */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
-          <Icon name="arrow-back" size={24} color="#1976D2" />
+        <TouchableOpacity
+          style={styles.headerBackButton}
+          onPress={() => {
+            try {
+              router.back();
+            } catch (e) {
+              router.replace('/(tabs)/dashboard' as any);
+            }
+          }}
+        >
+          <Icon name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('voterInfo.title')}</Text>
         <View style={styles.headerRight} />
@@ -790,15 +830,21 @@ export default function VoterInfoScreen() {
 
       {/* Voter Details Card */}
       <View style={styles.voterCard}>
-        <View style={styles.voterHeader}>
-          <Icon name="star" size={16} color="#E91E63" />
-          <Text style={styles.serialText}>{t('dashboard.serial')} : {voter.sr}</Text>
-          <Text style={styles.sectionText}>{t('dashboard.section')} : 1</Text>
-          <Text style={styles.partText}>{t('dashboard.part')} : {voter.Part_no}</Text>
-        </View>
+          <View style={styles.voterHeader}>
+            <Text style={styles.serialText} numberOfLines={1} ellipsizeMode="tail">
+              S.No: <Text style={styles.blueText}>{voter.sr ?? (voter as any).Sr ?? (voter as any).serial ?? (voter as any).Serial ?? 1}</Text>
+            </Text>
+            <Text style={styles.sectionText} numberOfLines={1} ellipsizeMode="tail">
+              Section: <Text style={styles.blueText}>{voter.Anubhag_number ?? (voter as any).Anubhag_number ?? (voter as any).section ?? 1}</Text>
+            </Text>
+            <Text style={styles.partText} numberOfLines={1} ellipsizeMode="tail">
+              Part: <Text style={styles.blueText}>{voter.Part_no ?? (voter as any).PartNo ?? (voter as any).part_no ?? 1}</Text>
+            </Text>
+          </View>
 
         <View style={styles.voterContent}>
           <View style={styles.imageContainer}>
+            {/* Actual voter photo placeholder - in a real app this would show the actual photo */}
             <View style={styles.imagePlaceholder}>
               <Icon name="person" size={32} color="#1976D2" />
               <Icon name="camera-alt" size={16} color="#1976D2" style={styles.cameraIcon} />
@@ -830,121 +876,112 @@ export default function VoterInfoScreen() {
         </View>
       </View>
 
-      {/* Navigation Tabs */}
-      <View style={styles.tabContainer}>
+      {/* Horizontal Tab Buttons */}
+      <View style={styles.horizontalTabContainer}>
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'basic' && styles.activeTab]} 
+          style={[styles.horizontalTab, activeTab === 'basic' && styles.activeHorizontalTab]} 
           onPress={() => handleTabPress('basic')}
         >
-          <Icon 
-            name="person" 
-            size={20} 
-            color={activeTab === 'basic' ? '#fff' : '#666'} 
-          />
-          <Text style={[styles.tabText, activeTab === 'basic' && styles.activeTabText]}>
+          <Text style={[styles.horizontalTabText, activeTab === 'basic' && styles.activeHorizontalTabText]}>
             {t('voterInfo.basic')}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'family' && styles.activeTab]} 
+          style={[styles.horizontalTab, activeTab === 'family' && styles.activeHorizontalTab]} 
           onPress={() => handleTabPress('family')}
         >
-          <Icon 
-            name="family-restroom" 
-            size={20} 
-            color={activeTab === 'family' ? '#fff' : '#666'} 
-          />
-          <Text style={[styles.tabText, activeTab === 'family' && styles.activeTabText]}>
+          <Text style={[styles.horizontalTabText, activeTab === 'family' && styles.activeHorizontalTabText]}>
             {t('voterInfo.family')}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'friends' && styles.activeTab]} 
+          style={[styles.horizontalTab, activeTab === 'friends' && styles.activeHorizontalTab]} 
           onPress={() => handleTabPress('friends')}
         >
-          <Icon 
-            name="people" 
-            size={20} 
-            color={activeTab === 'friends' ? '#fff' : '#666'} 
-          />
-          <Text style={[styles.tabText, activeTab === 'friends' && styles.activeTabText]}>
+          <Text style={[styles.horizontalTabText, activeTab === 'friends' && styles.activeHorizontalTabText]}>
             {t('voterInfo.friends')}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'share' && styles.activeTab]} 
+          style={[styles.horizontalTab, activeTab === 'share' && styles.activeHorizontalTab]} 
           onPress={() => handleTabPress('share')}
         >
-          <Icon 
-            name="share" 
-            size={20} 
-            color={activeTab === 'share' ? '#fff' : '#666'} 
-          />
-          <Text style={[styles.tabText, activeTab === 'share' && styles.activeTabText]}>
+          <Text style={[styles.horizontalTabText, activeTab === 'share' && styles.activeHorizontalTabText]}>
             {t('voterInfo.share')}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Tab Content */}
-      {activeTab === 'basic' && renderBasicTab()}
-      {activeTab === 'family' && renderFamilyTab()}
-      {activeTab === 'friends' && renderFriendsTab()}
-      {activeTab === 'share' && renderShareTab()}
+      {/* Tab Content (scrollable) */}
+      <ScrollView style={styles.contentContainer} contentContainerStyle={{ paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+        {activeTab === 'basic' && renderBasicTab()}
+        {activeTab === 'family' && renderFamilyTab()}
+        {activeTab === 'friends' && renderFriendsTab()}
+        {activeTab === 'share' && renderShareTab()}
 
-      {/* Picker Modal */}
-      {pickerVisible && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{pickerTitle}</Text>
-              <TouchableOpacity onPress={() => setPickerVisible(false)}>
-                <Icon name="close" size={22} color="#000" />
-              </TouchableOpacity>
+        {/* Picker Modal */}
+        {pickerVisible && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{pickerTitle}</Text>
+                <TouchableOpacity onPress={() => setPickerVisible(false)}>
+                  <Icon name="close" size={22} color="#000" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.modalSearchRow}>
+                <TextInput
+                  style={styles.modalSearchInput}
+                  placeholder={pickerTitle.replace(t('common.select'), t('common.search')).trim()}
+                  placeholderTextColor="#999"
+                  value={pickerSearch}
+                  onChangeText={setPickerSearch}
+                />
+              </View>
+              <ScrollView style={{ maxHeight: 460 }}>
+                {pickerOptions
+                  .filter(opt => {
+                    const label = getOptionLabel(pickerField, opt);
+                    return label.toLowerCase().includes(pickerSearch.toLowerCase());
+                  })
+                  .map((opt, idx) => {
+                    const label = getOptionLabel(pickerField, opt);
+                    return (
+                      <TouchableOpacity
+                        key={`${label}-${idx}`}
+                        style={styles.modalItem}
+                        onPress={() => {
+                          setSelectedValues(prev => ({ ...prev, [pickerField]: label }));
+                          setPickerVisible(false);
+                        }}
+                      >
+                        <Text style={styles.modalItemText}>{label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+              </ScrollView>
             </View>
-            <View style={styles.modalSearchRow}>
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder={pickerTitle.replace(t('common.select'), t('common.search')).trim()}
-                placeholderTextColor="#999"
-                value={pickerSearch}
-                onChangeText={setPickerSearch}
-              />
-            </View>
-            <ScrollView style={{ maxHeight: 460 }}>
-              {pickerOptions
-                .filter(opt => {
-                  const label = getOptionLabel(pickerField, opt);
-                  return label.toLowerCase().includes(pickerSearch.toLowerCase());
-                })
-                .map((opt, idx) => {
-                  const label = getOptionLabel(pickerField, opt);
-                  return (
-                    <TouchableOpacity
-                      key={`${label}-${idx}`}
-                      style={styles.modalItem}
-                      onPress={() => {
-                        setSelectedValues(prev => ({ ...prev, [pickerField]: label }));
-                        setPickerVisible(false);
-                      }}
-                    >
-                      <Text style={styles.modalItemText}>{label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-            </ScrollView>
           </View>
-        </View>
-      )}
+        )}
+      </ScrollView>
 
-      {/* Bottom Action Button */}
-      {!pickerVisible && (
+      {/* Save Button - Show only on basic tab */}
+      {!pickerVisible && activeTab === 'basic' && (
         <View style={styles.bottomContainer}>
-          <TouchableOpacity style={styles.saveButton} onPress={saveVoterInfo}>
-            <Text style={styles.saveButtonText}>{t('voterInfo.saveChanges')}</Text>
+          <TouchableOpacity 
+            style={[
+              styles.saveButton, 
+              !isFormFilled() && styles.disabledButton
+            ]} 
+            onPress={saveVoterInfo}
+            disabled={!isFormFilled()}
+          >
+            <Text style={styles.saveButtonText}>
+              {t('voterInfo.saveChanges')}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -955,13 +992,13 @@ export default function VoterInfoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 10,
@@ -972,7 +1009,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     padding: 20,
   },
   errorText: {
@@ -981,28 +1018,23 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   header: {
-    backgroundColor: '#E3F2FD',
-    paddingTop: 50,
-    paddingBottom: 20,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 20,
+    paddingBottom: 12,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   headerBackButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1976D2',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   headerTitle: {
     fontSize: 20,
@@ -1027,37 +1059,49 @@ const styles = StyleSheet.create({
   },
   voterCard: {
     backgroundColor: '#FFFFFF',
-    margin: 20,
+    marginHorizontal: 12,
+    marginTop: 12,
     borderRadius: 12,
-    padding: 15,
+    padding: 14,
+    overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   voterHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  blueText: {
+    color: '#1976D2',
+    fontWeight: 'bold',
   },
   serialText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#000',
-    marginLeft: 5,
+    flex: 1,
+    textAlign: 'left',
   },
   sectionText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#000',
-    marginLeft: 10,
+    flex: 1,
+    textAlign: 'center',
   },
   partText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#000',
-    marginLeft: 10,
+    flex: 1,
+    textAlign: 'right',
   },
   voterContent: {
     flexDirection: 'row',
@@ -1141,7 +1185,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  tabContainer: {
+  horizontalTabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
@@ -1152,31 +1196,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    marginBottom: 10,
   },
-  tab: {
+  horizontalTab: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  activeTab: {
+  activeHorizontalTab: {
     backgroundColor: '#1976D2',
   },
-  tabText: {
-    fontSize: 12,
+  horizontalTabText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#666',
-    marginLeft: 4,
   },
-  activeTabText: {
+  activeHorizontalTabText: {
     color: '#FFFFFF',
   },
   tabContent: {
-    flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 16,
   },
   section: {
     backgroundColor: '#FFFFFF',
@@ -1188,6 +1231,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 1,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   sectionTitle: {
     fontSize: 16,
@@ -1291,6 +1336,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 1,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   searchInput: {
     flex: 1,
@@ -1320,41 +1367,62 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   shareContainer: {
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
-  shareButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  shareButton: {
-    alignItems: 'center',
-    padding: 15,
+  shareCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    elevation: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    overflow: 'hidden',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
-    minWidth: 80,
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
-  shareButtonText: {
+  horizontalShareButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  horizontalShareButton: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    flex: 0,
+    marginHorizontal: 6,
+  },
+  shareIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F5F7FB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  horizontalShareButtonText: {
     fontSize: 12,
     color: '#666',
-    marginTop: 5,
-  },
-  locationInfo: {
-    marginTop: 10,
+    marginTop: 4,
+    width: 68,
+    textAlign: 'center',
   },
   partSectionContainer: {
     marginTop: 20,
   },
   partSectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#1976D2',
     marginBottom: 15,
+    textAlign: 'left',
+  },
+  locationInfo: {
+    marginTop: 10,
   },
   loadingInfo: {
     padding: 20,
@@ -1375,6 +1443,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 1,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   locationDetails: {
     flex: 1,
@@ -1383,7 +1453,7 @@ const styles = StyleSheet.create({
   locationTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#1976D2',
     marginBottom: 5,
   },
   locationText: {
@@ -1394,6 +1464,10 @@ const styles = StyleSheet.create({
   locationTextTamil: {
     fontSize: 12,
     color: '#999',
+  },
+  contentContainer: {
+    paddingHorizontal: 0,
+    paddingBottom: 0,
   },
   bottomContainer: {
     padding: 20,
@@ -1415,10 +1489,35 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  disabledButton: {
+    backgroundColor: '#9E9E9E',
+  },
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  progressBarBackground: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    marginRight: 10,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#666',
+    minWidth: 35,
   },
   selectedText: {
     color: '#000',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { surveyAPI } from '../../../services/api/survey';
 
@@ -177,9 +178,7 @@ export default function SurveyScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+            <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('survey.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -195,9 +194,7 @@ export default function SurveyScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+            <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('survey.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -213,26 +210,15 @@ export default function SurveyScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        <Text style={styles.timeText}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</Text>
-        <View style={styles.statusIcons}>
-          <Text style={styles.statusText}>5G+</Text>
-          <Text style={styles.batteryText}>100%</Text>
-        </View>
-      </View>
-
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
         <Text style={styles.headerTitle}>{t('survey.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+  <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {surveys.length > 0 ? (
           surveys.map(renderSurveyFormCard)
         ) : (
@@ -251,36 +237,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  statusBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 5,
-  },
-  timeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  statusIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#000000',
-  },
-  batteryText: {
-    fontSize: 12,
-    color: '#000000',
-    fontWeight: 'bold',
-  },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 10,
+    paddingTop: 45,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -295,22 +254,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1976D2',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E3F2FD',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   backIcon: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1976D2',
   },
   headerTitle: {
     fontSize: 20,
@@ -360,6 +314,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 20,
   },
   surveyFormCard: {
     backgroundColor: '#FFFFFF',

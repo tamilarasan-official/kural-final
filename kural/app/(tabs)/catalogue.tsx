@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import HeaderBack from '../components/HeaderBack';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { voterAPI } from '../../services/api/voter';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -68,7 +69,9 @@ export default function CatalogueScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <HeaderBack onPress={() => router.push('/(tabs)/')} />
         <Text style={styles.headerTitle}>{t('catalogue.title')}</Text>
+        <View style={{ width: 40 }} />
       </View>
       
       {loading ? (

@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView,
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { API_CONFIG } from '../../services/api/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DEFAULT_ELECTION_KEY, ELECTION_LOCATIONS } from '../_config/electionLocations';
 import { useBanner } from '../../contexts/BannerContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { voterAPI } from '../../services/api/voter';
@@ -16,8 +18,16 @@ export default function DashboardScreen() {
   const { openElectionModal } = useLocalSearchParams();
   const { banners } = useBanner();
   const { t } = useLanguage();
-  const [constituency, setConstituency] = useState('119 - Thondamuthur');
+  const [constituency, setConstituency] = useState('118 - Thondamuthur');
   const { width } = Dimensions.get('window');
+  // Responsive layout measurements for "Cadre Overview"
+  const contentHorizontalPadding = 16;
+  const columnGap = 12;
+  const contentWidth = width - contentHorizontalPadding * 2;
+  // Stable grid: prefer 3 equal columns when possible, otherwise 2 equal columns
+  const isThreeCol = contentWidth >= 360; // conservative breakpoint for many phones
+  const colWidth3 = Math.round((contentWidth - columnGap * 2) / 3);
+  const colWidth2 = Math.round((contentWidth - columnGap * 1) / 2);
   const bannerRef = useRef<ScrollView>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState(''); // State for search input
@@ -26,12 +36,13 @@ export default function DashboardScreen() {
   const [pagination, setPagination] = useState(null); // State for pagination
   const [currentPage, setCurrentPage] = useState(1); // State for current page
   const [showElectionModal, setShowElectionModal] = useState(false); // State for election dropdown modal
-  const [selectedElection, setSelectedElection] = useState('119 - Thondamuthur'); // State for selected election
+  const [selectedElection, setSelectedElection] = useState('118 - Thondamuthur'); // State for selected election
   const [showElectionDropdown, setShowElectionDropdown] = useState(false); // State for election dropdown
   
   // Election options (restricted to the configured default)
   const electionOptions = [
-    '119 - Thondamuthur',
+    '118 - Thondamuthur',
+    '119 - Thaliyur',
   ];
   const [showAdvanceSearchModal, setShowAdvanceSearchModal] = useState(false); // State for advance search modal
   const [advanceSearchData, setAdvanceSearchData] = useState({
@@ -277,10 +288,38 @@ export default function DashboardScreen() {
   };
 
   // Handle election update
-  const handleElectionUpdate = () => {
-    setConstituency(selectedElection);
+  const handleElectionUpdate = async () => {
+    // Trim and validate the selected election key before saving
+    const key = (selectedElection || '').trim();
+    if (ELECTION_LOCATIONS[key]) {
+      setConstituency(key);
+      // persist selection (await to ensure it's written before navigation)
+      try {
+        await AsyncStorage.setItem(DEFAULT_ELECTION_KEY, key);
+        console.log('Saved default election key:', key);
+      } catch (err) {
+        console.warn('Failed to persist default election', err);
+      }
+    } else {
+      console.warn('Attempted to save unknown election key:', selectedElection);
+    }
     setShowElectionModal(false);
   };
+
+  // Load persisted default election on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(DEFAULT_ELECTION_KEY);
+        if (saved) {
+          setSelectedElection(saved);
+          setConstituency(saved);
+        }
+      } catch (err) {
+        console.warn('Failed to load saved default election', err);
+      }
+    })();
+  }, []);
 
   // Handle election modal close
   const handleElectionClose = () => {
@@ -411,31 +450,29 @@ export default function DashboardScreen() {
       {/* Cadre Overview */}
       <Text style={styles.sectionTitle}>{t('dashboard.cadreOverview')}</Text>
       <View style={styles.overviewRow}>
-        <OverviewCard 
-          title={t('dashboard.totalCadres')} 
-          value={'0'} 
-          accent="#1976D2" 
-          large 
-          iconName="directions-walk" 
-          onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')}
-        />
-        <View style={styles.overviewColSmall}>
-          <OverviewCard 
-            title={t('dashboard.cadreActive')} 
-            value={'0'} 
-            accent="#2E7D32" 
-            onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')}
-          />
-          <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
+        {/* Left column - Total Cadres (tall) */}
+        <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
+          <OverviewCard title={t('dashboard.totalCadres')} value={'0'} accent="#1976D2" large iconName="directions-walk" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')} />
         </View>
-        <View style={styles.overviewColSmall}>
-          <OverviewCard 
-            title={t('dashboard.cadreInActive')} 
-            value={'0'} 
-            accent="#D32F2F" 
-            onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=inactive')}
-          />
-          <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
+        
+        {/* Right side - 2x2 grid */}
+        <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 * 2 + columnGap : colWidth2 }]}>
+          <View style={styles.overviewRightGrid}>
+            {/* Top row */}
+            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
+              <OverviewCard title={t('dashboard.cadreActive')} value={'0'} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')} />
+            </View>
+            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
+              <OverviewCard title={t('dashboard.cadreInActive')} value={'0'} accent="#D32F2F" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=inactive')} />
+            </View>
+            {/* Bottom row */}
+            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
+              <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
+            </View>
+            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
+              <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
+            </View>
+          </View>
         </View>
       </View>
 
@@ -1140,14 +1177,43 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 16,
   },
-  overviewRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 12 },
+  overviewRow: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 16, 
+    marginTop: 12,
+    columnGap: 12,
+    rowGap: 12,
+  },
+  overviewItem: {
+    marginBottom: 12,
+  },
+  overviewRightGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    columnGap: 12,
+    rowGap: 12,
+  },
+  overviewRowTwoCol: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+  },
+  twoColItem: {
+    width: '48%',
+  },
   overviewLarge: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 140,
+    minHeight: 352, // Increased height to span both rows (2 * 120 + gap)
   },
   overviewSmall: {
     backgroundColor: '#FFFFFF',
@@ -1158,7 +1224,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 120,
   },
-  overviewColSmall: { width: 135, marginLeft: 12 },
+  overviewColSmall: { marginLeft: 0 },
   overviewIcon: { fontSize: 32, marginBottom: 6 },
   overviewIconVector: { marginBottom: 6 },
   titleContainer: {

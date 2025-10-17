@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import HeaderBack from '../components/HeaderBack';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function YourElectionScreen() {
@@ -11,9 +12,7 @@ export default function YourElectionScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('elections.title')}</Text>
         <View style={styles.headerRight} />
       </View>

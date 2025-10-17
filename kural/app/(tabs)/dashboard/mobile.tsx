@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Activi
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import AgeSlider from '../../components/AgeSlider';
 import { voterAPI } from '../../../services/api/voter';
 import { settingsAPI } from '../../../services/api/settings';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -144,32 +145,13 @@ export default function MobileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+  <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch (_) { router.replace('/(tabs)/' as any); } }}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('dashboard.mobile')}</Text>
         <TouchableOpacity style={styles.headerIcon} onPress={() => setFiltersVisible(true)}>
           <Icon name="tune" size={22} color="#0D47A1" />
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.countersRow}>
-        <View style={[styles.counterCard, { backgroundColor: '#C8E6C9' }]}>
-          <Text style={styles.counterTitle}>{t('common.male')}</Text>
-          <Text style={styles.counterValue}>{stats.male}</Text>
-        </View>
-        <View style={[styles.counterCard, { backgroundColor: '#F8BBD9' }]}>
-          <Text style={styles.counterTitle}>{t('common.female')}</Text>
-          <Text style={styles.counterValue}>{stats.female}</Text>
-        </View>
-        <View style={[styles.counterCard, { backgroundColor: '#E0E0E0' }]}>
-          <Text style={styles.counterTitle}>{t('common.others')}</Text>
-          <Text style={styles.counterValue}>{stats.other}</Text>
-        </View>
-        <View style={[styles.counterCard, { backgroundColor: '#BBDEFB' }]}>
-          <Text style={styles.counterTitle}>{t('common.total')}</Text>
-          <Text style={styles.counterValue}>{stats.total}</Text>
-        </View>
       </View>
 
       <View style={styles.searchWrap}>

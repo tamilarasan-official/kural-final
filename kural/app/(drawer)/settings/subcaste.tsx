@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import HeaderBack from '../../components/HeaderBack';
 import { subCasteAPI } from '../../../services/api/settings';
 
 const { width } = Dimensions.get('window');
@@ -101,9 +102,7 @@ export default function SubCasteScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('subcaste.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -119,9 +118,7 @@ export default function SubCasteScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('subcaste.title')}</Text>
           <View style={styles.headerRight} />
         </View>
@@ -139,9 +136,7 @@ export default function SubCasteScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('subcaste.title')}</Text>
         <View style={styles.headerRight} />
       </View>

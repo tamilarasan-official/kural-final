@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import HeaderBack from '../../components/HeaderBack';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -10,6 +11,15 @@ export default function VotersMapScreen() {
   const router = useRouter();
   const { partNumber } = useLocalSearchParams();
   const mapRef = useRef<MapView | null>(null);
+
+  // build a readable header title with fallbacks when translation keys are not available
+  const titleText = (() => {
+    const rawTitle = t('votersMap.title');
+    const rawPart = t('votersMap.part');
+    const title = (typeof rawTitle === 'string' && rawTitle.indexOf('votersMap.') === -1) ? rawTitle : 'Voters Map';
+    const partLabel = (typeof rawPart === 'string' && rawPart.indexOf('votersMap.') === -1) ? rawPart : 'Part';
+    return partNumber ? `${title} (${partLabel} ${partNumber})` : title;
+  })();
 
   const initialRegion: Region = useMemo(() => ({
     latitude: 13.0827,
@@ -20,13 +30,25 @@ export default function VotersMapScreen() {
 
   const [region, setRegion] = useState<Region>(initialRegion);
 
+  // top overlay labels with fallbacks
+  const loadedAtLabel = (() => {
+    const r = t('votersMap.dataLoadedAt');
+    return (typeof r === 'string' && r.indexOf('votersMap.') === -1) ? r : 'Loaded at';
+  })();
+  const reloadLabel = (() => {
+    const r = t('votersMap.reload');
+    return (typeof r === 'string' && r.indexOf('votersMap.') === -1) ? r : 'Reload';
+  })();
+  const clearLabel = (() => {
+    const r = t('votersMap.clear');
+    return (typeof r === 'string' && r.indexOf('votersMap.') === -1) ? r : 'Clear';
+  })();
+
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Icon name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('votersMap.title')}{partNumber ? ` (${t('votersMap.part')} ${partNumber})` : ''}</Text>
+        <HeaderBack onPress={() => { try { router.back(); } catch { router.push('/(tabs)/'); } }} />
+        <Text style={styles.headerTitle}>{titleText}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -44,7 +66,7 @@ export default function VotersMapScreen() {
         {/* Top overlay with loaded time, Reload and Clear */}
         <View style={styles.topOverlay}>
           <View style={styles.loadedAtBox}>
-            <Text style={styles.loadedAtText}>{t('votersMap.dataLoadedAt')}:</Text>
+            <Text style={styles.loadedAtText}>{loadedAtLabel}:</Text>
           </View>
           <TouchableOpacity
             style={styles.actionBtn}
@@ -53,7 +75,7 @@ export default function VotersMapScreen() {
               setRegion(initialRegion);
             }}
           >
-            <Text style={styles.actionText}>{t('votersMap.reload')}</Text>
+            <Text style={styles.actionText}>{reloadLabel}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtn}
@@ -61,7 +83,7 @@ export default function VotersMapScreen() {
               // Placeholder for clearing drawn items/markers when added
             }}
           >
-            <Text style={styles.actionText}>{t('votersMap.clear')}</Text>
+            <Text style={styles.actionText}>{clearLabel}</Text>
           </TouchableOpacity>
         </View>
 

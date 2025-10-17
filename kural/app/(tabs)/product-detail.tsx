@@ -28,7 +28,16 @@ export default function ProductDetailScreen() {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            try {
+              router.back();
+            } catch (e) {
+              router.replace('/(tabs)/' as any);
+            }
+          }}
+        >
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import HeaderBack from '../../components/HeaderBack';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import AgeSlider from '../../components/AgeSlider';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { settingsAPI } from '../../../services/api/settings';
 import { voterAPI } from '../../../services/api/voter';
@@ -239,9 +241,7 @@ export default function VoterDetailScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => { try { router.back(); } catch (e) { router.replace('/(tabs)/' as any); } }} />
         <Text style={styles.headerTitle}>{t('voterDetail.partNumber')} {partNumber}</Text>
         <TouchableOpacity style={styles.locationButton} onPress={() => router.push({ pathname: '/(tabs)/dashboard/voters_map', params: { partNumber: String(partNumber || '') } })}>
           <Icon name="location-on" size={24} color="#1976D2" />
@@ -349,30 +349,8 @@ export default function VoterDetailScreen() {
 
             <ScrollView style={{ maxHeight: 420 }}>
               <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
-              <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
-                <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
-                  <MultiSlider
-                    values={[minAge, maxAge]}
-                    min={0}
-                    max={120}
-                    step={1}
-                    sliderLength={width - 64}
-                    onValuesChange={(vals) => {
-                      const a = Math.round(Math.min(vals[0], vals[1]));
-                      const b = Math.round(Math.max(vals[0], vals[1]));
-                      setMinAge(a);
-                      setMaxAge(b);
-                    }}
-                    allowOverlap={false}
-                    snapped
-                    selectedStyle={{ backgroundColor: '#1976D2' }}
-                    unselectedStyle={{ backgroundColor: '#BBDEFB' }}
-                    markerStyle={{ height: 22, width: 22, backgroundColor: '#1976D2' }}
-                    trackStyle={{ height: 4 }}
-                    enableLabel
-                    customLabel={AgeLabel}
-                  />
-                </View>
+              <View style={{ marginBottom: 8 }}>
+                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { setMinAge(vals[0]); setMaxAge(vals[1]); }} min={0} max={120} />
               </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
@@ -655,6 +633,10 @@ const styles = StyleSheet.create({
   rangeRow: { flexDirection: 'row', gap: 12 },
   rangeBox: { flex: 1, backgroundColor: '#F1F5F9', borderRadius: 10, padding: 10 },
   rangeLabel: { fontSize: 12, color: '#64748B' },
+  rangeBoxTopRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 6, marginBottom: 6 },
+  rangeTopLabel: { fontSize: 14, color: '#1976D2', textAlign: 'center', flex: 1 },
+  rangeBoxBottomRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 6, marginTop: 6 },
+  sideLabel: { fontSize: 14, color: '#1976D2', width: 70 },
   rangeInput: { marginTop: 4, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   chipsRow: { flexDirection: 'row', gap: 10 },
   chipsRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

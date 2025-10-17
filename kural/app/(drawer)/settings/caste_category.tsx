@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import HeaderBack from '../../components/HeaderBack';
 import { casteCategoryAPI } from '../../../services/api/settings';
 
 const { width } = Dimensions.get('window');
@@ -111,13 +112,11 @@ export default function CasteCategoryScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('casteCategory.title')}</Text>
-          <View style={styles.headerRight} />
-        </View>
+          <View style={styles.header}>
+            <HeaderBack onPress={() => router.back()} />
+            <Text style={styles.headerTitle}>{t('casteCategory.title')}</Text>
+            <View style={styles.headerRight} />
+          </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1976D2" />
           <Text style={styles.loadingText}>{t('casteCategory.loading')}</Text>
@@ -130,9 +129,7 @@ export default function CasteCategoryScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+          <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('casteCategory.title')}</Text>
           <View style={styles.headerRight} />
         </View>

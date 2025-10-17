@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import HeaderBack from '../../components/HeaderBack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { voterAPI } from '../../../services/api/voter';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -215,9 +216,7 @@ export default function FamilyManagerScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>‹</Text>
-          </TouchableOpacity>
+            <HeaderBack onPress={() => { try { router.back(); } catch (_) { router.replace('/(tabs)/' as any); } }} />
           <Text style={styles.headerTitle}>{t('dashboard.familyManager')}</Text>
           <View style={styles.headerActions} />
         </View>
@@ -238,9 +237,7 @@ export default function FamilyManagerScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => { try { router.back(); } catch (_) { router.replace('/(tabs)/' as any); } }} />
         <Text style={styles.headerTitle}>Part-{partNumber} Family</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleNoFamilyPress}>
@@ -468,8 +465,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
   },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1976D2', alignItems: 'center', justifyContent: 'center' },
-  backIcon: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  // back button is provided by shared HeaderBack component
   headerTitle: { color: '#000', fontSize: 20, fontWeight: '700' },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   countersRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10 },

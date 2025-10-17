@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Activi
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import AgeSlider from '../../components/AgeSlider';
 import { voterAPI } from '../../../services/api/voter';
 import { settingsAPI } from '../../../services/api/settings';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -144,7 +145,7 @@ export default function GuardianScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+  <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch (e) { router.replace('/(tabs)/'); } }}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('dashboard.guardian')}</Text>
@@ -287,41 +288,11 @@ export default function GuardianScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
-              <View style={styles.chipsRowWrap}>
-                {histories.map((h:any) => (
-                  <TouchableOpacity
-                    key={h.id || h._id}
-                    style={[styles.circleChip, selectedHistory.has(h.id || h._id) && styles.circleChipActive]}
-                    onPress={() => {
-                      const s = new Set(selectedHistory);
-                      const id = h.id || h._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
-                      setSelectedHistory(s);
-                    }}
-                  >
-                    <Text style={styles.circleChipText}>{h.tag || h.title?.[0] || 'H'}</Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
+              <View style={{ marginBottom: 8 }}>
+                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { setMinAge(vals[0]); setMaxAge(vals[1]); }} min={0} max={120} />
               </View>
-
-              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
-              <View style={styles.chipsRowWrap}>
-                {categories.map((c:any) => (
-                  <TouchableOpacity
-                    key={c.id || c._id}
-                    style={[styles.circleChip, selectedCategory.has(c.id || c._id) && styles.circleChipActive]}
-                    onPress={() => {
-                      const s = new Set(selectedCategory);
-                      const id = c.id || c._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
-                      setSelectedCategory(s);
-                    }}
-                  >
-                    <Icon name="check-circle" size={18} color={selectedCategory.has(c.id || c._id) ? '#1976D2' : '#90A4AE'} />
-                  </TouchableOpacity>
-                ))}
-              </View>
+              
 
               <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
               <View style={styles.chipsRowWrap}>

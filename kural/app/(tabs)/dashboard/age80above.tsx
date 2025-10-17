@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Activi
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import AgeSlider from '../../components/AgeSlider';
 import { voterAPI } from '../../../services/api/voter';
 import { settingsAPI } from '../../../services/api/settings';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -144,7 +145,7 @@ export default function Age80AboveScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+  <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch (_) { router.replace('/(tabs)/' as any); } }}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('dashboard.age80above')}</Text>
@@ -243,30 +244,8 @@ export default function Age80AboveScreen() {
 
             <ScrollView style={{ maxHeight: 420 }}>
               <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
-              <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
-                <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
-                  <MultiSlider
-                    values={[minAge, maxAge]}
-                    min={80}
-                    max={120}
-                    step={1}
-                    sliderLength={width - 64}
-                    onValuesChange={(vals) => {
-                      const a = Math.round(Math.min(vals[0], vals[1]));
-                      const b = Math.round(Math.max(vals[0], vals[1]));
-                      setMinAge(a);
-                      setMaxAge(b);
-                    }}
-                    allowOverlap={false}
-                    snapped
-                    selectedStyle={{ backgroundColor: '#1976D2' }}
-                    unselectedStyle={{ backgroundColor: '#BBDEFB' }}
-                    markerStyle={{ height: 22, width: 22, backgroundColor: '#1976D2' }}
-                    trackStyle={{ height: 4 }}
-                    enableLabel
-                    customLabel={AgeLabel}
-                  />
-                </View>
+              <View style={{ marginBottom: 8 }}>
+                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { setMinAge(vals[0]); setMaxAge(vals[1]); }} min={80} max={120} />
               </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
@@ -449,6 +428,12 @@ const styles = StyleSheet.create({
   filterTitle: { fontSize: 24, fontWeight: '700', color: '#1F2937' },
   filterSubtitle: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 12, marginBottom: 8 },
+  rangeBox: { backgroundColor: '#F1F5F9', borderRadius: 10, padding: 8 },
+  rangeBoxTopRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  rangeTopLabel: { fontSize: 14, color: '#1976D2' },
+  rangeBoxBottomRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 6 },
+  rangeLabel: { fontSize: 12, color: '#64748B' },
+  sideLabel: { fontSize: 14, color: '#1976D2', width: 70 },
   chipsRow: { flexDirection: 'row', gap: 10 },
   chipsRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EAF2FE', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
