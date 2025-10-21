@@ -9,38 +9,32 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 
 export const options = { headerShown: false };
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window');
 
 type Fatherless = {
   _id: string;
   Name: string;
   Relation: string;
   'Father Name': string;
-  Number: string;
-  sex: string;
-  Door_No: string | number;
-  age: number;
-  Part_no: number;
-  Anubhag_number: number;
-  'Part Name'?: string;
-  'Mobile No'?: string;
+  Number?: string;
+  sex?: string;
+  Door_No?: string | number;
+  age?: number;
+  Part_no?: number | string;
+  Anubhag_number?: number | string;
   createdAt?: string;
-  updatedAt?: string;
 };
-
-// AgeLabel removed; AgeSlider provides live labels above markers.
 
 export default function FatherlessScreen() {
   const { t } = useLanguage();
   const router = useRouter();
+
   const handleVoterPress = (voter: any) => {
     try {
-      router.push({
-        pathname: '/(tabs)/dashboard/voter_info',
-        params: { voterData: JSON.stringify(voter) },
-      });
-    } catch {}
+      router.push({ pathname: '/(tabs)/dashboard/voter_info', params: { voterData: JSON.stringify(voter) } });
+    } catch { }
   };
+
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Fatherless[]>([]);
   const [allItems, setAllItems] = useState<Fatherless[]>([]);
@@ -65,25 +59,17 @@ export default function FatherlessScreen() {
     try {
       setLoading(true);
       const res = await voterAPI.getFatherlessVoters({ q: query, page: 1, limit: 50 });
-      
+
       let arr: Fatherless[] = Array.isArray(res?.data) ? res.data : [];
-      // Handle mixed data structure - some fields at root, some in 's' object
-      arr = arr.map((doc: any) => {
-        if (doc && doc.s && typeof doc.s === 'object') {
-          // Merge s object with root level, prioritizing root level fields
-          return { ...doc.s, ...doc } as Fatherless;
-        }
-        return doc as Fatherless;
-      });
+      // some endpoints might return nested objects; normalize if needed
+      arr = arr.map((doc: any) => (doc && doc.s && typeof doc.s === 'object') ? { ...doc.s, ...doc } as Fatherless : doc as Fatherless);
       setItems(arr);
       setAllItems(arr);
-      
-      // Use gender summary from API response if available
+
       if (res?.genderSummary) {
         setStats(res.genderSummary);
       } else {
-        // Fallback to calculating from data
-        const counts = arr.reduce((acc, it) => {
+        const counts = arr.reduce((acc: any, it: any) => {
           const g = (it?.sex || '').toLowerCase();
           if (g === 'male') acc.male += 1; else if (g === 'female') acc.female += 1; else acc.other += 1;
           acc.total += 1;
@@ -99,7 +85,6 @@ export default function FatherlessScreen() {
   };
 
   useEffect(() => {
-    // Load filter dropdown options
     (async () => {
       try {
         const [hist, cats, prts, rels] = await Promise.all([
@@ -112,17 +97,16 @@ export default function FatherlessScreen() {
         setCategories(Array.isArray(cats?.data) ? cats.data : (cats?.items || cats) || []);
         setParties(Array.isArray(prts?.data) ? prts.data : (prts?.items || prts) || []);
         setReligions(Array.isArray(rels?.data) ? rels.data : (rels?.items || rels) || []);
-      } catch (e) {
+      } catch {
         // silent
       }
     })();
   }, []);
 
-  useEffect(() => { 
-    load(); 
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []);
 
-  // Clear search and reload data when screen comes into focus
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useFocusEffect(
     React.useCallback(() => {
       setQuery('');
@@ -133,7 +117,7 @@ export default function FatherlessScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-  <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch (e) { router.replace('/(tabs)/'); } }}>
+        <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch (_) { router.replace('/(tabs)/' as any); } }}>
           <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('dashboard.fatherless')}</Text>
@@ -239,24 +223,55 @@ export default function FatherlessScreen() {
               <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
               <View style={styles.chipsRow}>
                 {['male','female','other'].map(g => (
-                  <TouchableOpacity
-                    key={g}
-                    style={[styles.chip, genderFilter.has(g) && styles.chipActive]}
-                    onPress={() => {
-                      const s = new Set(genderFilter);
-                      s.has(g) ? s.delete(g) : s.add(g);
-                      setGenderFilter(s);
-                    }}
-                  >
+                          <TouchableOpacity
+                              key={g}
+                              style={[styles.chip, genderFilter.has(g) && styles.chipActive]}
+                              onPress={() => {
+                                const s = new Set(genderFilter);
+                                if (s.has(g)) { s.delete(g); } else { s.add(g); }
+                                setGenderFilter(s);
+                              }}
+                            >
                     <Icon name="person" size={16} color={genderFilter.has(g) ? '#1976D2' : '#607D8B'} />
                     <Text style={[styles.chipText, genderFilter.has(g) && styles.chipTextActive]}>{g.charAt(0).toUpperCase()+g.slice(1)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
-              <View style={{ marginBottom: 8 }}>
-                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { setMinAge(vals[0]); setMaxAge(vals[1]); }} min={0} max={120} />
+              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {histories.map((h:any) => (
+                  <TouchableOpacity
+                    key={h.id || h._id}
+                    style={[styles.circleChip, selectedHistory.has(h.id || h._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedHistory);
+                      const id = h.id || h._id;
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
+                      setSelectedHistory(s);
+                    }}
+                  >
+                    <Text style={styles.circleChipText}>{h.tag || h.title?.[0] || 'H'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {categories.map((c:any) => (
+                  <TouchableOpacity
+                    key={c.id || c._id}
+                    style={[styles.circleChip, selectedCategory.has(c.id || c._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedCategory);
+                      const id = c.id || c._id;
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
+                      setSelectedCategory(s);
+                    }}
+                  >
+                    <Icon name="check-circle" size={18} color={selectedCategory.has(c.id || c._id) ? '#1976D2' : '#90A4AE'} />
+                  </TouchableOpacity>
+                ))}
               </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
@@ -268,7 +283,7 @@ export default function FatherlessScreen() {
                     onPress={() => {
                       const s = new Set(selectedParty);
                       const id = p.id || p._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
                       setSelectedParty(s);
                     }}
                   >
@@ -286,7 +301,7 @@ export default function FatherlessScreen() {
                     onPress={() => {
                       const s = new Set(selectedReligion);
                       const id = r.id || r._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
                       setSelectedReligion(s);
                     }}
                   >

@@ -234,6 +234,7 @@ export default function FamilyManagerScreen() {
   }
 
   return (
+
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
@@ -241,15 +242,15 @@ export default function FamilyManagerScreen() {
         <Text style={styles.headerTitle}>Part-{partNumber} Family</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleNoFamilyPress}>
-            <Icon name="group-off" size={22} color="#0D47A1" />
+            <Icon name="group-off" size={26} color="#C62828" style={{ marginRight: -2 }} />
           </TouchableOpacity>
           <View style={{ width: 12 }} />
           <TouchableOpacity>
-            <Icon name="tune" size={22} color="#0D47A1" />
+            <Icon name="tune" size={28} color="#222" style={{ marginRight: -2 }} />
           </TouchableOpacity>
           <View style={{ width: 12 }} />
           <TouchableOpacity onPress={() => setShowPartsModal(true)}>
-            <Icon name="filter-list" size={22} color="#0D47A1" />
+            <Icon name="filter-list" size={28} color="#222" style={{ marginRight: -2 }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -295,15 +296,16 @@ export default function FamilyManagerScreen() {
         {filteredFamilyKeys.map((key) => (
           <TouchableOpacity
             key={key}
-            onPress={() => setSelectedFamilyKey(key)}
-            style={[styles.familyChip, selectedFamilyKey === key && styles.familyChipActive]}
+            onPress={() => router.push({ pathname: '/(tabs)/dashboard/family_details', params: { partNumber: String(partNumber), familyKey: key } })}
+            style={styles.familyChip}
           >
-            <Text style={[styles.familyChipText, selectedFamilyKey === key && styles.familyChipTextActive]}>
-              {key}
-            </Text>
+            <Text style={styles.familyChipText}>{key}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Family details cards (when a chip is selected) */}
+      {/* Family details are now shown in family_details.tsx, not inline here */}
 
       {/* Search results modal */}
       {showSearchModal && (
@@ -444,7 +446,7 @@ export default function FamilyManagerScreen() {
                       }}
                       style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
                     >
-                      <Text style={{ color: '#0F172A', fontSize: 16 }}>{t('dashboard.partNumber', { number: n })}</Text>
+                      <Text style={{ color: '#0F172A', fontSize: 16 }}>Part {n}</Text>
                     </TouchableOpacity>
                   ))}
               </ScrollView>

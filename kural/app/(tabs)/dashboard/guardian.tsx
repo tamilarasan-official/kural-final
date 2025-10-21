@@ -245,29 +245,7 @@ export default function GuardianScreen() {
             <ScrollView style={{ maxHeight: 420 }}>
               <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
               <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
-                <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
-                  <MultiSlider
-                    values={[minAge, maxAge]}
-                    min={0}
-                    max={120}
-                    step={1}
-                    sliderLength={width - 64}
-                    onValuesChange={(vals) => {
-                      const a = Math.round(Math.min(vals[0], vals[1]));
-                      const b = Math.round(Math.max(vals[0], vals[1]));
-                      setMinAge(a);
-                      setMaxAge(b);
-                    }}
-                    allowOverlap={false}
-                    snapped
-                    selectedStyle={{ backgroundColor: '#1976D2' }}
-                    unselectedStyle={{ backgroundColor: '#BBDEFB' }}
-                    markerStyle={{ height: 22, width: 22, backgroundColor: '#1976D2' }}
-                    trackStyle={{ height: 4 }}
-                    enableLabel
-                    customLabel={AgeLabel}
-                  />
-                </View>
+                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { const a = Math.round(Math.min(vals[0], vals[1])); const b = Math.round(Math.max(vals[0], vals[1])); setMinAge(a); setMaxAge(b); }} min={0} max={120} />
               </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
@@ -288,11 +266,41 @@ export default function GuardianScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
-              <View style={{ marginBottom: 8 }}>
-                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { setMinAge(vals[0]); setMaxAge(vals[1]); }} min={0} max={120} />
+              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {histories.map((h:any) => (
+                  <TouchableOpacity
+                    key={h.id || h._id}
+                    style={[styles.circleChip, selectedHistory.has(h.id || h._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedHistory);
+                      const id = h.id || h._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedHistory(s);
+                    }}
+                  >
+                    <Text style={styles.circleChipText}>{h.tag || h.title?.[0] || 'H'}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-              
+
+              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {categories.map((c:any) => (
+                  <TouchableOpacity
+                    key={c.id || c._id}
+                    style={[styles.circleChip, selectedCategory.has(c.id || c._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedCategory);
+                      const id = c.id || c._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedCategory(s);
+                    }}
+                  >
+                    <Icon name="check-circle" size={18} color={selectedCategory.has(c.id || c._id) ? '#1976D2' : '#90A4AE'} />
+                  </TouchableOpacity>
+                ))}
+              </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
               <View style={styles.chipsRowWrap}>

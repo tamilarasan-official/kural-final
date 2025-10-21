@@ -226,29 +226,7 @@ export default function MobileScreen() {
             <ScrollView style={{ maxHeight: 420 }}>
               <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
               <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
-                <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
-                  <MultiSlider
-                    values={[minAge, maxAge]}
-                    min={0}
-                    max={120}
-                    step={1}
-                    sliderLength={width - 64}
-                    onValuesChange={(vals) => {
-                      const a = Math.round(Math.min(vals[0], vals[1]));
-                      const b = Math.round(Math.max(vals[0], vals[1]));
-                      setMinAge(a);
-                      setMaxAge(b);
-                    }}
-                    allowOverlap={false}
-                    snapped
-                    selectedStyle={{ backgroundColor: '#1976D2' }}
-                    unselectedStyle={{ backgroundColor: '#BBDEFB' }}
-                    markerStyle={{ height: 22, width: 22, backgroundColor: '#1976D2' }}
-                    trackStyle={{ height: 4 }}
-                    enableLabel
-                    customLabel={AgeLabel}
-                  />
-                </View>
+                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { const a = Math.round(Math.min(vals[0], vals[1])); const b = Math.round(Math.max(vals[0], vals[1])); setMinAge(a); setMaxAge(b); }} min={0} max={120} />
               </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>

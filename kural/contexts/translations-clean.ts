@@ -1,0 +1,55 @@
+const translations: Record<string, Record<string, string>> = {
+  en: {
+    'dashboard.other': 'Others',
+    'dashboard.cadreManager': 'Cadre Manager',
+    'dashboard.voterManager': 'Voter Manager',
+    'dashboard.familyManager': 'Family Manager',
+    'dashboard.surveyManager': 'Survey Manager',
+    'dashboard.cadre': 'Cadre',
+    'dashboard.part': 'Part',
+    'dashboard.voter': 'Voter',
+    'dashboard.mobile': 'Mobile',
+  'dashboard.star': 'Age 60+',
+    'dashboard.age60above': 'Age 60+',
+    'dashboard.fatherless': 'Fatherless',
+    'dashboard.guardian': 'Guardian',
+    'dashboard.searchPlaceholder': 'Voter Id or Voter Name',
+  },
+  hi: {
+    'dashboard.other': 'अन्य',
+    'dashboard.cadreManager': 'काडर प्रबंधक',
+    'dashboard.voterManager': 'वोटर प्रबंधक',
+    'dashboard.familyManager': 'परिवार प्रबंधक',
+    'dashboard.surveyManager': 'सर्वे प्रबंधक',
+    'dashboard.part': 'भाग',
+    'dashboard.mobile': 'मोबाइल',
+    'dashboard.star': 'उम्र 60+',
+    'dashboard.age60above': 'उम्र 60+',
+  },
+  ta: {
+    'dashboard.other': 'மற்றவை',
+    'dashboard.part': 'பகுதி',
+    'dashboard.star': 'வயது 60+',
+    'dashboard.age60above': 'வயது 60+',
+  },
+  te: {
+    'dashboard.other': 'ఇతరులు',
+    'dashboard.part': 'భాగం',
+    'dashboard.star': 'వయస్సు 60+',
+    'dashboard.age60above': 'వయస్సు 60+',
+  },
+  kn: {
+    'dashboard.other': 'ಹೆಚ್ಚು',
+    'dashboard.part': 'ಭಾಗ',
+    'dashboard.star': 'ವಯಸ್ಸು 60+',
+    'dashboard.age60above': 'ವಯಸ್ಸು 60+',
+  },
+  ml: {
+    'dashboard.other': 'മറ്റുള്ളവ',
+    'dashboard.part': 'ഭാഗം',
+    'dashboard.star': 'വയസ്സ് 60+',
+    'dashboard.age60above': 'വയസ്സ് 60+',
+  },
+};
+
+export default translations;

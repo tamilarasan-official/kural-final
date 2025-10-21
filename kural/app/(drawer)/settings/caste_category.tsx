@@ -147,9 +147,7 @@ export default function CasteCategoryScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('casteCategory.title')}</Text>
         <View style={styles.headerRight} />
       </View>

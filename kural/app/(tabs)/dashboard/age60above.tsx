@@ -250,17 +250,16 @@ export default function StarScreen() {
         : [...prev[type], value]
     }));
   };
-
-  const AgeLabel = (props: any) => {
-    const { oneMarkerValue, twoMarkerValue } = props;
-    return (
-      <View style={styles.ageLabelContainer}>
-        <Text style={styles.ageLabelText}>
-          {oneMarkerValue} - {twoMarkerValue} years
-        </Text>
-      </View>
-    );
-  };
+const AgeLabel = (props: any) => {
+  const { oneMarkerValue, twoMarkerValue } = props;
+  return (
+    <View style={styles.ageLabelContainer}>
+      <Text style={styles.ageLabelText}>
+        {oneMarkerValue} - {twoMarkerValue} years
+      </Text>
+    </View>
+  );
+};
 
   const renderVoterCard = (voter: StarVoter, index: number) => (
     <View key={voter._id} style={styles.voterCard}>
@@ -327,11 +326,11 @@ export default function StarScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => {
           try { router.back(); } catch { router.replace('/(tabs)/' as any); }
         }}>
-          <Icon name="arrow-back" size={24} color="#000" />
+          <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('star.title')}</Text>
-        <TouchableOpacity onPress={() => setFiltersVisible(true)}>
-          <Icon name="filter-list" size={24} color="#000" />
+        <Text style={styles.headerTitle}>{t('Age 60+')}</Text>
+        <TouchableOpacity style={styles.headerIcon} onPress={() => setFiltersVisible(true)}>
+          <Icon name="tune" size={22} color="#0D47A1" />
         </TouchableOpacity>
       </View>
 
@@ -382,29 +381,7 @@ export default function StarScreen() {
             <ScrollView style={{ maxHeight: 420 }}>
               <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
               <View style={{ paddingHorizontal: 0, marginBottom: 6 }}>
-                <View style={{ paddingHorizontal: 0, paddingTop: 8 }}>
-                  <MultiSlider
-                    values={[minAge, maxAge]}
-                    min={0}
-                    max={120}
-                    step={1}
-                    sliderLength={width - 64}
-                    onValuesChange={(vals) => {
-                      const a = Math.round(Math.min(vals[0], vals[1]));
-                      const b = Math.round(Math.max(vals[0], vals[1]));
-                      setMinAge(a);
-                      setMaxAge(b);
-                    }}
-                    allowOverlap={false}
-                    snapped
-                    selectedStyle={{ backgroundColor: '#1976D2' }}
-                    unselectedStyle={{ backgroundColor: '#BBDEFB' }}
-                    markerStyle={{ height: 22, width: 22, backgroundColor: '#1976D2' }}
-                    trackStyle={{ height: 4 }}
-                    enableLabel
-                    customLabel={AgeLabel}
-                  />
-                </View>
+                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { const a = Math.round(Math.min(vals[0], vals[1])); const b = Math.round(Math.max(vals[0], vals[1])); setMinAge(a); setMaxAge(b); }} min={60} max={120} />
               </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.gender')}</Text>
@@ -425,11 +402,41 @@ export default function StarScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionTitle}>{t('dashboard.age')}</Text>
-              <View style={{ marginBottom: 8 }}>
-                <AgeSlider values={[minAge, maxAge]} onChange={(vals) => { setMinAge(vals[0]); setMaxAge(vals[1]); }} min={0} max={120} />
+              <Text style={styles.sectionTitle}>{t('dashboard.voterHistory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {histories.map((h:any) => (
+                  <TouchableOpacity
+                    key={h.id || h._id}
+                    style={[styles.circleChip, selectedHistory.has(h.id || h._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedHistory);
+                      const id = h.id || h._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedHistory(s);
+                    }}
+                  >
+                    <Text style={styles.circleChipText}>{h.tag || h.title?.[0] || 'H'}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-              
+
+              <Text style={styles.sectionTitle}>{t('dashboard.voterCategory')}</Text>
+              <View style={styles.chipsRowWrap}>
+                {categories.map((c:any) => (
+                  <TouchableOpacity
+                    key={c.id || c._id}
+                    style={[styles.circleChip, selectedCategory.has(c.id || c._id) && styles.circleChipActive]}
+                    onPress={() => {
+                      const s = new Set(selectedCategory);
+                      const id = c.id || c._id;
+                      s.has(id) ? s.delete(id) : s.add(id);
+                      setSelectedCategory(s);
+                    }}
+                  >
+                    <Icon name="check-circle" size={18} color={selectedCategory.has(c.id || c._id) ? '#1976D2' : '#90A4AE'} />
+                  </TouchableOpacity>
+                ))}
+              </View>
 
               <Text style={styles.sectionTitle}>{t('dashboard.politicalParty')}</Text>
               <View style={styles.chipsRowWrap}>
@@ -472,7 +479,7 @@ export default function StarScreen() {
               <TouchableOpacity
                 style={styles.clearButtonSheet}
                 onPress={() => {
-                  setMinAge(18); setMaxAge(100); setGenderFilter(new Set());
+                  setMinAge(60); setMaxAge(120); setGenderFilter(new Set());
                   setSelectedHistory(new Set()); setSelectedCategory(new Set()); setSelectedParty(new Set()); setSelectedReligion(new Set());
                   setVoters(allVoters);
                 }}
@@ -486,7 +493,10 @@ export default function StarScreen() {
                     const withinAge = (v.age ?? 0) >= minAge && (v.age ?? 0) <= maxAge;
                     const genderVal = (v.gender || '').toLowerCase();
                     const genderOk = genderFilter.size === 0 || genderFilter.has(genderVal === 'third' ? 'other' : genderVal);
-                    return withinAge && genderOk;
+                    // Add voterHistory and voterCategory filter logic
+                    const historyOk = selectedHistory.size === 0 || (v.history && selectedHistory.has(v.history));
+                    const categoryOk = selectedCategory.size === 0 || (v.category && selectedCategory.has(v.category));
+                    return withinAge && genderOk && historyOk && categoryOk;
                   });
                   setVoters(filtered);
                   setFiltersVisible(false);

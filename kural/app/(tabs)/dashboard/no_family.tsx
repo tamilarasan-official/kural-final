@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { voterAPI } from '../../../services/api/voter';
+import HeaderBack from '../../components/HeaderBack';
 
 type Voter = {
   _id: string;
@@ -45,14 +46,20 @@ export default function NoFamilyScreen() {
   });
 
   // Filter voters with no family (empty or missing Door_No)
+  // Show voters whose Door_No is unique (appears only once)
   const noFamilyVoters = useMemo(() => {
-    return voters.filter(voter => 
-      !voter.Door_No || 
-      voter.Door_No === null || 
-      voter.Door_No === undefined || 
-      voter.Door_No === 0 ||
-      String(voter.Door_No).trim() === ''
-    );
+    const doorNoCount: Record<string, number> = {};
+    voters.forEach(v => {
+      const key = (v.Door_No ?? '').toString();
+      if (!key || key === '0' || key.trim() === '') return;
+      doorNoCount[key] = (doorNoCount[key] || 0) + 1;
+    });
+    return voters.filter(voter => {
+      const key = (voter.Door_No ?? '').toString();
+      // If Door_No is missing, treat as no family (legacy logic)
+      if (!key || key === '0' || key.trim() === '') return true;
+      return doorNoCount[key] === 1;
+    });
   }, [voters]);
 
   // Filter by search query
@@ -211,9 +218,7 @@ export default function NoFamilyScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
         <Text style={styles.headerTitle}>{t('noFamily.title')}</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => router.push(`/(tabs)/dashboard/family_manager?partNumber=${partNumber}`)}>

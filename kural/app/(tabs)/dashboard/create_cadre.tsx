@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { cadreAPI } from '../../../services/api/cadre';
 
@@ -345,9 +346,7 @@ export default function CreateCadreScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
+        <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
         <Text style={styles.headerTitle}>{t('cadre.createCadre')}</Text>
         <View style={styles.headerRight} />
       </View>

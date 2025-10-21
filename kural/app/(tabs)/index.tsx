@@ -411,11 +411,11 @@ export default function DashboardScreen() {
         <IconTile title={t('dashboard.new')} src={require('../../assets/images/New.png')} onPress={() => router.push('/(tabs)/dashboard/soon_to_be_voter')} />
         <IconTile title={t('dashboard.transgender')} src={require('../../assets/images/transegender.png')} onPress={() => router.push('/(tabs)/dashboard/transgender')} />
         <IconTile title={t('dashboard.fatherless')} src={require('../../assets/images/fatherless.png')} onPress={() => router.push('/(tabs)/dashboard/fatherless')} />
-        <IconTile title={t('dashboard.guardian')} src={require('../../assets/images/guardian.png')} onPress={() => router.push('/(tabs)/dashboard/guardian')} />
-        <IconTile title={t('dashboard.overseas')} src={require('../../assets/images/overseas.png')} />
-        <IconTile title={t('dashboard.birthday')} src={require('../../assets/images/birthday.png')} />
-        <IconTile title={t('dashboard.star')} src={require('../../assets/images/star.png')} onPress={() => router.push('/(tabs)/dashboard/star')} />
-        <IconTile title={t('dashboard.mobile')} src={require('../../assets/images/Mobile.png')} onPress={() => router.push('/(tabs)/dashboard/mobile')} />
+  <IconTile title={t('dashboard.other')} src={require('../../assets/images/guardian.png')} onPress={() => router.push('/(tabs)/dashboard/guardian')} />
+  <IconTile title={t('dashboard.overseas')} src={require('../../assets/images/overseas.png')} />
+  <IconTile title={t('dashboard.birthday')} src={require('../../assets/images/birthday.png')} />
+  <IconTile title={t('dashboard.mobile')} src={require('../../assets/images/Mobile.png')} onPress={() => router.push('/(tabs)/dashboard/mobile')} />
+  <IconTile title={t('dashboard.age60above')} src={require('../../assets/images/80 Above.png')} onPress={() => router.push('/(tabs)/dashboard/age60above')} />
         <IconTile title={t('dashboard.age80above')} src={require('../../assets/images/80 Above.png')} onPress={() => router.push('/(tabs)/dashboard/age80above')} />
       </View>
 
