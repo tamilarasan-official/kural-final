@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, StatusBar } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { getUserSession } from '../../services/api/userSession';
 import { API_CONFIG } from '../../services/api/config';
 import { useLanguage } from '../../contexts/LanguageContext';
+import HeaderBack from '../components/HeaderBack';
 
 export default function MyProfileScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -181,24 +184,24 @@ export default function MyProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#1976D2" />
         <Text style={styles.loadingText}>{t('profile.loadingData')}</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: 12 }]}>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.title}>{t('profile.title')}</Text>
-        <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-          <Text style={styles.closeIcon}>✕</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         {/* First Name */}
         <View style={styles.fieldContainer}>
           <Text style={styles.label}>{t('profile.firstName')}</Text>
@@ -291,7 +294,7 @@ export default function MyProfileScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -301,32 +304,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
+    backgroundColor: '#E8F3FF',
+    paddingTop: 12,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#000000',
+    flex: 1,
+    textAlign: 'center',
   },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeIcon: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
+  headerRight: {
+    width: 40,
   },
   content: {
     flex: 1,

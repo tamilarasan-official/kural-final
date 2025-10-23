@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal, StatusBar } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, router as globalRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -12,12 +13,10 @@ export const options = {
   headerShown: false,
 };
 
-
-const { width } = Dimensions.get('window');
-
 export default function DrawerScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
@@ -271,14 +270,16 @@ export default function DrawerScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+
       {/* Header with wave background */}
-      <View style={styles.headerContainer}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-            <Icon name="close" size={24} color="#000000" />
+      <View style={[styles.headerContainer, { backgroundColor: '#E8F3FF' }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 12, paddingBottom: 20 }]}> 
+          <TouchableOpacity style={[styles.closeButton, { top: insets.top + 8 }]} onPress={() => router.back()}>
+            <Icon name="arrow-back" size={22} color="#0D47A1" />
           </TouchableOpacity>
-          
+
           <View style={styles.profileSection}>
             <View style={styles.profileImageContainer}>
               <TouchableOpacity style={styles.profileImage} onPress={pickImage}>
@@ -311,12 +312,11 @@ export default function DrawerScreen() {
             </View>
           </View>
         </View>
-        
       </View>
 
       {/* Menu List */}
-      <ScrollView style={styles.menuContainer} showsVerticalScrollIndicator={false}>
-        {menuItems.map((item, index) => (
+      <ScrollView style={styles.menuContainer} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+        {menuItems.map((item) => (
           <View key={item.id}>
             <TouchableOpacity 
               style={styles.menuItem} 
@@ -352,11 +352,11 @@ export default function DrawerScreen() {
       </ScrollView>
 
       {/* Version Number */}
-      <View style={styles.versionContainer}>
+      <View style={[styles.versionContainer, { paddingBottom: 20 + insets.bottom }]}>
         <Text style={styles.versionText}>{t('drawer.version')}</Text>
       </View>
 
-      {/* Change Password Modal */}
+      {/* Modals (unchanged) */}
       <Modal
         visible={showChangePasswordModal}
         transparent={true}
@@ -364,7 +364,7 @@ export default function DrawerScreen() {
         onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.changePasswordModal}>
+          <View style={[styles.changePasswordModal, { paddingBottom: 40 + insets.bottom }]}> 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('drawer.changePassword')}</Text>
               <TouchableOpacity onPress={handleCloseModal}>
@@ -386,7 +386,6 @@ export default function DrawerScreen() {
         </View>
       </Modal>
 
-      {/* About Modal */}
       <Modal
         visible={showAboutModal}
         transparent={true}
@@ -394,7 +393,7 @@ export default function DrawerScreen() {
         onRequestClose={() => setShowAboutModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.aboutModal}>
+          <View style={[styles.aboutModal, { paddingBottom: 40 + insets.bottom }]}> 
             <View style={styles.aboutHeader}>
               <Text style={styles.aboutTitle}>{t('drawer.about')}</Text>
               <TouchableOpacity onPress={() => setShowAboutModal(false)}>
@@ -418,7 +417,6 @@ export default function DrawerScreen() {
         </View>
       </Modal>
 
-      {/* Help Modal */}
       <Modal
         visible={showHelpModal}
         transparent={true}
@@ -426,7 +424,7 @@ export default function DrawerScreen() {
         onRequestClose={() => setShowHelpModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.helpModal}>
+          <View style={[styles.helpModal, { paddingBottom: 40 + insets.bottom }]}> 
             <View style={styles.helpHeader}>
               <Text style={styles.helpTitle}>{t('drawer.help')}</Text>
               <TouchableOpacity onPress={() => setShowHelpModal(false)}>
@@ -450,7 +448,6 @@ export default function DrawerScreen() {
         </View>
       </Modal>
 
-      {/* Terms & Conditions Modal */}
       <Modal
         visible={showTermsModal}
         transparent={true}
@@ -458,7 +455,7 @@ export default function DrawerScreen() {
         onRequestClose={() => setShowTermsModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.termsModal}>
+          <View style={[styles.termsModal, { paddingBottom: 40 + insets.bottom }]}> 
             <View style={styles.termsHeader}>
               <Text style={styles.termsTitle}>{t('drawer.terms')}</Text>
               <TouchableOpacity onPress={() => setShowTermsModal(false)}>
@@ -482,7 +479,6 @@ export default function DrawerScreen() {
         </View>
       </Modal>
 
-      {/* Privacy Policy Modal */}
       <Modal
         visible={showPrivacyModal}
         transparent={true}
@@ -490,7 +486,7 @@ export default function DrawerScreen() {
         onRequestClose={() => setShowPrivacyModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.privacyModal}>
+          <View style={[styles.privacyModal, { paddingBottom: 40 + insets.bottom }]}> 
             <View style={styles.privacyHeader}>
               <Text style={styles.privacyTitle}>{t('drawer.privacy')}</Text>
               <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
@@ -513,7 +509,7 @@ export default function DrawerScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -523,10 +519,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   headerContainer: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E8F3FF',
   },
   header: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E8F3FF',
     paddingTop: 50,
     paddingBottom: 60,
     paddingHorizontal: 20,
@@ -534,19 +530,16 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 50,
-    right: 20,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    top: 34,
+    left: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    // No shadow to match the flat arrow style in the screenshot
+    elevation: 0,
   },
   // closeIcon removed - using vector icons now
   profileSection: {

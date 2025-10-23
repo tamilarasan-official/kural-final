@@ -69,9 +69,11 @@ export default function CatalogueScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <HeaderBack onPress={() => router.push('/(tabs)/')} />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/')}>
+          <Icon name="arrow-back" size={24} color="#1976D2" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('catalogue.title')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerIcon} />
       </View>
       
       {loading ? (
@@ -124,28 +126,48 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#000',
+    flex: 1,
     textAlign: 'center',
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 12,
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   productCard: {
     width: width < 400 ? '100%' : '48%',

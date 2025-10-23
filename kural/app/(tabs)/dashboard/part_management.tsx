@@ -240,7 +240,7 @@ export default function PartManagementScreen() {
       </View>
 
       {/* Part Numbers Grid */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.grid}>
           {filteredParts.map((partNumber) => (
             <TouchableOpacity
@@ -271,11 +271,12 @@ export default function PartManagementScreen() {
       <Modal
         visible={showVulnerabilityModal}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowVulnerabilityModal(false)}
+        statusBarTranslucent={true}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, styles.slideInModal]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('partNumbers.selectVulnerability')}</Text>
               <TouchableOpacity 
@@ -303,6 +304,7 @@ export default function PartManagementScreen() {
                       [{ text: t('common.ok') }]
                     );
                   }}
+                  activeOpacity={0.8}
                 />
               ))}
             </View>
@@ -321,11 +323,12 @@ export default function PartManagementScreen() {
       <Modal
         visible={showColorModal}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowColorModal(false)}
+        statusBarTranslucent={true}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, styles.slideInModal]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('partNumbers.selectVulnerability')}</Text>
               <TouchableOpacity 
@@ -348,6 +351,7 @@ export default function PartManagementScreen() {
                   ]}
                   onPress={() => handleColorSelect(vulnerability)}
                   disabled={loading}
+                  activeOpacity={0.8}
                 />
               ))}
             </View>
@@ -384,9 +388,11 @@ export default function PartManagementScreen() {
         transparent={true}
         animationType="slide"
         onRequestClose={() => setShowPartsModal(false)}
+        statusBarTranslucent={true}
+        presentationStyle="overFullScreen"
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.partsModalContent}>
+        <View style={styles.modalOverlaySlide}>
+          <View style={[styles.partsModalContent, styles.slideUpModal]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('partNumbers.title')}</Text>
               <TouchableOpacity 
@@ -516,18 +522,21 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 10,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingBottom: 20,
   },
   partCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 20,
+    paddingVertical: 18,
     paddingHorizontal: 10,
-    marginBottom: 15,
+    marginBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
@@ -537,7 +546,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     borderWidth: 1,
     borderColor: '#1976D2',
-    minHeight: 60,
+    minHeight: 58,
   },
   partNumber: {
     fontSize: 18,
@@ -552,6 +561,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  modalOverlaySlide: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -559,6 +573,25 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  slideInModal: {
+    transform: [{ scale: 1 }],
+  },
+  slideUpModal: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -594,6 +627,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     borderWidth: 2,
     borderColor: '#E0E0E0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   modalButtonRow: {
     flexDirection: 'row',
@@ -637,11 +675,14 @@ const styles = StyleSheet.create({
   // Parts Modal Styles
   partsModalContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: 20,
-    width: '95%',
-    height: '80%',
-    maxWidth: 500,
+    width: '100%',
+    height: '85%',
+    maxHeight: '85%',
   },
   modalSearchContainer: {
     marginBottom: 15,

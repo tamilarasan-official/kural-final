@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { casteAPI } from '../../../services/api/settings';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { width } = Dimensions.get('window');
 
 export default function CastesScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   
   // State for castes data
-  const [castesData, setCastesData] = useState([]);
+  const [castesData, setCastesData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCaste, setSelectedCaste] = useState<any>(null);
@@ -100,8 +103,9 @@ export default function CastesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+        <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('castes.title')}</Text>
           <View style={styles.headerRight} />
@@ -110,14 +114,15 @@ export default function CastesScreen() {
           <ActivityIndicator size="large" color="#1976D2" />
           <Text style={styles.loadingText}>{t('castes.loading')}</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+        <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('castes.title')}</Text>
           <View style={styles.headerRight} />
@@ -128,14 +133,15 @@ export default function CastesScreen() {
             <Text style={styles.retryButtonText}>{t('castes.retry')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('castes.title')}</Text>
         <View style={styles.headerRight} />
@@ -150,7 +156,7 @@ export default function CastesScreen() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Icon name="search" size={18} color="#666666" style={{ marginLeft: 10 }} />
       </View>
 
       {/* Castes List */}
@@ -163,7 +169,7 @@ export default function CastesScreen() {
               <Text style={styles.religionLabel}>{caste.label}</Text>
             </View>
             <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(caste)}>
-              <Text style={styles.editIcon}>✏️</Text>
+              <Icon name="edit" size={18} color="#1976D2" />
             </TouchableOpacity>
           </View>
         ))}
@@ -181,7 +187,7 @@ export default function CastesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('castes.editTitle')}</Text>
               <TouchableOpacity onPress={handleCancel}>
-                <Text style={styles.closeIcon}>✕</Text>
+                <Icon name="close" size={24} color="#666666" />
               </TouchableOpacity>
             </View>
             
@@ -227,7 +233,7 @@ export default function CastesScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -235,7 +241,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0F2F5' },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+  paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -314,7 +320,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   searchInput: { flex: 1, height: 45, fontSize: 16, color: '#333333' },
-  searchIcon: { fontSize: 18, color: '#666666', marginLeft: 10 },
   content: { flex: 1, paddingHorizontal: 20 },
   casteCard: {
     flexDirection: 'row',
@@ -337,9 +342,13 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E3F2FD',
+    elevation: 3,
+    shadowColor: '#1976D2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
   },
-  editIcon: { fontSize: 18 },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -364,7 +373,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333333' },
-  closeIcon: { fontSize: 24, color: '#666666' },
   inputGroup: { marginBottom: 15 },
   inputLabel: { fontSize: 14, color: '#666666', marginBottom: 5 },
   textInput: {

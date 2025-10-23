@@ -211,9 +211,9 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' },
   loadingText: { marginTop: 8, color: '#666' },
   header: {
-    backgroundColor: '#E3F2FD', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16,
+  backgroundColor: '#E3F2FD', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
   },
   backButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
   backIcon: { color: '#1976D2', fontSize: 18, fontWeight: '700' },

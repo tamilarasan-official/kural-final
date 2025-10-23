@@ -89,9 +89,9 @@ export default function FamilyDetailsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: {
-    backgroundColor: '#E3F2FD', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16,
+    backgroundColor: '#E3F2FD', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
   },
   headerTitle: { color: '#000', fontSize: 20, fontWeight: '700' },
   totalVoters: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 8, textAlign: 'center', marginTop: 8 },

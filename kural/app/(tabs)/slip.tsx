@@ -333,13 +333,13 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+  paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   backButton: {
     marginRight: 10,

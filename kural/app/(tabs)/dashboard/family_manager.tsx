@@ -291,8 +291,8 @@ export default function FamilyManagerScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Family chips */}
-      <ScrollView contentContainerStyle={styles.familiesWrap}>
+  {/* Family chips */}
+  <ScrollView style={styles.contentContainer} contentContainerStyle={styles.familiesWrap} showsVerticalScrollIndicator={false}>
         {filteredFamilyKeys.map((key) => (
           <TouchableOpacity
             key={key}
@@ -311,10 +311,10 @@ export default function FamilyManagerScreen() {
       {showSearchModal && (
         <Modal visible={true} animationType="slide" transparent>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#fff', width: '92%', maxWidth: 560, borderRadius: 16, overflow: 'hidden' }}>
+            <View style={{ backgroundColor: '#fff', width: '92%', maxWidth: 560, borderRadius: 0, overflow: 'hidden' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                 <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827' }}>{t('dashboard.searchResults')}</Text>
-                <TouchableOpacity onPress={() => setShowSearchModal(false)}><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
+                <HeaderBack onPress={() => setShowSearchModal(false)} accessibilityLabel="Close" />
               </View>
 
               {pagination && (
@@ -377,7 +377,7 @@ export default function FamilyManagerScreen() {
             <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '90%', maxWidth: 400, maxHeight: '80%' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>{t('dashboard.advanceSearch')}</Text>
-                <TouchableOpacity onPress={() => setAdvOpen(false)}><Text style={{ fontSize: 18 }}>✕</Text></TouchableOpacity>
+                <HeaderBack onPress={() => setAdvOpen(false)} accessibilityLabel="Close" />
               </View>
               <ScrollView>
                 {[
@@ -418,12 +418,12 @@ export default function FamilyManagerScreen() {
       {showPartsModal && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setShowPartsModal(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-            <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, maxHeight: '70%' }}>
+            <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 0, borderTopRightRadius: 0, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, maxHeight: '70%' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>{t('dashboard.selectPart')}</Text>
-                <TouchableOpacity onPress={() => setShowPartsModal(false)}><Text style={{ fontSize: 22 }}>✕</Text></TouchableOpacity>
+                <HeaderBack onPress={() => setShowPartsModal(false)} accessibilityLabel="Close" />
               </View>
-              <View style={{ backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 }}>
+                <View style={{ backgroundColor: '#F1F5F9', borderRadius: 0, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 }}>
                 <TextInput
                   placeholder={t('dashboard.searchPartNumber')}
                   placeholderTextColor="#94A3B8"
@@ -463,26 +463,43 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' },
   loadingText: { marginTop: 8, color: '#666' },
   header: {
-    backgroundColor: '#E3F2FD', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16,
+    backgroundColor: '#E3F2FD', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
   },
   // back button is provided by shared HeaderBack component
   headerTitle: { color: '#000', fontSize: 20, fontWeight: '700' },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
-  countersRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
+  countersRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 4 },
   counterCard: { flex: 1, borderRadius: 10, padding: 8 },
   counterTitle: { color: '#000', fontWeight: '700', fontSize: 12 },
   counterValue: { color: '#000', fontWeight: '800', fontSize: 14 },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 10 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 4 },
   searchBar: { flex: 1, backgroundColor: '#fff', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, marginRight: 10 },
   searchInput: { flex: 1, color: '#000' },
-  roundIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
-  familiesWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8 },
-  familyChip: { backgroundColor: '#D7EBFF', width: '22%', aspectRatio: 1, borderRadius: 9999, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  roundIcon: { width: 40, height: 40, borderRadius: 0, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
+  familiesWrap: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 12, 
+    paddingTop: 8,
+    paddingBottom: 12,
+    flexGrow: 1
+  },
+  familyChip: { 
+    backgroundColor: '#D7EBFF', 
+    width: '23%', 
+    aspectRatio: 1, 
+    borderRadius: 50, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: 8 
+  },
   familyChipActive: { backgroundColor: '#BBDEFB', borderWidth: 1, borderColor: '#1976D2' },
-  familyChipText: { color: '#0D47A1', fontWeight: '700', fontSize: 18 },
+  familyChipText: { color: '#0D47A1', fontWeight: '700', fontSize: 16 },
   familyChipTextActive: { color: '#0D47A1' },
+  contentContainer: { flex: 1 },
 });
 
 

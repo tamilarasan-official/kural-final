@@ -327,7 +327,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 80 }]}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 24 }]}> 
       {/* Top area with blue background */}
       <View style={styles.topArea}>
         <View style={styles.headerRow}>
@@ -342,13 +342,14 @@ export default function DashboardScreen() {
               <Text style={styles.selectorChevron}>▾</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.bell}>
+          <TouchableOpacity style={styles.bell} onPress={() => router.push('/(tabs)/dashboard/notifications')}>
             <Icon name="notifications" size={24} color="#0D47A1" />
             <View style={styles.notificationBadge} />
           </TouchableOpacity>
         </View>
 
         {/* Manager quick actions */}
+        
         <View style={styles.quickRow}>
           <ManagerCard 
             title={t('dashboard.cadreManager')} 
@@ -449,30 +450,30 @@ export default function DashboardScreen() {
 
       {/* Cadre Overview */}
       <Text style={styles.sectionTitle}>{t('dashboard.cadreOverview')}</Text>
-      <View style={styles.overviewRow}>
-        {/* Left column - Total Cadres (tall) */}
-        <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
-          <OverviewCard title={t('dashboard.totalCadres')} value={'0'} accent="#1976D2" large iconName="directions-walk" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')} />
+      <View style={styles.cadreOverviewContainer}>
+        {/* Top row - Cadre Active & Inactive */}
+        <View style={styles.cadreOverviewRow}>
+          <View style={styles.cadreOverviewItem}>
+            <OverviewCard title={t('dashboard.cadreActive')} value={'0'} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')} />
+          </View>
+          <View style={styles.cadreOverviewItem}>
+            <OverviewCard title={t('dashboard.cadreInActive')} value={'0'} accent="#D32F2F" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=inactive')} />
+          </View>
         </View>
         
-        {/* Right side - 2x2 grid */}
-        <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 * 2 + columnGap : colWidth2 }]}>
-          <View style={styles.overviewRightGrid}>
-            {/* Top row */}
-            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
-              <OverviewCard title={t('dashboard.cadreActive')} value={'0'} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')} />
-            </View>
-            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
-              <OverviewCard title={t('dashboard.cadreInActive')} value={'0'} accent="#D32F2F" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=inactive')} />
-            </View>
-            {/* Bottom row */}
-            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
-              <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
-            </View>
-            <View style={[styles.overviewItem, { width: isThreeCol ? colWidth3 : colWidth2 }]}> 
-              <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
-            </View>
+        {/* Middle row - Logged In & Not Logged */}
+        <View style={styles.cadreOverviewRow}>
+          <View style={styles.cadreOverviewItem}>
+            <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
           </View>
+          <View style={styles.cadreOverviewItem}>
+            <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
+          </View>
+        </View>
+        
+        {/* Bottom row - Total Cadres (full width) */}
+        <View style={styles.cadreOverviewRowFull}>
+          <OverviewCard title={t('dashboard.totalCadres')} value={'0'} accent="#1976D2" iconName="directions-walk" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')} />
         </View>
       </View>
 
@@ -1002,7 +1003,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 36,
+    paddingTop: 12,
   },
   leftSection: {
     flexDirection: 'row',
@@ -1010,25 +1011,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuButton: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 0,
   },
   menuBar: {
-    width: 20,
-    height: 2,
+    width: 16,
+    height: 1.8,
     backgroundColor: '#263238',
-    marginVertical: 2,
+    marginVertical: 1.5,
     borderRadius: 2,
   },
   selector: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
     flex: 1,
   },
   selectorText: {
@@ -1037,7 +1038,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   selectorChevron: {
-    marginLeft: 8,
+    marginLeft: 6,
     color: '#0D47A1',
     fontSize: 16,
   },
@@ -1187,6 +1188,23 @@ const styles = StyleSheet.create({
     rowGap: 12,
   },
   overviewItem: {
+    marginBottom: 12,
+  },
+  // New Cadre Overview Styles
+  cadreOverviewContainer: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  cadreOverviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 12,
+  },
+  cadreOverviewItem: {
+    flex: 1,
+  },
+  cadreOverviewRowFull: {
     marginBottom: 12,
   },
   overviewRightGrid: {
@@ -1821,5 +1839,12 @@ const styles = StyleSheet.create({
     color: '#333333',
     fontWeight: '500',
     marginHorizontal: 15,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#0D47A1',
+    paddingHorizontal: 16,
+    marginTop: 8,
+    fontWeight: '600',
   },
 })

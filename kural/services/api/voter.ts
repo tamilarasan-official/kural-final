@@ -286,6 +286,30 @@ export const voterAPI = {
     return data;
   },
 
+  // Get age 60+ voters (collection: '60 and above')
+  getAge60AboveVoters: async (params: { q?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params.q) query.append('q', params.q);
+    if (params.page) query.append('page', String(params.page));
+    if (params.limit) query.append('limit', String(params.limit));
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/age60above-voters?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  },
+
   // Get catalogue items
   getCatalogueItems: async (params: { q?: string; page?: number; limit?: number; category?: string }) => {
     const query = new URLSearchParams();
@@ -328,5 +352,28 @@ export const voterAPI = {
 
     const data = await response.json();
     return data;
-  }
+  },
+
+  // Get voters by age range (for Age 60+ screen)
+  getVotersByAgeRange: async ({ minAge, maxAge, page = 1, limit = 1000 }: { minAge: number; maxAge: number; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    query.append('minAge', String(minAge));
+    query.append('maxAge', String(maxAge));
+    query.append('page', String(page));
+    query.append('limit', String(limit));
+    const qs = query.toString();
+    const response = await fetch(`${BASE_URL}/age-range?${qs}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  },
 };

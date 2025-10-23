@@ -110,47 +110,112 @@ export default function StarScreen() {
     }, [])
   );
 
+  // Fetch voters from '60 and above' collection and show in UI
   const loadStarVoters = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Fetch all voters and filter for serial 1 and 5
-      const response = await voterAPI.getVoters({ page: 1, limit: 1000 });
-      
-      if (response.success && Array.isArray(response.data)) {
-        // Filter for serial 1 and 5 only
-        const starVoters = response.data.filter((voter: any) => 
-          voter.serial === 1 || voter.serial === 5
-        );
-        
-        setVoters(starVoters);
-        setAllVoters(starVoters);
-        
-        // Calculate gender summary
-        const maleCount = starVoters.filter(v => v.gender === 'Male').length;
-        const femaleCount = starVoters.filter(v => v.gender === 'Female').length;
-        const otherCount = starVoters.filter(v => v.gender === 'Third').length;
-        
-        setGenderSummary({
-          male: maleCount,
-          female: femaleCount,
-          other: otherCount,
-          total: starVoters.length,
-        });
+      // Fetch from the dedicated 60+ endpoint (backend provides `/age60above-voters`)
+      // Support both shapes: { success, voters: [] } and { success, data: { items: [] } }
+  // Reduce initial page size to improve first-load latency. Use pagination/infinite-scroll for more data.
+  const response = await voterAPI.getAge60AboveVoters?.({ limit: 100 }) || await voterAPI.getVotersByAgeRange({ minAge: 60, maxAge: 120, page: 1, limit: 100 });
+      let votersList: StarVoter[] = [];
+      if (response) {
+        if (Array.isArray(response.voters)) {
+          votersList = response.voters as StarVoter[];
+        } else if (response.data && Array.isArray(response.data)) {
+          votersList = response.data as StarVoter[];
+        } else if (response.data && Array.isArray(response.data.items)) {
+          votersList = response.data.items as StarVoter[];
+        } else if (Array.isArray(response.items)) {
+          votersList = response.items as StarVoter[];
+        }
+      }
+      if (votersList.length > 0 || response) {
+        // proceed (response may include summary/pagination even when items are on a different path)
+        // Normalize items to the frontend shape so fields like 'Name'/'Number'/'sex' or nested 's' are handled
+        const normalize = (it: any): StarVoter => {
+          const s = it.s || {};
+          const name = it.name || it.Name || s.Name || s.name || '';
+          const voterId = it.voterId || it.Number || s.Number || it.number || '';
+          const doorNo = it.doorNo || it.DoorNo || it.Door_no || it.Door_no || s.doorNo || '';
+          const age = it.age ?? it.Age ?? s.age ?? s.Age ?? 0;
+          const gender = (it.gender || it.sex || it.Sex || s.sex || s.Sex || '').toString();
+          const serial = it.serial ?? it.Serial ?? it.Sr ?? it.sr ?? 0;
+          const section = it.section ?? it.Section ?? it.s?.Section ?? it.Anubhag_number ?? it.Anubhag_number ?? 0;
+          const part = it.part ?? it.Part ?? it.partNo ?? it.part_no ?? it.Part_Name ?? it['Part Name'] ?? it.part_no ?? s.part ?? 0;
+          const photo = it.photo || it.Photo || s.photo || '';
+          return {
+            _id: it._id || it.id || `${serial}_${voterId}`,
+            serial,
+            section,
+            part,
+            voterId,
+            name,
+            tamilName: it.tamilName || it.TamilName || s.tamilName || undefined,
+            community: it.community || it.Community || s.community || undefined,
+            tamilCommunity: it.tamilCommunity || undefined,
+            guardianName: it.guardianName || it.FatherName || s.guardianName || undefined,
+            tamilGuardianName: undefined,
+            doorNo,
+            age,
+            relationship: it.relationship || it.Relation || s.relationship || undefined,
+            gender,
+            photo,
+          } as StarVoter;
+        };
 
-        // Get available communities and parts
-        const communities = [...new Set(starVoters.map(v => v.community).filter(Boolean))];
-        const parts = [...new Set(starVoters.map(v => v.part?.toString()).filter(Boolean))];
-        
+        const normalized = votersList.map(normalize);
+        setVoters(normalized);
+        setAllVoters(normalized);
+
+        // Prefer genderSummary from the API if present
+        const respGender = (response && (response.genderSummary || response.gender_summary)) || null;
+        const respPagination = response?.pagination || response?.data?.pagination || null;
+        const totalFromResp = response?.total ?? respPagination?.totalCount ?? respPagination?.total ?? response?.data?.total ?? response?.data?.count ?? 0;
+
+        // Use server-provided gender summary only if it looks valid (positive total). Otherwise compute from normalized items.
+        const serverGenderTotal = respGender?.total ?? respGender?.Total ?? 0;
+        if (respGender && serverGenderTotal > 0) {
+          setGenderSummary({
+            male: respGender.male ?? respGender.Male ?? 0,
+            female: respGender.female ?? respGender.Female ?? 0,
+            other: respGender.other ?? respGender.others ?? 0,
+            total: serverGenderTotal,
+          });
+        } else {
+          // Calculate gender summary from returned/normalized items
+          const maleCount = normalized.filter((v: StarVoter) => {
+            const g = (v.gender || '').toLowerCase();
+            return g === 'male' || g === 'm' || g === 'man';
+          }).length;
+          const femaleCount = normalized.filter((v: StarVoter) => {
+            const g = (v.gender || '').toLowerCase();
+            return g === 'female' || g === 'f' || g === 'woman';
+          }).length;
+          const otherCount = normalized.filter((v: StarVoter) => {
+            const g = (v.gender || '').toLowerCase();
+            return g === 'third' || g === 'other' || g === 'transgender' || g === 'o' || g === 't';
+          }).length;
+          setGenderSummary({
+            male: maleCount,
+            female: femaleCount,
+            other: otherCount,
+            total: totalFromResp > 0 ? totalFromResp : normalized.length,
+          });
+        }
+
+        // Get available communities and parts (if items exist)
+  const communities: string[] = Array.from(new Set(normalized.map((v: StarVoter) => v.community).filter((c): c is string => Boolean(c))));
+  const parts: string[] = Array.from(new Set(normalized.map((v: StarVoter) => v.part?.toString()).filter((p): p is string => Boolean(p))));
         setAvailableCommunities(communities);
         setAvailableParts(parts);
       } else {
-        setError('Failed to load star voters');
+        setError('Failed to load voters');
       }
     } catch (err: any) {
-      console.log('Star voters fetch error:', err?.message || err);
-      setError('Failed to load star voters');
+      console.log('Voters fetch error:', err?.message || err);
+      setError('Failed to load voters');
     } finally {
       setLoading(false);
     }
@@ -170,7 +235,7 @@ export default function StarScreen() {
         setCategories(Array.isArray(cats?.data) ? cats.data : (cats?.items || cats) || []);
         setParties(Array.isArray(prts?.data) ? prts.data : (prts?.items || prts) || []);
         setReligions(Array.isArray(rels?.data) ? rels.data : (rels?.items || rels) || []);
-      } catch (e) {
+      } catch {
         // silent
       }
     })();
@@ -227,8 +292,8 @@ export default function StarScreen() {
       );
     }
 
-    setVoters(filtered);
-    setShowFilterModal(false);
+  setVoters(filtered);
+  setFiltersVisible(false);
   };
 
   const clearFilters = () => {
@@ -238,8 +303,8 @@ export default function StarScreen() {
       community: [],
       part: [],
     });
-    setVoters(allVoters);
-    setShowFilterModal(false);
+  setVoters(allVoters);
+  setFiltersVisible(false);
   };
 
   const toggleFilter = (type: keyof FilterState, value: string) => {
@@ -261,60 +326,64 @@ const AgeLabel = (props: any) => {
   );
 };
 
-  const renderVoterCard = (voter: StarVoter, index: number) => (
-    <View key={voter._id} style={styles.voterCard}>
-      <View style={styles.voterHeader}>
-        <Text style={styles.serialText}>{t('dashboard.serial')}: {voter.serial}</Text>
-        <Text style={styles.sectionText}>{t('dashboard.section')}: {voter.section}</Text>
-        <Text style={styles.partText}>{t('dashboard.part')}: {voter.part}</Text>
-      </View>
+  const renderVoterCard = (voter: StarVoter, index: number) => {
+    const openVoter = () => {
+      try {
+        const payload = encodeURIComponent(JSON.stringify(voter));
+        router.push(`/(tabs)/dashboard/voter_info?voterData=${payload}`);
+      } catch (e) {
+        console.log('Routing error', e);
+      }
+    };
 
-      <View style={styles.voterImageContainer}>
-        {voter.photo ? (
-          <Image source={{ uri: voter.photo }} style={styles.voterImage} />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Icon name="person" size={40} color="#ccc" />
-          </View>
-        )}
-        <View style={styles.voterIdContainer}>
-          <Text style={styles.voterIdText}>{voter.voterId}</Text>
+    return (
+      <TouchableOpacity key={voter._id} style={styles.voterCard} activeOpacity={0.8} onPress={openVoter}>
+        <View style={styles.rowTop}>
+          <Text style={styles.linkText}>Serial : {voter.serial ?? index + 1}</Text>
+          <Text style={styles.linkText}>Section : {voter.section ?? '-'}</Text>
+          <Text style={styles.linkText}>Part : {voter.part ?? '-'}</Text>
         </View>
-      </View>
 
-      <View style={styles.voterDetails}>
-        <Text style={styles.voterName}>{voter.name}</Text>
-        {voter.tamilName && (
-          <Text style={styles.tamilName}>{voter.tamilName}</Text>
-        )}
-        
-        {voter.community && (
-          <>
-            <Text style={styles.communityText}>{voter.community}</Text>
-            {voter.tamilCommunity && (
-              <Text style={styles.tamilCommunityText}>{voter.tamilCommunity}</Text>
+        <View style={{ flexDirection: 'row' }}>
+          <View style={styles.imagePlaceholder}>
+            {voter.photo ? (
+              <Image source={{ uri: voter.photo }} style={styles.voterImage} />
+            ) : (
+              <Icon name="image" size={24} color="#90A4AE" />
             )}
-          </>
-        )}
+          </View>
 
-        <Text style={styles.doorNoText}>{t('dashboard.doorNo')} {voter.doorNo}</Text>
-      </View>
-
-      <View style={styles.voterFooter}>
-        <View style={styles.ageContainer}>
-          <Icon name="person" size={16} color="#666" />
-          <Text style={styles.ageText}>{voter.age}</Text>
-          <Text style={styles.relationshipText}>{voter.relationship || t('star.relationshipDefault')}</Text>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.voterName}>{voter.name || '-'}</Text>
+            {!!voter.voterId && (
+              <Text style={styles.voterIdBadge}>{voter.voterId}</Text>
+            )}
+            <Text style={styles.relationName}>{voter.relationship || ''}</Text>
+            <Text style={styles.address}>Door No {voter.doorNo ?? '-'}</Text>
+          </View>
         </View>
-      </View>
-    </View>
-  );
+
+        <View style={styles.bottomRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Icon name="person" size={16} color="#9E9E9E" />
+            <Text style={{ marginLeft: 6 }}>{voter.age ?? '-'}</Text>
+            <Text style={{ marginLeft: 6 }}>{voter.relationship || ''}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity style={styles.callButton}>
+              <Icon name="call" size={18} color="#1976D2" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
+    // Minimal loading indicator (simple spinning circle)
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { justifyContent: 'center', alignItems: 'center' }]}> 
         <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={styles.loadingText}>{t('star.loading')}</Text>
       </View>
     );
   }
@@ -336,22 +405,22 @@ const AgeLabel = (props: any) => {
 
       {/* Gender Summary */}
       <View style={styles.summaryContainer}>
-        <View style={[styles.summaryCard, { backgroundColor: '#4CAF50' }]}>
-          <Text style={styles.summaryLabel}>{t('common.male')}</Text>
-          <Text style={styles.summaryValue}>{genderSummary.male}</Text>
-        </View>
-        <View style={[styles.summaryCard, { backgroundColor: '#E91E63' }]}>
-          <Text style={styles.summaryLabel}>{t('common.female')}</Text>
-          <Text style={styles.summaryValue}>{genderSummary.female}</Text>
-        </View>
-        <View style={[styles.summaryCard, { backgroundColor: '#9E9E9E' }]}>
-          <Text style={styles.summaryLabel}>{t('common.others')}</Text>
-          <Text style={styles.summaryValue}>{genderSummary.other}</Text>
-        </View>
-        <View style={[styles.summaryCard, { backgroundColor: '#2196F3' }]}>
-          <Text style={styles.summaryLabel}>{t('common.total')}</Text>
-          <Text style={styles.summaryValue}>{genderSummary.total}</Text>
-        </View>
+        <View style={[styles.summaryCard, { backgroundColor: '#C8E6C9' }]}>
+            <Text style={styles.summaryLabel}>{t('common.male')}</Text>
+            <Text style={styles.summaryValue}>{genderSummary.male}</Text>
+          </View>
+          <View style={[styles.summaryCard, { backgroundColor: '#F8BBD9' }]}>
+            <Text style={styles.summaryLabel}>{t('common.female')}</Text>
+            <Text style={styles.summaryValue}>{genderSummary.female}</Text>
+          </View>
+          <View style={[styles.summaryCard, { backgroundColor: '#E0E0E0' }]}>
+            <Text style={styles.summaryLabel}>{t('common.others')}</Text>
+            <Text style={styles.summaryValue}>{genderSummary.other}</Text>
+          </View>
+          <View style={[styles.summaryCard, { backgroundColor: '#BBDEFB' }]}>
+            <Text style={styles.summaryLabel}>{t('common.total')}</Text>
+            <Text style={styles.summaryValue}>{genderSummary.total}</Text>
+          </View>
       </View>
 
       {/* Search Bar */}
@@ -392,7 +461,7 @@ const AgeLabel = (props: any) => {
                     style={[styles.chip, genderFilter.has(g) && styles.chipActive]}
                     onPress={() => {
                       const s = new Set(genderFilter);
-                      s.has(g) ? s.delete(g) : s.add(g);
+                      if (s.has(g)) { s.delete(g); } else { s.add(g); }
                       setGenderFilter(s);
                     }}
                   >
@@ -411,7 +480,7 @@ const AgeLabel = (props: any) => {
                     onPress={() => {
                       const s = new Set(selectedHistory);
                       const id = h.id || h._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
                       setSelectedHistory(s);
                     }}
                   >
@@ -429,7 +498,7 @@ const AgeLabel = (props: any) => {
                     onPress={() => {
                       const s = new Set(selectedCategory);
                       const id = c.id || c._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
                       setSelectedCategory(s);
                     }}
                   >
@@ -447,7 +516,7 @@ const AgeLabel = (props: any) => {
                     onPress={() => {
                       const s = new Set(selectedParty);
                       const id = p.id || p._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
                       setSelectedParty(s);
                     }}
                   >
@@ -465,7 +534,7 @@ const AgeLabel = (props: any) => {
                     onPress={() => {
                       const s = new Set(selectedReligion);
                       const id = r.id || r._id;
-                      s.has(id) ? s.delete(id) : s.add(id);
+                      if (s.has(id)) { s.delete(id); } else { s.add(id); }
                       setSelectedReligion(s);
                     }}
                   >
@@ -534,16 +603,17 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+  paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   backButton: {
     marginRight: 10,
+    borderRadius: 0,
   },
   headerTitle: {
     fontSize: 20,
@@ -620,6 +690,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  voterHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  serialSmall: {
+    color: '#1976D2',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  cardRow: { flexDirection: 'row', alignItems: 'center' },
+  avatarBox: { width: 72, alignItems: 'center', marginRight: 12 },
+  avatarImage: { width: 64, height: 64, borderRadius: 8, backgroundColor: '#E3F2FD' },
+  avatarPlaceholder: { width: 64, height: 64, borderRadius: 8, backgroundColor: '#E3F2FD', justifyContent: 'center', alignItems: 'center' },
+  cardBody: { flex: 1 },
+  voterNameBig: { fontSize: 18, fontWeight: '700', color: '#000' },
+  epicRow: { flexDirection: 'row', marginTop: 6, marginBottom: 6 },
+  epicBadge: { backgroundColor: '#E3F2FD', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start' },
+  epicText: { color: '#1976D2', fontWeight: '700' },
+  footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  relationRow: { flexDirection: 'row', alignItems: 'center' },
+  relationText: { marginLeft: 6, color: '#757575' },
+  callButton: { padding: 6 },
   serialText: {
     fontSize: 14,
     color: '#666',
@@ -639,12 +732,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  voterImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
+  
   placeholderImage: {
     width: 80,
     height: 80,
@@ -702,6 +790,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  ageLabelContainer: { alignItems: 'center', paddingVertical: 6 },
+  ageLabelText: { color: '#374151', fontWeight: '600' },
+  headerIcon: { width: 36, alignItems: 'flex-end', borderRadius: 0 },
   ageText: {
     fontSize: 14,
     color: '#666',
@@ -727,8 +818,8 @@ const styles = StyleSheet.create({
   },
   filterCard: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
@@ -752,4 +843,13 @@ const styles = StyleSheet.create({
   clearText: { color: '#64748B', fontSize: 16, fontWeight: '600' },
   closeBar: { marginTop: 12, backgroundColor: '#111827', borderRadius: 12, alignItems: 'center', paddingVertical: 14 },
   closeText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  // Aliases / additional styles to match Age 80+ card UI
+  rowTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  linkText: { color: '#1565C0', fontWeight: '700' },
+  imagePlaceholder: { width: 80, height: 80, borderRadius: 10, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
+  voterImage: { width: 80, height: 80, borderRadius: 8, marginBottom: 8 },
+  voterIdBadge: { marginTop: 6, alignSelf: 'flex-start', backgroundColor: '#1976D2', color: '#fff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, fontSize: 12, fontWeight: '700' },
+  relationName: { fontSize: 14, color: '#666' },
+  address: { fontSize: 12, color: '#999' },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
 });

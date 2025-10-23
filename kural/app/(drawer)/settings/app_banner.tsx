@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Alert, Dimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Alert, Dimensions, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import HeaderBack from '../../components/HeaderBack';
 import { useBanner } from '../../../contexts/BannerContext';
@@ -10,6 +11,7 @@ export default function AppBannerScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const { banners } = useBanner();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredBanners, setFilteredBanners] = useState(banners);
 
@@ -28,9 +30,10 @@ export default function AppBannerScreen() {
   // Adding and deleting banners disabled per requirement
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }] }>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('banner.title')}</Text>
         <View style={styles.headerRight} />
@@ -75,7 +78,7 @@ export default function AppBannerScreen() {
           {filteredBanners.length === 0 && null}
         </ScrollView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

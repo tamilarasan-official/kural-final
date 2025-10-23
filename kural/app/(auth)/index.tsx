@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   lsiImageSection: {
-    flex: 0.5,
+    flex: 0.6,
     backgroundColor: '#E6F0FA',
   },
   lsiImage: {
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   modalSection: {
-    flex: 0.5,
+    flex: 0.4,
     backgroundColor: '#FFFFFF',
     justifyContent: 'flex-end',
   },
@@ -69,14 +69,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     paddingHorizontal: 30,
-    paddingTop: 50,
-    paddingBottom: 50,
+    paddingTop: 36,
+    paddingBottom: 44,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
-    minHeight: 350,
+    minHeight: 320,
     justifyContent: 'space-between',
   },
   modalTitle: {

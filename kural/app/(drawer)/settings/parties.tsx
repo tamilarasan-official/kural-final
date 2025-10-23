@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { partyAPI } from '../../../services/api/settings';
 import HeaderBack from '../../components/HeaderBack';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { width } = Dimensions.get('window');
 
 export default function PartiesScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   
   // State for parties data
-  const [partiesData, setPartiesData] = useState([]);
+  const [partiesData, setPartiesData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedParty, setSelectedParty] = useState<any>(null);
@@ -106,8 +109,9 @@ export default function PartiesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+        <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('parties.title')}</Text>
           <View style={styles.headerRight} />
@@ -116,14 +120,15 @@ export default function PartiesScreen() {
           <ActivityIndicator size="large" color="#1976D2" />
           <Text style={styles.loadingText}>{t('parties.loading')}</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+        <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('parties.title')}</Text>
           <View style={styles.headerRight} />
@@ -134,14 +139,15 @@ export default function PartiesScreen() {
             <Text style={styles.retryButtonText}>{t('parties.retry')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('parties.title')}</Text>
         <View style={styles.headerRight} />
@@ -156,11 +162,11 @@ export default function PartiesScreen() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Icon name="search" size={18} color="#666666" />
       </View>
 
       {/* Party List */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
         {filteredParties.map(party => (
           <View key={party._id} style={styles.partyCard}>
             {renderPartySymbol(party.symbol, party.color)}
@@ -169,7 +175,7 @@ export default function PartiesScreen() {
               <Text style={styles.partyEnglishName}>{party.englishName}</Text>
             </View>
             <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(party)}>
-              <Text style={styles.editIcon}>✏️</Text>
+              <Icon name="edit" size={18} color="#1976D2" />
             </TouchableOpacity>
           </View>
         ))}
@@ -187,7 +193,7 @@ export default function PartiesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('parties.editTitle')}</Text>
               <TouchableOpacity onPress={handleCancel}>
-                <Text style={styles.closeIcon}>✕</Text>
+                <Icon name="close" size={24} color="#666666" />
               </TouchableOpacity>
             </View>
             
@@ -237,7 +243,7 @@ export default function PartiesScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -324,7 +330,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   searchInput: { flex: 1, height: 45, fontSize: 16, color: '#333333' },
-  searchIcon: { fontSize: 18, color: '#666666', marginLeft: 10 },
   content: { flex: 1, paddingHorizontal: 20 },
   partyCard: {
     flexDirection: 'row',
@@ -355,9 +360,13 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E3F2FD',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  editIcon: { fontSize: 18 },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',

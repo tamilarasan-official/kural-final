@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import HeaderBack from '../components/HeaderBack';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -7,18 +8,20 @@ import { useLanguage } from '../../contexts/LanguageContext';
 export default function YourElectionScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: 12 }]}>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('elections.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         {/* Election Card */}
         <TouchableOpacity 
           style={styles.electionCard}
@@ -42,7 +45,7 @@ export default function YourElectionScreen() {
         </TouchableOpacity>
 
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -52,20 +55,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',

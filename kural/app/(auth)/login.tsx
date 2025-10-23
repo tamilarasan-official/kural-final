@@ -1,6 +1,18 @@
 import { useLanguage } from '../../contexts/LanguageContext';
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { db } from '../../services/api/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -57,87 +69,100 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* LSI Image Section - Top 50% */}
-      <View style={styles.lsiImageSection}>
-        <Image
-          source={require('../../assets/images/LSI.png')}
-          style={styles.lsiImage}
-          resizeMode="cover"
-        />
-      </View>
-
-      {/* Curved Modal Section - Bottom 50% */}
-      <View style={styles.modalSection}>
-        <View style={styles.curvedModal}>
-          {/* Title */}
-          <Text style={styles.modalTitle}>Sign In to your{'\n'}account</Text>
-
-          {/* Mobile Input Field */}
-          <TextInput
-            style={styles.inputField}
-            placeholder={t('auth.mobileNumber')}
-            placeholderTextColor="#999"
-            keyboardType="phone-pad"
-            value={mobile}
-            onChangeText={setMobile}
-          />
-
-          {/* Password Input Field */}
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+    >
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+        <View style={{ flex: 1 }}>
+          {/* LSI Image Section - Top 50% */}
+          <View style={styles.lsiImageSection}>
+            <Image
+              source={require('../../assets/images/LSI.png')}
+              style={styles.lsiImage}
+              resizeMode="cover"
             />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <MaterialIcons
-                name={showPassword ? 'visibility' : 'visibility-off'}
-                size={24}
-                color="#666"
+          </View>
+
+          {/* Curved Modal Section - Bottom 50% */}
+          <View style={styles.modalSection}>
+            <View style={styles.curvedModal}>
+              {/* Title */}
+              <Text style={styles.modalTitle}>Sign In to your{'\n'}account</Text>
+
+              {/* Mobile Input Field */}
+              <TextInput
+                style={styles.inputField}
+                placeholder={t('auth.mobileNumber')}
+                placeholderTextColor="#999"
+                keyboardType="phone-pad"
+                value={mobile}
+                onChangeText={setMobile}
+                returnKeyType="next"
+                onSubmitEditing={() => {
+                  // move focus to password if needed
+                  // keep simple as we don't have refs here
+                }}
               />
-            </TouchableOpacity>
+
+              {/* Password Input Field */}
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  placeholderTextColor="#999"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <MaterialIcons
+                    name={showPassword ? 'visibility' : 'visibility-off'}
+                    size={24}
+                    color="#666"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Recover Password Link */}
+              <View style={styles.recoverWrapper}>
+                <TouchableOpacity
+                  style={styles.recoverContainer}
+                  onPress={() => router.push('/(auth)/recover')}
+                >
+                  <Text style={styles.recoverText}>Recover Password?</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Login Button */}
+              <TouchableOpacity
+                style={styles.modalLoginButton}
+                onPress={handleLogin}
+              >
+                <Text style={styles.modalLoginText}>{t('auth.login')}</Text>
+              </TouchableOpacity>
+
+              {/* Or Text */}
+              <Text style={styles.orText}>{t('auth.orSignInWithMobile')}</Text>
+
+              {/* OTP Button */}
+              <TouchableOpacity
+                style={styles.otpButton}
+                onPress={() => router.push('/(auth)/otp')}
+              >
+                <Text style={styles.otpText}>{t('auth.loginWithOtp')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          {/* Recover Password Link */}
-          <View style={styles.recoverWrapper}>
-            <TouchableOpacity 
-              style={styles.recoverContainer}
-              onPress={() => router.push('/(auth)/recover')}
-            >
-              <Text style={styles.recoverText}>Recover Password?</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Login Button */}
-          <TouchableOpacity 
-            style={styles.modalLoginButton} 
-            onPress={handleLogin}
-          >
-            <Text style={styles.modalLoginText}>
-              {t('auth.login')}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Or Text */}
-          <Text style={styles.orText}>{t('auth.orSignInWithMobile')}</Text>
-
-          {/* OTP Button */}
-          <TouchableOpacity 
-            style={styles.otpButton}
-            onPress={() => router.push('/(auth)/otp')}
-          >
-            <Text style={styles.otpText}>{t('auth.loginWithOtp')}</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 

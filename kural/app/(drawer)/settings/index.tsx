@@ -1,12 +1,17 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Modal, StatusBar } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DEFAULT_ELECTION_KEY, ELECTION_LOCATIONS } from '../../_config/electionLocations';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const { width } = Dimensions.get('window');
   const cardWidth = (width - 60) / 3; // 3 columns with margins
 
@@ -97,8 +102,8 @@ export default function SettingsScreen() {
     // Handle navigation based on option
     switch (option.id) {
       case 'set-election':
-        // Navigate to dashboard with parameter to open election modal
-        router.push('/(tabs)/?openElectionModal=true');
+        // Open election modal inline within Settings page (do not navigate away)
+        setShowElectionModal(true);
         break;
       case 'app-banner':
         // Navigate to app banner settings
@@ -153,10 +158,40 @@ export default function SettingsScreen() {
     }
   };
 
+  // Election modal state (open inside Settings)
+  const [showElectionModal, setShowElectionModal] = useState(false);
+  const [selectedElection, setSelectedElection] = useState<string>(Object.keys(ELECTION_LOCATIONS)[0] || '');
+  
+  const electionOptions = Object.keys(ELECTION_LOCATIONS || {}) || [];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(DEFAULT_ELECTION_KEY);
+        if (saved) setSelectedElection(saved);
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  const handleElectionUpdate = async () => {
+    const key = (selectedElection || '').trim();
+    if (ELECTION_LOCATIONS && ELECTION_LOCATIONS[key]) {
+      try {
+        await AsyncStorage.setItem(DEFAULT_ELECTION_KEY, key);
+      } catch (err) { console.warn('Failed to persist default election', err); }
+    }
+    setShowElectionModal(false);
+  };
+
+  const handleElectionClose = () => {
+    setShowElectionModal(false);
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }] }>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('settings.title')}</Text>
         <View style={styles.headerRight} />
@@ -195,7 +230,86 @@ export default function SettingsScreen() {
           ))}
         </View>
       </ScrollView>
-    </View>
+
+      {/* Inline Election Modal for Settings */}
+      <SettingsElectionModal
+        visible={showElectionModal}
+        onClose={handleElectionClose}
+        selectedElection={selectedElection}
+        setSelectedElection={setSelectedElection}
+        options={electionOptions}
+        onUpdate={handleElectionUpdate}
+      />
+    </SafeAreaView>
+  );
+}
+
+// Insert election modal JSX at end of file (uses existing styles where possible)
+/* Election Modal Inline */
+export function SettingsElectionModal({ visible, onClose, selectedElection, setSelectedElection, options, onUpdate }: any) {
+  const { t } = useLanguage();
+  const [showElectionDropdown, setShowElectionDropdown] = useState(false);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.electionModalContainer}>
+          <Text style={styles.electionModalTitle}>{t('dashboard.setDefaultElection')}</Text>
+
+          <View style={styles.electionInputContainer}>
+            <TouchableOpacity
+              style={styles.electionDropdown}
+              onPress={() => setShowElectionDropdown(!showElectionDropdown)}
+            >
+              <Text style={styles.electionDropdownText}>{selectedElection}</Text>
+              <Icon name={showElectionDropdown ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} size={24} color="#666" />
+            </TouchableOpacity>
+
+            {showElectionDropdown && (
+              <View style={styles.electionDropdownList}>
+                <ScrollView style={styles.electionScrollView}>
+                  {options.map((option: string, index: number) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.electionOption,
+                        selectedElection === option && styles.electionOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedElection(option);
+                        setShowElectionDropdown(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.electionOptionText,
+                        selectedElection === option && styles.electionOptionTextSelected,
+                      ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.electionButtonContainer}>
+            <TouchableOpacity style={styles.updateButton} onPress={onUpdate}>
+              <Text style={styles.updateButtonText}>{t('dashboard.update')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.electionCloseButton} onPress={onClose}>
+              <Text style={styles.electionCloseButtonText}>{t('dashboard.close')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -206,19 +320,19 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+  paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     backgroundColor: '#1976D2',
     justifyContent: 'center',
     alignItems: 'center',
@@ -290,5 +404,114 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     color: '#9E9E9E',
+  },
+  // Election modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  electionModalContainer: {
+    backgroundColor: '#F5F5F5',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    padding: 24,
+    width: '100%',
+    maxHeight: '60%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  electionModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  electionInputContainer: {
+    marginBottom: 20,
+  },
+  electionDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  electionDropdownText: {
+    fontSize: 16,
+    color: '#000000',
+    flex: 1,
+  },
+  electionButtonContainer: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  updateButton: {
+    backgroundColor: '#1976D2',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  updateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  electionCloseButton: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 8,
+  },
+  electionCloseButtonText: {
+    color: '#424242',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  // Missing styles for election dropdown list
+  electionDropdownList: {
+    maxHeight: 180,
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+  },
+  electionScrollView: {
+    maxHeight: 160,
+    paddingHorizontal: 4,
+  },
+  electionOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  electionOptionSelected: {
+    backgroundColor: '#E3F2FD',
+  },
+  electionOptionText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  electionOptionTextSelected: {
+    color: '#1976D2',
+    fontWeight: '600',
   },
 });

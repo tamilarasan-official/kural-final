@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Image, Alert, Dimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Image, Alert, Dimensions, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,6 +12,7 @@ const { width } = Dimensions.get('window');
 
 export default function HistoryScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   
   // History items loaded from backend
   const [historyData, setHistoryData] = useState<any[]>([]);
@@ -174,14 +176,14 @@ export default function HistoryScreen() {
             style={styles.actionButton} 
             onPress={() => handleEdit(item)}
           >
-            <Text style={styles.editIcon}>✏️</Text>
+            <Icon name="edit" size={18} color="#1976D2" />
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[styles.actionButton, styles.deleteButton]} 
             onPress={() => handleDelete(item)}
           >
-            <Text style={styles.deleteIcon}>🗑️</Text>
+            <Icon name="delete" size={18} color="#DC2626" />
           </TouchableOpacity>
         </View>
       </View>
@@ -189,9 +191,10 @@ export default function HistoryScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }] }>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('history.title')}</Text>
         <View style={styles.headerRight} />
@@ -271,7 +274,7 @@ export default function HistoryScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -286,8 +289,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#E5E7EB',
-    paddingTop: 50,
+    backgroundColor: '#E8F3FF',
+    paddingTop: 12,
   },
   backButton: {
     width: 40,
@@ -394,21 +397,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   deleteButton: {
     backgroundColor: '#FEE2E2',
-  },
-  editIcon: {
-    fontSize: 14,
-  },
-  deleteIcon: {
-    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,

@@ -105,11 +105,25 @@ export default function VoterInfoScreen() {
       try {
         const parsedVoter = JSON.parse(voterData as string);
         console.log('Parsed voter data:', parsedVoter);
-        // Normalize commonly-used fields so UI always finds them
+        // Normalize commonly-used fields so UI always finds them. Support both backend and StarVoter shapes.
         const normalizedVoter = {
           ...parsedVoter,
+          // id variants
+          _id: parsedVoter._id ?? parsedVoter.id ?? parsedVoter.voterId ?? parsedVoter.Number ?? undefined,
+          // serial
           sr: parsedVoter.sr ?? parsedVoter.Sr ?? parsedVoter.serial ?? parsedVoter.Serial ?? parsedVoter['S.No'] ?? parsedVoter['Serial'] ?? 1,
+          // part number variants
           Part_no: parsedVoter.Part_no ?? parsedVoter.PartNo ?? parsedVoter.part_no ?? parsedVoter.part ?? parsedVoter.partNo ?? parsedVoter.Part ?? parsedVoter.PartNo ?? parsedVoter.Part_no ?? parsedVoter['Part No'] ?? parsedVoter['Part_no'] ?? parsedVoter['Part'] ?? parsedVoter.Part ?? 1,
+          // canonical display fields expected by the UI
+          Name: parsedVoter.Name ?? parsedVoter.name ?? parsedVoter.fullName ?? parsedVoter.displayName ?? '',
+          Number: parsedVoter.Number ?? parsedVoter.voterId ?? parsedVoter.epic ?? parsedVoter.epicId ?? '',
+          'Father Name': parsedVoter['Father Name'] ?? parsedVoter.guardianName ?? parsedVoter.fatherName ?? parsedVoter['Father'] ?? '',
+          Relation: parsedVoter.Relation ?? parsedVoter.relationship ?? parsedVoter.relation ?? '',
+          Door_No: parsedVoter.Door_No ?? parsedVoter.Door_no ?? parsedVoter.doorNo ?? parsedVoter.door_no ?? parsedVoter.DoorNo ?? parsedVoter.door ?? '',
+          'Mobile No': parsedVoter['Mobile No'] ?? parsedVoter.mobile ?? parsedVoter.phone ?? parsedVoter.mobileNumber ?? '',
+          age: parsedVoter.age ?? parsedVoter.Age ?? parsedVoter.years ?? undefined,
+          // Ensure sex is present and normalized to avoid callers using toLowerCase on undefined
+          sex: parsedVoter.sex ?? parsedVoter.Sex ?? parsedVoter.gender ?? parsedVoter.Gender ?? null,
         } as Voter;
         setVoter(normalizedVoter);
         // Fetch Part & Section Info when voter data is loaded
@@ -372,15 +386,15 @@ export default function VoterInfoScreen() {
     }
   };
 
-  const getGenderColor = (gender: string) => {
-    switch (gender.toLowerCase()) {
-      case 'male':
-        return '#4CAF50';
-      case 'female':
-        return '#E91E63';
-      default:
-        return '#9E9E9E';
-    }
+  const getGenderColor = (gender?: string | null) => {
+    // Guard against undefined/null and handle common abbreviations
+    if (!gender || typeof gender !== 'string') return '#9E9E9E';
+    const g = gender.trim().toLowerCase();
+    if (g === 'm' || g === 'male') return '#4CAF50';
+    if (g === 'f' || g === 'female') return '#E91E63';
+    // Support other common identifiers
+    if (g === 'other' || g === 'o' || g === 'trans' || g === 'transgender') return '#9C27B0';
+    return '#9E9E9E';
   };
 
   if (loading) {
@@ -822,7 +836,7 @@ export default function VoterInfoScreen() {
             }
           }}
         >
-          <Icon name="arrow-back" size={24} color="#000000" />
+          <Icon name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('voterInfo.title')}</Text>
         <View style={styles.headerRight} />
@@ -916,7 +930,7 @@ export default function VoterInfoScreen() {
       </View>
 
       {/* Tab Content (scrollable) */}
-      <ScrollView style={styles.contentContainer} contentContainerStyle={{ paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+  <ScrollView style={styles.contentContainer} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
         {activeTab === 'basic' && renderBasicTab()}
         {activeTab === 'family' && renderFamilyTab()}
         {activeTab === 'friends' && renderFriendsTab()}
@@ -1031,8 +1045,8 @@ const styles = StyleSheet.create({
   headerBackButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    borderRadius: 0,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1189,6 +1203,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: 12,
     padding: 4,
     elevation: 2,
@@ -1367,13 +1382,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   shareContainer: {
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   shareCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
@@ -1385,31 +1400,35 @@ const styles = StyleSheet.create({
   },
   horizontalShareButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
     marginBottom: 8,
+    paddingHorizontal: 8,
   },
   horizontalShareButton: {
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    flex: 0,
-    marginHorizontal: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    flex: 1,
+    maxWidth: 80,
   },
   shareIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#F5F7FB',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
+    alignSelf: 'center',
   },
   horizontalShareButtonText: {
     fontSize: 12,
     color: '#666',
-    marginTop: 4,
-    width: 68,
+    fontWeight: '500',
     textAlign: 'center',
+    flexWrap: 'wrap',
+    maxWidth: 64,
   },
   partSectionContainer: {
     marginTop: 20,

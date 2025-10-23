@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Image, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Image, ActivityIndicator, Modal, FlatList, StatusBar } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { API_CONFIG } from '../../services/api/config';
 import { useLanguage } from '../../contexts/LanguageContext';
+import HeaderBack from '../components/HeaderBack';
 
 export default function ElectionDetailsScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -288,26 +291,25 @@ export default function ElectionDetailsScreen() {
 
   if (loading && !electionData) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#1976D2" />
         <Text style={styles.loadingText}>{t('election.loadingData')}</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-          <Text style={styles.closeIcon}>✕</Text>
-        </TouchableOpacity>
+      <View style={[styles.header, { paddingTop: 12 }]}>
+        <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('election.viewElection')}</Text>
         <View style={styles.headerRight} />
       </View>
 
-      {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+  {/* Content */}
+  <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         {/* Step 1: Create Election */}
         <Text style={styles.stepTitle}>{t('election.step1Create')}</Text>
 
@@ -889,7 +891,7 @@ export default function ElectionDetailsScreen() {
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={styles.bottomButton}>
+  <View style={[styles.bottomButton, { paddingBottom: insets.bottom + 12 }]}>
         {!isEditing ? (
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
             <Text style={styles.editButtonText}>{t('election.edit')}</Text>
@@ -904,7 +906,7 @@ export default function ElectionDetailsScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </View>
+  </View>
 
       {/* Dropdown Modals */}
       {/* Category Dropdown */}
@@ -1036,7 +1038,7 @@ export default function ElectionDetailsScreen() {
           onChange={handleDateChange}
         />
       )}
-    </View>
+      </SafeAreaView>
   );
 }
 
@@ -1055,8 +1057,8 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   header: {
-    backgroundColor: '#1976D2',
-    paddingTop: 50,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -1084,7 +1086,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#000000',
     flex: 1,
     textAlign: 'center',
   },

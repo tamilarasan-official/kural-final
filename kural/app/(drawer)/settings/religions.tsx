@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import HeaderBack from '../../components/HeaderBack';
 import { religionAPI } from '../../../services/api/settings';
 
@@ -9,11 +11,12 @@ const { width } = Dimensions.get('window');
 
 export default function ReligionsScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   
   // State for religions data
-  const [religionsData, setReligionsData] = useState([]);
+  const [religionsData, setReligionsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedReligion, setSelectedReligion] = useState<any>(null);
@@ -100,8 +103,9 @@ export default function ReligionsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+        <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('religions.title')}</Text>
           <View style={styles.headerRight} />
@@ -110,14 +114,15 @@ export default function ReligionsScreen() {
           <ActivityIndicator size="large" color="#1976D2" />
           <Text style={styles.loadingText}>{t('religions.loading')}</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+        <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('religions.title')}</Text>
           <View style={styles.headerRight} />
@@ -128,14 +133,15 @@ export default function ReligionsScreen() {
             <Text style={styles.retryButtonText}>{t('religions.retry')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('religions.title')}</Text>
         <View style={styles.headerRight} />
@@ -150,17 +156,17 @@ export default function ReligionsScreen() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Icon name="search" size={18} color="#666666" style={{ marginLeft: 10 }} />
       </View>
 
       {/* Religion List */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
         {filteredReligions.map(religion => (
           <View key={religion._id} style={styles.religionCard}>
             {renderReligionSymbol(religion.symbol, religion.color)}
             <Text style={styles.religionName}>{religion.name}</Text>
             <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(religion)}>
-              <Text style={styles.editIcon}>✏️</Text>
+              <Icon name="edit" size={18} color="#1976D2" />
             </TouchableOpacity>
           </View>
         ))}
@@ -178,7 +184,7 @@ export default function ReligionsScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('religions.editTitle')}</Text>
               <TouchableOpacity onPress={handleCancel}>
-                <Text style={styles.closeIcon}>✕</Text>
+                <Icon name="close" size={24} color="#666666" />
               </TouchableOpacity>
             </View>
             
@@ -217,7 +223,7 @@ export default function ReligionsScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -225,7 +231,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0F2F5' },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+  paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -252,7 +258,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-  backIcon: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#000000', flex: 1, textAlign: 'center' },
   headerRight: { width: 40 },
   loadingContainer: {
@@ -304,7 +309,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   searchInput: { flex: 1, height: 45, fontSize: 16, color: '#333333' },
-  searchIcon: { fontSize: 18, color: '#666666', marginLeft: 10 },
   content: { flex: 1, paddingHorizontal: 20 },
   religionCard: {
     flexDirection: 'row',
@@ -333,9 +337,13 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E3F2FD',
+    elevation: 3,
+    shadowColor: '#1976D2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
   },
-  editIcon: { fontSize: 18 },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -360,7 +368,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333333' },
-  closeIcon: { fontSize: 24, color: '#666666' },
   modalSymbolContainer: {
     alignSelf: 'center',
     marginBottom: 20,

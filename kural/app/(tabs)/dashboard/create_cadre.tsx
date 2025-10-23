@@ -334,16 +334,6 @@ export default function CreateCadreScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        <Text style={styles.timeText}>3:50</Text>
-        <View style={styles.statusIcons}>
-          <Text style={styles.statusText}>Vo1 4.4 LTE2 KB/s</Text>
-          <Text style={styles.statusText}>5G+</Text>
-          <Text style={styles.batteryText}>46%</Text>
-        </View>
-      </View>
-
       {/* Header */}
       <View style={styles.header}>
         <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
@@ -383,33 +373,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  statusBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 5,
-  },
-  timeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  statusIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#000000',
-  },
-  batteryText: {
-    fontSize: 12,
-    color: '#000000',
-    fontWeight: 'bold',
-  },
   header: {
     backgroundColor: '#E3F2FD',
     paddingTop: 10,
@@ -418,8 +381,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -584,8 +547,8 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     maxHeight: '70%',
   },
   modalHeader: {

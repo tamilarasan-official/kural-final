@@ -339,24 +339,21 @@ export default function SoonToBeVoterScreen() {
                   style={[styles.genderChip, form.gender === 'male' && styles.genderChipActive]}
                   onPress={() => setForm(prev => ({ ...prev, gender: 'male' }))}
                 >
-                  <Icon name="person" size={16} color={form.gender === 'male' ? '#1976D2' : '#607D8B'} />
-                  <Text style={{ marginLeft: 6, color: form.gender === 'male' ? '#1976D2' : '#455A64', fontWeight: form.gender === 'male' ? '700' : '500' }}>{t('common.male')}</Text>
+                  <Text style={{ color: form.gender === 'male' ? '#1976D2' : '#455A64', fontWeight: form.gender === 'male' ? '700' : '500' }}>{t('common.male')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.genderChip, form.gender === 'female' && styles.genderChipActive]}
                   onPress={() => setForm(prev => ({ ...prev, gender: 'female' }))}
                 >
-                  <Icon name="person" size={16} color={form.gender === 'female' ? '#1976D2' : '#607D8B'} />
-                  <Text style={{ marginLeft: 6, color: form.gender === 'female' ? '#1976D2' : '#455A64', fontWeight: form.gender === 'female' ? '700' : '500' }}>{t('common.female')}</Text>
+                  <Text style={{ color: form.gender === 'female' ? '#1976D2' : '#455A64', fontWeight: form.gender === 'female' ? '700' : '500' }}>{t('common.female')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.genderChip, form.gender === 'other' && styles.genderChipActive]}
                   onPress={() => setForm(prev => ({ ...prev, gender: 'other' }))}
                 >
-                  <Icon name="person" size={16} color={form.gender === 'other' ? '#1976D2' : '#607D8B'} />
-                  <Text style={{ marginLeft: 6, color: form.gender === 'other' ? '#1976D2' : '#455A64', fontWeight: form.gender === 'other' ? '700' : '500' }}>{t('common.others')}</Text>
+                  <Text style={{ color: form.gender === 'other' ? '#1976D2' : '#455A64', fontWeight: form.gender === 'other' ? '700' : '500' }}>{t('common.others')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -443,10 +440,7 @@ export default function SoonToBeVoterScreen() {
 function renderInput(label: string, key: string, value: string, onChange: (v: string) => void, disabled?: boolean) {
   return (
     <View style={{ marginBottom: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-        <Icon name="touch-app" size={18} color="#1565C0" />
-        <Text style={{ marginLeft: 8, color: '#607D8B', fontWeight: '600' }}>{label}</Text>
-      </View>
+      <Text style={{ marginBottom: 6, color: '#607D8B', fontWeight: '600' }}>{label}</Text>
       <TextInput value={value} editable={!disabled} onChangeText={onChange} placeholder={label} placeholderTextColor="#9AA5B1" style={{ backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0', paddingHorizontal: 12, paddingVertical: 12, color: '#000' }} />
     </View>
   );
@@ -470,10 +464,10 @@ function renderGender(val: 'male'|'female'|'other', title: string) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { backgroundColor: '#E3F2FD', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
+  header: { backgroundColor: '#E3F2FD', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  backButton: { width: 40, height: 40, borderRadius: 0, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#000', flex: 1, textAlign: 'center' },
-  headerIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
+  headerIcon: { width: 40, height: 40, borderRadius: 0, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
 
   countersRow: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 12 },
   counterCard: { flex: 1, borderRadius: 12, alignItems: 'center', paddingVertical: 10, marginHorizontal: 4 },
@@ -508,7 +502,7 @@ const styles = StyleSheet.create({
 
   // Filter modal styles
   filterOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  filterCard: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
+  filterCard: { backgroundColor: '#fff', borderTopLeftRadius: 0, borderTopRightRadius: 0, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
   filterTitle: { fontSize: 24, fontWeight: '700', color: '#1F2937' },
   filterSubtitle: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 12, marginBottom: 8 },

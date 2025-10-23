@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -9,11 +10,12 @@ const { width } = Dimensions.get('window');
 
 export default function SubCasteScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   
   // State for data
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -100,8 +102,8 @@ export default function SubCasteScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('subcaste.title')}</Text>
           <View style={styles.headerRight} />
@@ -110,14 +112,14 @@ export default function SubCasteScreen() {
           <ActivityIndicator size="large" color="#1976D2" />
           <Text style={styles.loadingText}>{t('subcaste.loading')}</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <HeaderBack onPress={() => router.back()} />
           <Text style={styles.headerTitle}>{t('subcaste.title')}</Text>
           <View style={styles.headerRight} />
@@ -128,14 +130,14 @@ export default function SubCasteScreen() {
             <Text style={styles.retryButtonText}>{t('subcaste.retry')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('subcaste.title')}</Text>
         <View style={styles.headerRight} />
@@ -154,7 +156,7 @@ export default function SubCasteScreen() {
       </View>
 
       {/* Data List */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
         {filteredData.map(item => (
           <View key={item._id} style={styles.itemCard}>
             <View style={styles.itemInfo}>
@@ -226,7 +228,7 @@ export default function SubCasteScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

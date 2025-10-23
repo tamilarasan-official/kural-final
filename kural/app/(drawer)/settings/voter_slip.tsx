@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Switch, Alert, Dimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Switch, Alert, Dimensions, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import HeaderBack from '../../components/HeaderBack';
@@ -8,6 +9,7 @@ const { width } = Dimensions.get('window');
 
 export default function VoterSlipScreen() {
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   
   // Voter slip configuration data
   const [voterSlipData, setVoterSlipData] = useState([
@@ -82,9 +84,10 @@ export default function VoterSlipScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <HeaderBack onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{t('voterSlip.title')}</Text>
         <View style={styles.headerRight} />
@@ -103,10 +106,10 @@ export default function VoterSlipScreen() {
       </View>
 
       {/* Voter Slip List */}
-      <ScrollView style={styles.slipList} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.slipList} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
         {filteredData.map(renderVoterSlipItem)}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -121,8 +124,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+    backgroundColor: '#E8F3FF',
+    paddingTop: 12,
   },
   backButton: {
     width: 40,

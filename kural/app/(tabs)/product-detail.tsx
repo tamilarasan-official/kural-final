@@ -44,7 +44,11 @@ export default function ProductDetailScreen() {
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Product Card */}
         <View style={styles.productCard}>
           {/* Product Image */}
@@ -94,19 +98,19 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 50,
+  paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
@@ -125,6 +129,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 20,
+  },
+  scrollViewContent: {
+    paddingBottom: 30,
   },
   productCard: {
     backgroundColor: '#FFFFFF',

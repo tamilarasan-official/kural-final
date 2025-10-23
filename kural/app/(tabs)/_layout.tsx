@@ -1,8 +1,8 @@
 // app/(tabs)/_layout.tsx
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { Tabs, useRouter, usePathname } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -45,14 +45,18 @@ export default function Layout() {
   };
 
   return (
-    <View style={styles.container}>
-      <Tabs 
-        screenOptions={{ 
-          headerShown: false,
-          tabBarStyle: { display: 'none' }
-        }} 
-      />
-      <View style={styles.footer}>
+    <SafeAreaProvider>
+      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+      <SafeAreaView style={styles.topSafe} edges={['top', 'left', 'right']}>
+        <Tabs 
+          screenOptions={{ 
+            headerShown: false,
+            tabBarStyle: { display: 'none' }
+          }} 
+        />
+      </SafeAreaView>
+      <SafeAreaView edges={['bottom']} style={styles.footerWrapper}>
+        <View style={styles.footer}>
         {tabItems.map((item) => (
           <TouchableOpacity
             key={item.id}
@@ -81,19 +85,27 @@ export default function Layout() {
             )}
           </TouchableOpacity>
         ))}
-      </View>
+        </View>
+      </SafeAreaView>
       {showToast && (
         <View style={styles.toastContainer} pointerEvents="none">
           <Text style={styles.toastText}>{toastMessage}</Text>
         </View>
       )}
-    </View>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  topSafe: {
+    flex: 1,
+    backgroundColor: '#E8F3FF',
+  },
+  footerWrapper: {
+    backgroundColor: 'transparent',
   },
   footer: {
     flexDirection: 'row',

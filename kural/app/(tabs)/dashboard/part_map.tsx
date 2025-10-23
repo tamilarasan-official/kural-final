@@ -149,8 +149,8 @@ export default function PartMapScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#E3F2FD', paddingTop: 50, paddingBottom: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
+  header: { backgroundColor: '#E3F2FD', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  backBtn: { width: 36, height: 36, borderRadius: 0, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
   backIcon: { color: '#1976D2', fontSize: 18, fontWeight: '700' },
   title: { color: '#000', fontSize: 20, fontWeight: '800' },
   topBar: { position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 12, padding: 8, gap: 8 },

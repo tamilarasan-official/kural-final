@@ -378,10 +378,10 @@ export default function GuardianScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { backgroundColor: '#E3F2FD', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
+  header: { backgroundColor: '#E3F2FD', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  backButton: { width: 40, height: 40, borderRadius: 0, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#000', flex: 1, textAlign: 'center' },
-  headerIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
+  headerIcon: { width: 40, height: 40, borderRadius: 0, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
 
   countersRow: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 12 },
   counterCard: { flex: 1, borderRadius: 12, alignItems: 'center', paddingVertical: 10, marginHorizontal: 4 },

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import HeaderBack from '../components/HeaderBack';
 import { voterAPI } from '../../services/api/voter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -131,7 +132,7 @@ export default function PollScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerBtn} onPress={() => setSelectedPart(null)}>
-            <Icon name="arrow-back" size={22} color="#1976D2" />
+            <HeaderBack onPress={() => setSelectedPart(null)} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{`${t('poll.pollDayPart')} ${selectedPart}`}</Text>
           <TouchableOpacity style={styles.headerBtn} onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
@@ -162,7 +163,7 @@ export default function PollScreen() {
         </View>
 
         {loading ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ flexGrow: 0, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="large" color="#1976D2" />
           </View>
         ) : viewMode === 'grid' ? (
@@ -268,7 +269,7 @@ export default function PollScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
-          <Icon name="arrow-back" size={22} color="#1976D2" />
+          <HeaderBack onPress={() => router.back()} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('poll.pollDay')}</Text>
         <View style={styles.headerBtn} />
@@ -288,9 +289,9 @@ export default function PollScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.grid}>
+  <ScrollView style={styles.contentContainer} contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
         {filtered.map((n, idx) => (
-          <TouchableOpacity key={n} style={[styles.card, ((idx + 1) % 4 !== 0) && styles.cardMR]} activeOpacity={0.7} onPress={() => setSelectedPart(n)}>
+          <TouchableOpacity key={n} style={styles.card} activeOpacity={0.7} onPress={() => setSelectedPart(n)}>
             <Text style={styles.cardText}>{n}</Text>
           </TouchableOpacity>
         ))}
@@ -301,26 +302,74 @@ export default function PollScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { backgroundColor: '#E3F2FD', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  headerBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  contentContainer: { flex: 1 },
+  header: { backgroundColor: '#E3F2FD', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerBtn: { width: 40, height: 40, borderRadius: 0, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#000' },
-  searchWrap: { paddingHorizontal: 16, paddingVertical: 12 },
+  searchWrap: { paddingHorizontal: 12, paddingVertical: 6 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 15, paddingVertical: 12, elevation: 2 },
   searchInput: { marginLeft: 8, flex: 1, color: '#000' },
-  grid: { paddingHorizontal: 16, paddingBottom: 24, flexDirection: 'row', flexWrap: 'wrap' },
-  card: { width: '22%', aspectRatio: 1, borderRadius: 12, borderWidth: 2, borderColor: '#90CAF9', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  cardMR: { marginRight: '4%' },
-  cardText: { color: '#1565C0', fontSize: 20, fontWeight: '800' },
+  grid: { 
+    paddingHorizontal: 16, 
+    paddingTop: 8,
+    paddingBottom: 12, 
+    flexDirection: 'row', 
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    flexGrow: 1
+  },
+  card: { 
+    width: '23%', 
+    aspectRatio: 1, 
+    borderRadius: 12, 
+    borderWidth: 2, 
+    borderColor: '#90CAF9', 
+    backgroundColor: '#fff', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  cardText: { color: '#1565C0', fontSize: 18, fontWeight: '800' },
   statRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12 },
   statCard: { flex: 1, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
   statTitle: { color: '#111', fontWeight: '700' },
   statValue: { color: '#000', fontWeight: '900', fontSize: 16 },
-  serialGrid: { paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  serialPill: { width: '22%', borderRadius: 28, paddingVertical: 12, alignItems: 'center', marginBottom: 16 },
+  statActive: { borderWidth: 1, borderColor: '#1976D2' },
+  serialGrid: { 
+    paddingHorizontal: 12, 
+    paddingTop: 8,
+    paddingBottom: 12, 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between',
+    flexGrow: 1
+  },
+  serialPill: { 
+    width: '23%', 
+    borderRadius: 28, 
+    paddingVertical: 12, 
+    alignItems: 'center', 
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
   serialPillVoted: { backgroundColor: '#DFF5E1', borderWidth: 1, borderColor: '#A7E3B0' },
   serialPillNot: { backgroundColor: '#FFE0E0', borderWidth: 1, borderColor: '#FFBDBD' },
   serialText: { fontWeight: '800' },
-  listWrap: { paddingHorizontal: 12, paddingBottom: 24 },
+  listWrap: { 
+    paddingHorizontal: 12, 
+    paddingTop: 8,
+    paddingBottom: 8,
+    flexGrow: 1
+  },
   voterCard: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginHorizontal: 4, marginTop: 12, elevation: 1 },
   serialLabel: { color: '#1976D2', fontWeight: '700', marginBottom: 8 },
   serialRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
