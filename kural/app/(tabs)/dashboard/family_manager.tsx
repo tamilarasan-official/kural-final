@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Modal, FlatList, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import HeaderBack from '../../components/HeaderBack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -292,26 +292,33 @@ export default function FamilyManagerScreen() {
       </View>
 
   {/* Family chips */}
-  <ScrollView style={styles.contentContainer} contentContainerStyle={styles.familiesWrap} showsVerticalScrollIndicator={false}>
-        {filteredFamilyKeys.map((key) => (
-          <TouchableOpacity
-            key={key}
-            onPress={() => router.push({ pathname: '/(tabs)/dashboard/family_details', params: { partNumber: String(partNumber), familyKey: key } })}
-            style={styles.familyChip}
-          >
-            <Text style={styles.familyChipText}>{key}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+  <FlatList
+    data={filteredFamilyKeys}
+    renderItem={({ item: key }) => (
+      <TouchableOpacity
+        key={key}
+        onPress={() => router.push({ pathname: '/(tabs)/dashboard/family_details', params: { partNumber: String(partNumber), familyKey: key } })}
+        style={styles.familyChip}
+      >
+        <Text style={styles.familyChipText}>{key}</Text>
+      </TouchableOpacity>
+    )}
+    keyExtractor={(item) => item}
+    numColumns={4}
+    style={styles.contentContainer}
+    contentContainerStyle={styles.familiesWrap}
+    showsVerticalScrollIndicator={false}
+    columnWrapperStyle={{ justifyContent: 'space-between' }}
+  />
 
       {/* Family details cards (when a chip is selected) */}
       {/* Family details are now shown in family_details.tsx, not inline here */}
 
       {/* Search results modal */}
       {showSearchModal && (
-        <Modal visible={true} animationType="slide" transparent>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#fff', width: '92%', maxWidth: 560, borderRadius: 0, overflow: 'hidden' }}>
+        <Modal visible={true} animationType="slide" transparent onRequestClose={() => setShowSearchModal(false)}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowSearchModal(false)}>
+            <Pressable style={{ backgroundColor: '#fff', width: '92%', maxWidth: 560, borderRadius: 0, overflow: 'hidden' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
                 <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827' }}>{t('dashboard.searchResults')}</Text>
                 <HeaderBack onPress={() => setShowSearchModal(false)} accessibilityLabel="Close" />
@@ -365,16 +372,16 @@ export default function FamilyManagerScreen() {
                   </TouchableOpacity>
                 </View>
               )}
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       )}
 
       {/* Advance search modal */}
       {advOpen && (
         <Modal visible transparent animationType="fade" onRequestClose={() => setAdvOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '90%', maxWidth: 400, maxHeight: '80%' }}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setAdvOpen(false)}>
+            <Pressable style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '90%', maxWidth: 400, maxHeight: '80%' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>{t('dashboard.advanceSearch')}</Text>
                 <HeaderBack onPress={() => setAdvOpen(false)} accessibilityLabel="Close" />
@@ -409,21 +416,21 @@ export default function FamilyManagerScreen() {
                   <Text style={{ color: '#1976D2', fontWeight: '700' }}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       )}
 
       {/* Parts selection modal */}
       {showPartsModal && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setShowPartsModal(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-            <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 0, borderTopRightRadius: 0, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, maxHeight: '70%' }}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowPartsModal(false)}>
+            <Pressable style={styles.partsModalContainer}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>{t('dashboard.selectPart')}</Text>
                 <HeaderBack onPress={() => setShowPartsModal(false)} accessibilityLabel="Close" />
               </View>
-                <View style={{ backgroundColor: '#F1F5F9', borderRadius: 0, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 }}>
+                <View style={{ backgroundColor: '#F1F5F9', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 }}>
                 <TextInput
                   placeholder={t('dashboard.searchPartNumber')}
                   placeholderTextColor="#94A3B8"
@@ -433,7 +440,7 @@ export default function FamilyManagerScreen() {
                   keyboardType="number-pad"
                 />
               </View>
-              <ScrollView style={{ maxHeight: '80%' }}>
+              <ScrollView>
                 {Array.from({ length: 299 }, (_, i) => i + 1)
                   .filter(n => n.toString().includes(partsSearch))
                   .map((n) => (
@@ -450,8 +457,8 @@ export default function FamilyManagerScreen() {
                     </TouchableOpacity>
                   ))}
               </ScrollView>
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       )}
     </View>
@@ -479,13 +486,9 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: '#000' },
   roundIcon: { width: 40, height: 40, borderRadius: 0, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center' },
   familiesWrap: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    justifyContent: 'space-between', 
     paddingHorizontal: 12, 
     paddingTop: 8,
     paddingBottom: 12,
-    flexGrow: 1
   },
   familyChip: { 
     backgroundColor: '#D7EBFF', 
@@ -500,6 +503,24 @@ const styles = StyleSheet.create({
   familyChipText: { color: '#0D47A1', fontWeight: '700', fontSize: 16 },
   familyChipTextActive: { color: '#0D47A1' },
   contentContainer: { flex: 1 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  partsModalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
+    maxHeight: '70%',
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+  },
 });
 
 

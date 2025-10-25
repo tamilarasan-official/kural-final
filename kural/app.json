@@ -16,10 +16,7 @@
     },
     "android": {
       "package": "com.kuralapp.kural",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#FFFFFF"
-      },
+      "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "config": {
@@ -66,7 +63,7 @@
       "router": {},
       "GOOGLE_MAPS_API_KEY": "AIzaSyCiwZbwy5fgQQ-0E6zFGrdSPWQGh1XVFPQ",
       "eas": {
-        "projectId": "d77a475b-9d3c-4dc4-80d2-052a8d56a56b"
+        "projectId": "9023be01-447c-43c4-ae6c-1fc3b3db5059"
       }
     }
   }

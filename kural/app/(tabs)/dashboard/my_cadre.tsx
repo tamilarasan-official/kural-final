@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, ActivityIndicator, Modal, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { cadreAPI } from '../../../services/api/cadre';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { width } = Dimensions.get('window');
 
@@ -75,6 +76,7 @@ export default function MyCadreScreen() {
 
   const handleApplyFilter = () => {
     setShowFilterModal(false);
+    setBoothFilter('');
     loadCadres();
   };
 
@@ -82,6 +84,11 @@ export default function MyCadreScreen() {
     setBoothFilter('');
     setShowFilterModal(false);
     loadCadres();
+  };
+
+  const handleCloseModal = () => {
+    setShowFilterModal(false);
+    setBoothFilter('');
   };
 
   const getTabCount = (status: string) => {
@@ -114,7 +121,7 @@ export default function MyCadreScreen() {
           style={styles.addButton} 
           onPress={() => router.push('/(tabs)/dashboard/create_cadre')}
         >
-          <Text style={styles.addIcon}>+</Text>
+          <Icon name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -194,10 +201,10 @@ export default function MyCadreScreen() {
         visible={showFilterModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
+        onRequestClose={handleCloseModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+        <Pressable style={styles.modalOverlay} onPress={handleCloseModal}>
+          <Pressable style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('myCadre.filterTitle')}</Text>
             </View>
@@ -229,8 +236,8 @@ export default function MyCadreScreen() {
                 <Text style={styles.clearButtonText}>{t('myCadre.clearFilter')}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -243,7 +250,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#E3F2FD',
-    paddingTop: 45,
+    paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -289,11 +296,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-  },
-  addIcon: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   searchContainer: {
     flexDirection: 'row',

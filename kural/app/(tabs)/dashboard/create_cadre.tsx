@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -67,7 +67,7 @@ export default function CreateCadreScreen() {
       
       if (response.success) {
         Alert.alert(t('common.success'), t('cadre.createdSuccessfully'), [
-          { text: t('common.ok'), onPress: () => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } } }
+          { text: t('common.ok'), onPress: () => { try { router.push('/(tabs)/dashboard/my_cadre'); } catch { router.replace('/(tabs)/dashboard/my_cadre' as any); } } }
         ]);
       } else {
         Alert.alert(t('common.error'), response.message || t('cadre.failedToCreate'));
@@ -336,7 +336,7 @@ export default function CreateCadreScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
+        <HeaderBack onPress={() => { try { router.push('/(tabs)/dashboard/my_cadre'); } catch { router.replace('/(tabs)/dashboard/my_cadre' as any); } }} />
         <Text style={styles.headerTitle}>{t('cadre.createCadre')}</Text>
         <View style={styles.headerRight} />
       </View>

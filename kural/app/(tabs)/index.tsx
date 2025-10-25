@@ -451,7 +451,12 @@ export default function DashboardScreen() {
       {/* Cadre Overview */}
       <Text style={styles.sectionTitle}>{t('dashboard.cadreOverview')}</Text>
       <View style={styles.cadreOverviewContainer}>
-        {/* Top row - Cadre Active & Inactive */}
+        {/* Top row - Total Cadres (full width) */}
+        <View style={styles.cadreOverviewRowFull}>
+          <OverviewCard title={t('dashboard.totalCadres')} value={'0'} accent="#1976D2" iconName="directions-walk" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')} />
+        </View>
+        
+        {/* First row - Cadre Active & Inactive */}
         <View style={styles.cadreOverviewRow}>
           <View style={styles.cadreOverviewItem}>
             <OverviewCard title={t('dashboard.cadreActive')} value={'0'} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')} />
@@ -461,7 +466,7 @@ export default function DashboardScreen() {
           </View>
         </View>
         
-        {/* Middle row - Logged In & Not Logged */}
+        {/* Second row - Logged In & Not Logged */}
         <View style={styles.cadreOverviewRow}>
           <View style={styles.cadreOverviewItem}>
             <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
@@ -469,11 +474,6 @@ export default function DashboardScreen() {
           <View style={styles.cadreOverviewItem}>
             <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
           </View>
-        </View>
-        
-        {/* Bottom row - Total Cadres (full width) */}
-        <View style={styles.cadreOverviewRowFull}>
-          <OverviewCard title={t('dashboard.totalCadres')} value={'0'} accent="#1976D2" iconName="directions-walk" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')} />
         </View>
       </View>
 
@@ -1198,14 +1198,14 @@ const styles = StyleSheet.create({
   cadreOverviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    gap: 12,
+    marginBottom: 8, // Reduced margin for tighter layout
+    gap: 8, // Reduced gap for tighter layout
   },
   cadreOverviewItem: {
     flex: 1,
   },
   cadreOverviewRowFull: {
-    marginBottom: 12,
+    marginBottom: 8, // Reduced margin for tighter layout
   },
   overviewRightGrid: {
     flexDirection: 'row',
@@ -1228,19 +1228,19 @@ const styles = StyleSheet.create({
   overviewLarge: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 352, // Increased height to span both rows (2 * 120 + gap)
+    minHeight: 85, // Reduced height for tighter layout
   },
   overviewSmall: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 120,
+    minHeight: 85, // Reduced height for tighter layout
   },
   overviewColSmall: { marginLeft: 0 },
   overviewIcon: { fontSize: 32, marginBottom: 6 },
@@ -1249,7 +1249,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    minHeight: 70,
+    minHeight: 45, // Reduced height for tighter layout
     paddingHorizontal: 1,
     flex: 1,
   },

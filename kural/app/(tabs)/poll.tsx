@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Image, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import HeaderBack from '../components/HeaderBack';
 import { voterAPI } from '../../services/api/voter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PollScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const numbers = useMemo(() => Array.from({ length: 299 }, (_, i) => i + 1), []);
   const filtered = numbers.filter(n => String(n).includes(query.trim()))
@@ -175,7 +177,11 @@ export default function PollScreen() {
                   key={`${s}-${i}`}
                   onPress={() => {
                     const next = new Set(voted);
-                    next.has(s) ? next.delete(s) : next.add(s);
+                    if (next.has(s)) {
+                      next.delete(s);
+                    } else {
+                      next.add(s);
+                    }
                     setVoted(next);
                   }}
                   style={[styles.serialPill, isVoted ? styles.serialPillVoted : styles.serialPillNot]}
@@ -213,7 +219,11 @@ export default function PollScreen() {
                       <TouchableOpacity
                         onPress={() => {
                           const next = new Set(favorites);
-                          next.has(s) ? next.delete(s) : next.add(s);
+                          if (next.has(s)) {
+                            next.delete(s);
+                          } else {
+                            next.add(s);
+                          }
                           setFavorites(next);
                         }}
                         style={styles.starBtn}
@@ -246,7 +256,11 @@ export default function PollScreen() {
                       <TouchableOpacity
                         onPress={() => {
                           const next = new Set(voted);
-                          next.has(s) ? next.delete(s) : next.add(s);
+                          if (next.has(s)) {
+                            next.delete(s);
+                          } else {
+                            next.add(s);
+                          }
                           setVoted(next);
                         }}
                         style={[styles.voteToggle, isVoted ? styles.voteOn : styles.voteOff]}
@@ -289,13 +303,20 @@ export default function PollScreen() {
         </View>
       </View>
 
-  <ScrollView style={styles.contentContainer} contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
-        {filtered.map((n, idx) => (
-          <TouchableOpacity key={n} style={styles.card} activeOpacity={0.7} onPress={() => setSelectedPart(n)}>
+  <FlatList
+        data={filtered}
+        renderItem={({ item: n }) => (
+          <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => setSelectedPart(n)}>
             <Text style={styles.cardText}>{n}</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        )}
+        keyExtractor={(item) => String(item)}
+        numColumns={4}
+        style={styles.contentContainer}
+        contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
+      />
     </View>
   );
 }
@@ -312,11 +333,6 @@ const styles = StyleSheet.create({
   grid: { 
     paddingHorizontal: 16, 
     paddingTop: 8,
-    paddingBottom: 12, 
-    flexDirection: 'row', 
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    flexGrow: 1
   },
   card: { 
     width: '23%', 
@@ -335,7 +351,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   cardText: { color: '#1565C0', fontSize: 18, fontWeight: '800' },
-  statRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12 },
+  statRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12 },  
   statCard: { flex: 1, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
   statTitle: { color: '#111', fontWeight: '700' },
   statValue: { color: '#000', fontWeight: '900', fontSize: 16 },
