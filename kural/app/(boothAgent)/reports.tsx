@@ -1,0 +1,514 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useRole } from '../contexts/RoleContext';
+import ScreenWrapper from '../components/ScreenWrapper';
+import { voterAPI } from '../../services/api/voter';
+import { surveyAPI } from '../../services/api/survey';
+
+export default function ReportsScreen() {
+  const router = useRouter();
+  const { t } = useLanguage();
+  const { userData } = useRole();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalVoters: 0,
+    totalFamilies: 0,
+    verifiedVoters: 0,
+    activeSurveys: 0,
+    completedSurveys: 0,
+    maleVoters: 0,
+    femaleVoters: 0,
+    othersVoters: 0,
+    age60Plus: 0,
+    age80Plus: 0,
+  });
+
+  useEffect(() => {
+    loadReportData();
+  }, [userData]);
+
+  const loadReportData = async () => {
+    try {
+      setLoading(true);
+      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
+      
+      let voters: any[] = [];
+      let totalVoters = 0;
+      let totalFamilies = 0;
+      
+      if (boothNumber) {
+        try {
+          // First, get the total count from pagination
+          const initialResponse = await voterAPI.getVotersByPart(boothNumber, { page: 1, limit: 50 });
+          
+          if (initialResponse?.success && initialResponse.pagination) {
+            totalVoters = initialResponse.pagination.total;
+            
+            // Now fetch all voters with the correct limit
+            const votersResponse = await voterAPI.getVotersByPart(boothNumber, { 
+              page: 1, 
+              limit: totalVoters || 5000 // Use total or a high number as fallback
+            });
+            
+            if (votersResponse?.success && Array.isArray(votersResponse.data)) {
+              voters = votersResponse.data;
+              
+              // Calculate families
+              const uniqueAddresses = new Set();
+              voters.forEach((voter: any) => {
+                const address = `${voter['Address-House no'] || ''}-${voter['Address-Street'] || ''}`.trim();
+                if (address && address !== '-') {
+                  uniqueAddresses.add(address);
+                }
+              });
+              totalFamilies = uniqueAddresses.size || Math.ceil(totalVoters / 3);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to fetch voters:', error);
+        }
+      }
+
+      // Calculate voter categories
+      const verifiedVoters = voters.filter(v => v.verified || v.Verified).length;
+      const maleVoters = voters.filter(v => 
+        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'male' || 
+        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'm'
+      ).length;
+      const femaleVoters = voters.filter(v => 
+        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'female' || 
+        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'f'
+      ).length;
+      const othersVoters = voters.filter(v => {
+        const gender = (v.Gender || v.Sex || v.sex || '').toLowerCase();
+        return gender !== 'male' && gender !== 'm' && gender !== 'female' && gender !== 'f' && gender !== '';
+      }).length;
+      const age60Plus = voters.filter(v => {
+        const age = parseInt(v.Age || v.age);
+        return age >= 60 && age < 80;
+      }).length;
+      const age80Plus = voters.filter(v => {
+        const age = parseInt(v.Age || v.age);
+        return age >= 80;
+      }).length;
+
+      // Fetch surveys - count total responses submitted across all survey forms
+      let activeSurveys = 0;
+      let completedSurveys = 0;
+      try {
+        const surveysResponse = await surveyAPI.getAll({ limit: 100 });
+        if (surveysResponse?.success && Array.isArray(surveysResponse.data)) {
+          activeSurveys = surveysResponse.data.filter((s: any) => 
+            s.status === 'Active'
+          ).length;
+          // Sum up all responseCount from all surveys
+          completedSurveys = surveysResponse.data.reduce((total: number, survey: any) => {
+            return total + (survey.responseCount || 0);
+          }, 0);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch surveys:', error);
+      }
+
+      setStats({
+        totalVoters,
+        totalFamilies,
+        verifiedVoters,
+        activeSurveys,
+        completedSurveys,
+        maleVoters,
+        femaleVoters,
+        othersVoters,
+        age60Plus,
+        age80Plus,
+      });
+    } catch (error) {
+      console.error('Failed to load report data:', error);
+      Alert.alert('Error', 'Failed to load report data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <ScreenWrapper userRole="booth_agent">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1976D2" />
+          <Text style={styles.loadingText}>Loading report...</Text>
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
+  const verificationPercentage = stats.totalVoters > 0 
+    ? Math.round((stats.verifiedVoters / stats.totalVoters) * 100) 
+    : 0;
+  const surveyPercentage = stats.totalFamilies > 0 
+    ? Math.round((stats.completedSurveys / stats.totalFamilies) * 100) 
+    : 0;
+
+  return (
+    <ScreenWrapper userRole="booth_agent">
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(boothAgent)/dashboard')}>
+            <Icon name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Booth Report</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        {/* Subtitle */}
+        <View style={styles.subtitleContainer}>
+          <Text style={styles.subtitle}>Performance and progress tracking</Text>
+        </View>
+
+        {/* Overview Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Overview</Text>
+          
+          <View style={styles.statsRow}>
+            <View style={styles.miniStatCard}>
+              <Icon name="people" size={32} color="#1976D2" />
+              <Text style={styles.miniStatValue}>{stats.totalVoters}</Text>
+              <Text style={styles.miniStatLabel}>Total Voters</Text>
+            </View>
+
+            <View style={styles.miniStatCard}>
+              <Icon name="home" size={32} color="#7B1FA2" />
+              <Text style={styles.miniStatValue}>{stats.totalFamilies}</Text>
+              <Text style={styles.miniStatLabel}>Families</Text>
+            </View>
+
+            <View style={styles.miniStatCard}>
+              <Icon name="check-circle" size={32} color="#388E3C" />
+              <Text style={styles.miniStatValue}>{stats.verifiedVoters}</Text>
+              <Text style={styles.miniStatLabel}>Verified</Text>
+            </View>
+
+            <View style={styles.miniStatCard}>
+              <Icon name="trending-up" size={32} color="#1976D2" />
+              <Text style={styles.miniStatValue}>{stats.activeSurveys} Active</Text>
+              <Text style={styles.miniStatLabel}>Surveys</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Verification Progress */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Voter Verification Progress</Text>
+            
+            <View style={styles.progressRow}>
+              <Text style={styles.progressLabel}>Verified Voters</Text>
+              <Text style={styles.progressValue}>
+                {stats.verifiedVoters} / {stats.totalVoters} ({verificationPercentage}%)
+              </Text>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View style={[
+                styles.progressBar, 
+                { width: `${verificationPercentage}%`, backgroundColor: '#2196F3' }
+              ]} />
+            </View>
+
+            <View style={styles.statsFooter}>
+              <Text style={styles.statsSuccess}>✓ {stats.verifiedVoters} verified</Text>
+              <Text style={styles.statsError}>{stats.totalVoters - stats.verifiedVoters} pending</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Survey Completion */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Survey Completion Progress</Text>
+            
+            <View style={styles.progressRow}>
+              <Text style={styles.progressLabel}>Surveys Completed</Text>
+              <Text style={styles.progressValue}>
+                {stats.completedSurveys} / {stats.totalFamilies} ({surveyPercentage}%)
+              </Text>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View style={[
+                styles.progressBar, 
+                { width: `${surveyPercentage}%`, backgroundColor: '#4CAF50' }
+              ]} />
+            </View>
+
+            <View style={styles.statsFooter}>
+              <Text style={styles.statsSuccess}>✓ {stats.completedSurveys} completed</Text>
+              <Text style={styles.statsError}>{stats.totalFamilies - stats.completedSurveys} pending</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Voter Categories */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Voter Categories</Text>
+            
+            {/* Age Categories */}
+            <Text style={styles.categorySubtitle}>By Age</Text>
+            <View style={styles.categoryRow}>
+              <Text style={styles.categoryLabel}>Age 80+</Text>
+              <Text style={styles.categoryValue}>{stats.age80Plus}</Text>
+            </View>
+
+            <View style={styles.categoryRow}>
+              <Text style={styles.categoryLabel}>Age 60+</Text>
+              <Text style={styles.categoryValue}>{stats.age60Plus}</Text>
+            </View>
+
+            <View style={styles.categoryRow}>
+              <Text style={styles.categoryLabel}>Age Below 60</Text>
+              <Text style={styles.categoryValue}>{stats.totalVoters - stats.age60Plus - stats.age80Plus}</Text>
+            </View>
+
+            {/* Gender Categories */}
+            <Text style={[styles.categorySubtitle, { marginTop: 16 }]}>By Gender</Text>
+            <View style={styles.categoryRow}>
+              <Text style={styles.categoryLabel}>Male</Text>
+              <Text style={styles.categoryValue}>{stats.maleVoters}</Text>
+            </View>
+
+            <View style={styles.categoryRow}>
+              <Text style={styles.categoryLabel}>Female</Text>
+              <Text style={styles.categoryValue}>{stats.femaleVoters}</Text>
+            </View>
+
+            <View style={[styles.categoryRow, { borderBottomWidth: 0 }]}>
+              <Text style={styles.categoryLabel}>Others</Text>
+              <Text style={styles.categoryValue}>{stats.othersVoters}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Recent Activity</Text>
+            
+            <View style={styles.activityItem}>
+              <View style={[styles.activityDot, { backgroundColor: '#4CAF50' }]} />
+              <View style={styles.activityContent}>
+                <Text style={styles.activityTitle}>{stats.verifiedVoters} voters verified</Text>
+                <Text style={styles.activityTime}>Today</Text>
+              </View>
+            </View>
+
+            <View style={styles.activityItem}>
+              <View style={[styles.activityDot, { backgroundColor: '#4CAF50' }]} />
+              <View style={styles.activityContent}>
+                <Text style={styles.activityTitle}>{stats.completedSurveys} surveys completed</Text>
+                <Text style={styles.activityTime}>Today</Text>
+              </View>
+            </View>
+
+            <View style={styles.activityItem}>
+              <View style={[styles.activityDot, { backgroundColor: '#2196F3' }]} />
+              <View style={styles.activityContent}>
+                <Text style={styles.activityTitle}>{stats.activeSurveys} active surveys</Text>
+                <Text style={styles.activityTime}>Ongoing</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    </ScreenWrapper>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  header: {
+    backgroundColor: '#E3F2FD',
+    paddingTop: 12,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    flex: 1,
+    textAlign: 'center',
+  },
+  subtitleContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: '#E3F2FD',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 12,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+  },
+  miniStatCard: {
+    width: '48%',
+    margin: '1%',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  miniStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 8,
+  },
+  miniStatLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 16,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  progressValue: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '600',
+  },
+  progressBarContainer: {
+    height: 10,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  statsFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statsSuccess: {
+    fontSize: 14,
+    color: '#4CAF50',
+  },
+  statsError: {
+    fontSize: 14,
+    color: '#F44336',
+  },
+  categorySubtitle: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  categoryLabel: {
+    fontSize: 14,
+    color: '#000',
+    flex: 1,
+  },
+  categoryValue: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  activityItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  activityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 6,
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    color: '#000',
+    marginBottom: 4,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#999',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+});
