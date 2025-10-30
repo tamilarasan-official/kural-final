@@ -5,7 +5,11 @@ const {
     getVotersByPart,
     getPartGenderStats,
     getPartNames,
-    getVotersByAgeRange
+    getVotersByAgeRange,
+    createVoter,
+    markVoterAsVerified,
+    getVoterByEpicNumber,
+    updateVoterInfo
 } = require('../controllers/voterController');
 const { protect } = require('../middleware/auth');
 
@@ -17,6 +21,52 @@ const router = express.Router();
  *   name: Voter
  *   description: Voter endpoints
  */
+
+/**
+ * @swagger
+ * /voter:
+ *   post:
+ *     tags: [Voter]
+ *     summary: Create a new voter
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - voterId
+ *               - fullName
+ *               - age
+ *               - gender
+ *               - address
+ *               - partNumber
+ *             properties:
+ *               voterId:
+ *                 type: string
+ *               fullName:
+ *                 type: string
+ *               age:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               familyId:
+ *                 type: string
+ *               specialCategories:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               partNumber:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Voter created successfully
+ */
+router.route('/').post(createVoter);
 
 /**
  * @swagger
@@ -106,6 +156,105 @@ router.route('/stats/:partNumber').get(getPartGenderStats);
  *         description: Voter found
  */
 router.route('/:id').get(getVoterById);
+
+/**
+ * @swagger
+ * /voter/{id}/verify:
+ *   put:
+ *     tags: [Voter]
+ *     summary: Mark voter as verified
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Voter marked as verified
+ */
+router.route('/:id/verify').put(markVoterAsVerified);
+
+/**
+ * @swagger
+ * /voter/{id}/info:
+ *   put:
+ *     tags: [Voter]
+ *     summary: Update voter additional information
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               dateOfBirth:
+ *                 type: string
+ *               mobileNumber:
+ *                 type: string
+ *               whatsappNumber:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               aadharNumber:
+ *                 type: string
+ *               panNumber:
+ *                 type: string
+ *               membershipNumber:
+ *                 type: string
+ *               religion:
+ *                 type: string
+ *               caste:
+ *                 type: string
+ *               subCaste:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               casteCategory:
+ *                 type: string
+ *               party:
+ *                 type: string
+ *               schemes:
+ *                 type: string
+ *               history:
+ *                 type: string
+ *               feedback:
+ *                 type: string
+ *               language:
+ *                 type: string
+ *               remarks:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Voter information updated successfully
+ */
+router.route('/:id/info').put(updateVoterInfo);
+
+/**
+ * @swagger
+ * /voter/epic/{epicNumber}:
+ *   get:
+ *     tags: [Voter]
+ *     summary: Get voter by EPIC number
+ *     parameters:
+ *       - in: path
+ *         name: epicNumber
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Voter found
+ */
+router.route('/epic/:epicNumber').get(getVoterByEpicNumber);
 
 /**
  * @swagger

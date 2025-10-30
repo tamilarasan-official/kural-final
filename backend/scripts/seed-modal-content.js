@@ -4,31 +4,30 @@ const ModalContent = require('../src/models/ModalContent');
 
 // Connect to MongoDB
 mongoose.connect(config.DATABASE_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB');
-  seedModalContent();
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
-});
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    })
+    .then(() => {
+        console.log('✅ Connected to MongoDB');
+        seedModalContent();
+    })
+    .catch((error) => {
+        console.error('❌ MongoDB connection error:', error);
+        process.exit(1);
+    });
 
-const seedModalContent = async () => {
-  try {
-    // Clear existing modal content
-    await ModalContent.deleteMany({});
-    console.log('🗑️ Cleared existing modal content');
+const seedModalContent = async() => {
+    try {
+        // Clear existing modal content
+        await ModalContent.deleteMany({});
+        console.log('🗑️ Cleared existing modal content');
 
-    // Modal content data
-    const modalContentData = [
-      {
-        modalType: 'about',
-        title: 'About Thedal App',
-        content: `About Thedal App
-Thedal App is India's first comprehensive ElectionTech SaaS platform designed to simplify and supercharge election management. From booth-level voter mapping, volunteer management, to real-time data tracking and strategic insights, KURAL App empowers political candidates, parties, and organizations to manage campaigns digitally and efficiently. Whether you are contesting a local body election or a major assembly poll, KURAL App is your all-in-one toolkit to plan, execute, and win smartly.
+        // Modal content data
+        const modalContentData = [{
+                modalType: 'about',
+                title: 'About KuralApp',
+                content: `About KuralApp
+KuralApp is India's first comprehensive ElectionTech SaaS platform designed to simplify and supercharge election management. From booth-level voter mapping, volunteer management, to real-time data tracking and strategic insights, KURAL App empowers political candidates, parties, and organizations to manage campaigns digitally and efficiently. Whether you are contesting a local body election or a major assembly poll, KURAL App is your all-in-one toolkit to plan, execute, and win smartly.
 
 Key Highlights:
 1. Booth-level voter visualization with geo-tagging
@@ -38,9 +37,9 @@ Key Highlights:
 5. Mobile-first and cloud-based accessibility
 
 About Thedal
-Thedal is a pioneering ElectionTech company committed to transforming how political campaigns are managed in India.
+Kuralis a pioneering ElectionTech company committed to transforming how political campaigns are managed in India.
 
-Founded with a vision to digitize elections and empower candidates with cutting-edge technology, Thedal blends deep political insights with modern SaaS solutions to create a new era of smart campaigning. Our flagship product, Thedal App, is already creating waves across all parts of India and global, helping candidates build data-driven, organized, and winning campaigns.
+Founded with a vision to digitize elections and empower candidates with cutting-edge technology, Kuralblends deep political insights with modern SaaS solutions to create a new era of smart campaigning. Our flagship product, KuralApp, is already creating waves across all parts of India and global, helping candidates build data-driven, organized, and winning campaigns.
 
 Our Mission:
 • Digitize the election management process
@@ -51,25 +50,25 @@ Our Mission:
 Website: www.thedal.co.in
 Email: contact@thedal.co.in
 Mobile: 861-862-7199`
-      },
-      {
-        modalType: 'help',
-        title: 'Help',
-        content: `Website: www.thedal.co.in
+            },
+            {
+                modalType: 'help',
+                title: 'Help',
+                content: `Website: www.thedal.co.in
 Email: contact@thedal.co.in
 Mobile: 861-862-7199
 Linkedin: https://www.linkedin.com/company/thedalappindia/
 
-Thedal Election Analytics Manager (KURAL App) is India's first ElectionTech SaaS platform designed to revolutionize election campaign management through data-driven strategies and advanced digital tools. Whether you're a political candidate, party worker, strategist, or grassroots organizer, KURAL App provides a seamless solution to manage voter outreach, coordinate campaign teams, and optimize booth-level activities. With features like digital voter lists, cadre tracking, geo-spatial insights, and real-time data analytics, the app ensures that every decision is backed by accurate information, making your campaign smarter and more effective.
+KuralElection Analytics Manager (KURAL App) is India's first ElectionTech SaaS platform designed to revolutionize election campaign management through data-driven strategies and advanced digital tools. Whether you're a political candidate, party worker, strategist, or grassroots organizer, KURAL App provides a seamless solution to manage voter outreach, coordinate campaign teams, and optimize booth-level activities. With features like digital voter lists, cadre tracking, geo-spatial insights, and real-time data analytics, the app ensures that every decision is backed by accurate information, making your campaign smarter and more effective.
 
 Built for efficiency, KURAL App enables streamlined volunteer management, task assignment, and campaign monitoring, all in one place. The platform supports multiple languages, ensuring accessibility across diverse user bases. By integrating AI-powered insights and election-specific features, KURAL App transforms traditional political campaigns into high-impact, technology-driven movements. Download now and take your election campaign to the next level!`
-      },
-      {
-        modalType: 'terms',
-        title: 'Terms & Conditions',
-        content: `Terms & Conditions for KURAL App
+            },
+            {
+                modalType: 'terms',
+                title: 'Terms & Conditions',
+                content: `Terms & Conditions for KURAL App
 
-Welcome to KURAL (Thedal Election Analytics Manager). By accessing or using our SaaS platform, you agree to comply with and be bound by these Terms & Conditions (T&C). If you do not agree, do not use the platform.
+Welcome to KURAL (KuralElection Analytics Manager). By accessing or using our SaaS platform, you agree to comply with and be bound by these Terms & Conditions (T&C). If you do not agree, do not use the platform.
 
 1. Acceptance of Terms
 By signing up for, accessing, or using the KURAL App, you accept these T&Cs and any policies incorporated by reference. These terms govern your use of the platform, including any associated features, tools, and services provided by us.
@@ -148,13 +147,13 @@ For any questions or concerns regarding these Terms & Conditions, please contact
 Email: contact@thedal.co.in
 
 By clicking "Sign In" or "Create Account," you acknowledge that you have read, understood, and agreed to these Terms & Conditions.`
-      },
-      {
-        modalType: 'privacy',
-        title: 'Privacy Policy',
-        content: `Privacy Policy for KURAL App SaaS Platform
+            },
+            {
+                modalType: 'privacy',
+                title: 'Privacy Policy',
+                content: `Privacy Policy for KURAL App SaaS Platform
 
-Welcome to KURAL (Thedal Election Analytics Manager), a Software-as-a-Service (SaaS) platform designed to empower organizations with secure and efficient tools for election campaign management. This Privacy Policy outlines how we, as a SaaS provider, handle data, ensuring transparency, security, and compliance with applicable laws.
+Welcome to KURAL (KuralElection Analytics Manager), a Software-as-a-Service (SaaS) platform designed to empower organizations with secure and efficient tools for election campaign management. This Privacy Policy outlines how we, as a SaaS provider, handle data, ensuring transparency, security, and compliance with applicable laws.
 
 By using the KURAL App, you agree to the terms of this Privacy Policy. If you do not agree, please refrain from using the service.
 
@@ -226,24 +225,24 @@ For any questions, concerns, or data-related requests, please contact us:
 Email: contact@thedal.co.in
 
 By using the KURAL App, you acknowledge and agree to this Privacy Policy.`
-      }
-    ];
+            }
+        ];
 
-    // Insert modal content
-    await ModalContent.insertMany(modalContentData);
-    console.log('✅ Modal content seeded successfully');
+        // Insert modal content
+        await ModalContent.insertMany(modalContentData);
+        console.log('✅ Modal content seeded successfully');
 
-    // Display seeded data
-    const seededContent = await ModalContent.find({});
-    console.log(`📊 Seeded ${seededContent.length} modal content entries:`);
-    seededContent.forEach(content => {
-      console.log(`   - ${content.modalType}: ${content.title}`);
-    });
+        // Display seeded data
+        const seededContent = await ModalContent.find({});
+        console.log(`📊 Seeded ${seededContent.length} modal content entries:`);
+        seededContent.forEach(content => {
+            console.log(`   - ${content.modalType}: ${content.title}`);
+        });
 
-  } catch (error) {
-    console.error('❌ Error seeding modal content:', error);
-  } finally {
-    mongoose.connection.close();
-    console.log('🔌 Database connection closed');
-  }
+    } catch (error) {
+        console.error('❌ Error seeding modal content:', error);
+    } finally {
+        mongoose.connection.close();
+        console.log('🔌 Database connection closed');
+    }
 };

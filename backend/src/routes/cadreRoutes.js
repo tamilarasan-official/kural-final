@@ -1,12 +1,13 @@
 const express = require('express');
 const {
-  getAllCadres,
-  getCadreById,
-  createCadre,
-  updateCadre,
-  deleteCadre,
-  getCadreStats,
-  updateLoginStatus
+    getAllCadres,
+    getCadreById,
+    createCadre,
+    loginCadre,
+    updateCadre,
+    deleteCadre,
+    getCadreStats,
+    updateLoginStatus
 } = require('../controllers/cadreController');
 const { protect } = require('../middleware/auth');
 
@@ -17,18 +18,21 @@ const router = express.Router();
 
 // Cadre routes
 router.route('/')
-  .get(getAllCadres)
-  .post(createCadre);
+    .get(getAllCadres)
+    .post(createCadre);
+
+// Public login for cadres
+router.post('/login', loginCadre);
 
 router.route('/stats')
-  .get(getCadreStats);
+    .get(getCadreStats);
 
 router.route('/:id')
-  .get(getCadreById)
-  .put(updateCadre)
-  .delete(deleteCadre);
+    .get(getCadreById)
+    .put(updateCadre)
+    .delete(deleteCadre);
 
 router.route('/:id/login-status')
-  .put(updateLoginStatus);
+    .put(updateLoginStatus);
 
 module.exports = router;

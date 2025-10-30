@@ -166,16 +166,44 @@ const getVotersByPart = asyncHandler(async(req, res) => {
     const limit = parseInt(req.query.limit) || 50;
 
     try {
-        const voters = await Voter.find({ $or: [{ Part_no: parseInt(partNumber) }, { part_no: parseInt(partNumber) }] })
+        let query = {};
+
+        // Check if partNumber contains "All" (e.g., "119 -All")
+        if (partNumber.includes('All') || partNumber.toLowerCase() === 'all') {
+            // Return all voters without part number filter
+            console.log(`[getVotersByPart] Fetching all voters (no part filter)`);
+            query = {}; // Empty query to get all voters
+        } else {
+            // Parse part number - handle both "119 -001" and "001" formats
+            // If hyphen exists, extract the number after it, otherwise use the whole number
+            const parts = partNumber.toString().split('-');
+            const partNum = parseInt(parts.length > 1 ? parts[1] : parts[0]);
+
+            if (isNaN(partNum)) {
+                console.error(`[getVotersByPart] Invalid part number: ${partNumber}`);
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid part number format',
+                    message: `Cannot parse part number: ${partNumber}`
+                });
+            }
+
+            console.log(`[getVotersByPart] Searching for part number: ${partNumber} -> parsed as: ${partNum}`);
+            query = { $or: [{ Part_no: partNum }, { part_no: partNum }] };
+        }
+
+        const voters = await Voter.find(query)
             .sort({ sr: 1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
-        const total = await Voter.countDocuments({ $or: [{ Part_no: parseInt(partNumber) }, { part_no: parseInt(partNumber) }] });
+        const total = await Voter.countDocuments(query);
+
+        console.log(`[getVotersByPart] Found ${total} voters, returning ${voters.length} voters for page ${page}`);
 
         res.json({
             success: true,
-            voters,
+            data: voters,
             pagination: {
                 current: page,
                 pages: Math.ceil(total / limit),
@@ -183,9 +211,11 @@ const getVotersByPart = asyncHandler(async(req, res) => {
             }
         });
     } catch (error) {
+        console.error('[getVotersByPart] Error:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to fetch voters by part number'
+            error: 'Failed to fetch voters by part number',
+            message: error.message
         });
     }
 });
@@ -195,8 +225,26 @@ const getPartGenderStats = asyncHandler(async(req, res) => {
     const { partNumber } = req.params;
 
     try {
+        let matchStage = {};
+
+        // Check if partNumber contains "All"
+        if (partNumber.includes('All') || partNumber.toLowerCase() === 'all') {
+            // Get stats for all voters
+            console.log(`[getPartGenderStats] Fetching stats for all voters`);
+            matchStage = {}; // Empty match to get all voters
+        } else {
+            const partNum = parseInt(partNumber);
+            if (isNaN(partNum)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid part number format'
+                });
+            }
+            matchStage = { $or: [{ Part_no: partNum }, { part_no: partNum }] };
+        }
+
         const stats = await Voter.aggregate([
-            { $match: { $or: [{ Part_no: parseInt(partNumber) }, { part_no: parseInt(partNumber) }] } },
+            { $match: matchStage },
             {
                 $group: {
                     _id: null,
@@ -220,6 +268,7 @@ const getPartGenderStats = asyncHandler(async(req, res) => {
             stats: stats[0]
         });
     } catch (error) {
+        console.error('[getPartGenderStats] Error:', error);
         res.status(500).json({
             success: false,
             error: 'Failed to fetch gender statistics'
@@ -307,11 +356,224 @@ const getVotersByAgeRange = asyncHandler(async(req, res) => {
     }
 });
 
+// @desc    Create a new voter
+// @route   POST /api/v1/voters
+// @access  Private
+const createVoter = asyncHandler(async(req, res) => {
+    const {
+        voterId,
+        fullName,
+        age,
+        gender,
+        phoneNumber,
+        address,
+        familyId,
+        specialCategories,
+        partNumber
+    } = req.body;
+
+    // Validate required fields
+    if (!voterId || !fullName || !age || !gender || !address || !partNumber) {
+        return res.status(400).json({
+            success: false,
+            message: 'Please provide all required fields: voterId, fullName, age, gender, address, partNumber'
+        });
+    }
+
+    try {
+        // Check if voter with this ID already exists
+        const existingVoter = await Voter.findOne({ Number: voterId });
+        if (existingVoter) {
+            return res.status(400).json({
+                success: false,
+                message: 'A voter with this ID already exists'
+            });
+        }
+
+        // Get the highest serial number in this part to assign a new one
+        const lastVoter = await Voter.findOne({
+            $or: [{ Part_no: parseInt(partNumber) }, { part_no: parseInt(partNumber) }]
+        }).sort({ sr: -1 }).limit(1);
+
+        const newSerialNumber = lastVoter ? (lastVoter.sr || 0) + 1 : 1;
+
+        // Parse address to extract door number if possible
+        const doorNoMatch = address.match(/\d+/);
+        const doorNo = doorNoMatch ? parseInt(doorNoMatch[0]) : null;
+
+        // Create voter object
+        const voterData = {
+            sr: newSerialNumber,
+            Name: fullName,
+            Number: voterId,
+            sex: gender,
+            age: parseInt(age),
+            Part_no: parseInt(partNumber),
+            'Mobile No': phoneNumber || '',
+            Door_No: doorNo,
+            // Store special categories and family ID as custom fields
+            familyId: familyId || null,
+            specialCategories: specialCategories || [],
+            address: address
+        };
+
+        const voter = await Voter.create(voterData);
+
+        res.status(201).json({
+            success: true,
+            data: voter,
+            message: 'Voter created successfully'
+        });
+
+    } catch (error) {
+        console.error('Create voter error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error creating voter',
+            error: error.message
+        });
+    }
+});
+
+// @desc    Mark voter as verified
+// @route   PUT /api/v1/voters/:id/verify
+// @access  Private
+const markVoterAsVerified = asyncHandler(async(req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Find voter by ID or EPIC number
+        let voter;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            // It's a MongoDB ObjectId
+            voter = await Voter.findById(id);
+        } else {
+            // It's an EPIC number
+            voter = await Voter.findOne({ Number: id });
+        }
+
+        if (!voter) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voter not found'
+            });
+        }
+
+        // Update verification status
+        voter.verified = true;
+        voter.status = 'verified';
+        voter.verifiedAt = new Date();
+        if (req.user && req.user._id) {
+            voter.verifiedBy = req.user._id;
+        }
+
+        await voter.save();
+
+        res.status(200).json({
+            success: true,
+            data: voter,
+            message: 'Voter marked as verified successfully'
+        });
+
+    } catch (error) {
+        console.error('Mark voter as verified error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error marking voter as verified',
+            error: error.message
+        });
+    }
+});
+
+// @desc    Get voter by EPIC number
+// @route   GET /api/v1/voters/epic/:epicNumber
+// @access  Private
+const getVoterByEpicNumber = asyncHandler(async(req, res) => {
+    const { epicNumber } = req.params;
+
+    try {
+        const voter = await Voter.findOne({ Number: epicNumber });
+
+        if (!voter) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voter not found with this EPIC number'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: voter
+        });
+    } catch (error) {
+        console.error('Get voter by EPIC error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching voter by EPIC number',
+            error: error.message
+        });
+    }
+});
+
+// @desc    Update voter additional information
+// @route   PUT /api/v1/voters/:id/info
+// @access  Private
+const updateVoterInfo = asyncHandler(async(req, res) => {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    try {
+        // Find voter by ID or EPIC number
+        let voter;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            // It's a MongoDB ObjectId
+            voter = await Voter.findById(id);
+        } else {
+            // It's an EPIC number
+            voter = await Voter.findOne({ Number: id });
+        }
+
+        if (!voter) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voter not found'
+            });
+        }
+
+        // Update voter information
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] !== undefined && updateData[key] !== null) {
+                voter[key] = updateData[key];
+            }
+        });
+
+        await voter.save();
+
+        res.status(200).json({
+            success: true,
+            data: voter,
+            message: 'Voter information updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Update voter info error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating voter information',
+            error: error.message
+        });
+    }
+});
+
 module.exports = {
     searchVoters,
     getVoterById,
     getVotersByPart,
     getPartGenderStats,
     getPartNames,
-    getVotersByAgeRange
+    getVotersByAgeRange,
+    createVoter,
+    markVoterAsVerified,
+    getVoterByEpicNumber,
+    updateVoterInfo
 };

@@ -10,7 +10,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
 const config = require('../config/config');
-const { swaggerUi, specs } = require('../../swagger');
+const { swaggerUi, specs } = require('../swagger');
 
 // Import models to ensure they're connected
 require('./models/Profile');
@@ -69,13 +69,18 @@ app.use(cors({
     credentials: true
 }));
 
-// Rate limiting
+// Rate limiting - DISABLED for both development and production (unlimited requests)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
+    max: 100000, // Unlimited (100k requests per 15 minutes)
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    skip: () => true, // Skip rate limiting for all requests (unlimited)
 });
-app.use(limiter);
+
+// Rate limiting disabled - Unlimited requests for development and production
+console.log('✓ Rate limiting disabled - Unlimited API requests allowed');
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

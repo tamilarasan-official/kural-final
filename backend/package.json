@@ -5,7 +5,9 @@
     "main": "src/server.js",
     "scripts": {
         "start": "node src/server.js",
-        "dev": "nodemon src/server.js",
+        "start:dev": "set NODE_ENV=development&& node src/server.js",
+        "start:prod": "set NODE_ENV=production&& node src/server.js",
+        "dev": "set NODE_ENV=development&& nodemon src/server.js",
         "test": "jest --detectOpenHandles",
         "test:watch": "jest --watch --detectOpenHandles",
         "test:coverage": "jest --coverage --detectOpenHandles",
@@ -91,5 +93,10 @@
     "directories": {
         "doc": "docs"
     },
-    "type": "commonjs"
+    "type": "commonjs",
+    "prettier": {
+        "trailingComma": "none",
+        "semi": true,
+        "singleQuote": true
+    }
 }
