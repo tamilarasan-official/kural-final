@@ -163,4 +163,21 @@ export const surveyAPI = {
 
     return await response.json();
   },
+
+  // Get completed voters for a survey
+  getCompletedVoters: async (surveyId: string) => {
+    const response = await fetch(`${BASE_URL}/${surveyId}/completed-voters`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  },
 };

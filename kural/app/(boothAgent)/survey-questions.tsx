@@ -43,14 +43,55 @@ export default function SurveyQuestionsScreen() {
         console.log('Survey Data formId:', surveyData.formId);
         console.log('Survey Data _id:', surveyData._id);
         console.log('Survey Data title:', surveyData.title);
+        console.log('Survey Data has questions:', !!surveyData.questions);
+        console.log('Survey Data has questionA:', !!surveyData.questionA);
         
-        const questionsList = surveyData.questions || [];
+        // Check both questions and questionA fields (database structure uses questionA)
+        const questionsList = surveyData.questionA || surveyData.questions || [];
         
         console.log('Questions loaded:', questionsList.length);
         console.log('Full questions array:', JSON.stringify(questionsList, null, 2));
         
-        if (questionsList.length > 0) {
-          questionsList.forEach((q: any, idx: number) => {
+        // Transform questionA format to expected format
+        let transformedQuestions = questionsList;
+        if (questionsList.length > 0 && questionsList[0].qid) {
+          // This is questionA format - transform it
+          console.log('🔄 Transforming questionA format to standard format...');
+          transformedQuestions = questionsList.map((q: any, index: number) => {
+            const questionText = typeof q.question === 'object' 
+              ? (q.question.english || q.question.tamil || 'Question')
+              : (q.question || 'Question');
+            
+            // Handle different question types
+            let options = [];
+            const qType = (q.type || '').toLowerCase();
+            
+            if (qType === 'yesno' || qType === 'yes_no') {
+              options = [
+                { optionId: 'yes', optionText: 'Yes', optionValue: 'yes' },
+                { optionId: 'no', optionText: 'No', optionValue: 'no' }
+              ];
+            } else if (q.options && Array.isArray(q.options)) {
+              options = q.options;
+            }
+            
+            const transformed = {
+              questionId: q.qid || `Q${index + 1}`,
+              questionText: questionText,
+              questionTextTamil: typeof q.question === 'object' ? q.question.tamil : null,
+              questionType: qType === 'yesno' || qType === 'yes_no' ? 'single_choice' : (q.type || 'single_choice'),
+              options: options,
+              required: q.required !== undefined ? q.required : true,
+              order: q.order || index
+            };
+            
+            console.log(`✅ Transformed Q${index + 1}:`, JSON.stringify(transformed, null, 2));
+            return transformed;
+          });
+        }
+        
+        if (transformedQuestions.length > 0) {
+          transformedQuestions.forEach((q: any, idx: number) => {
             console.log(`\n--- Question ${idx + 1} ---`);
             console.log('  Question ID:', q.questionId);
             console.log('  Question Text:', q.questionText);
@@ -68,11 +109,11 @@ export default function SurveyQuestionsScreen() {
         }
         
         // Sort questions by order
-        questionsList.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+        transformedQuestions.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
         
-        setQuestions(questionsList);
+        setQuestions(transformedQuestions);
         
-        if (questionsList.length === 0) {
+        if (transformedQuestions.length === 0) {
           Alert.alert('No Questions', 'This survey has no questions configured.');
           router.back();
         }
@@ -270,6 +311,11 @@ export default function SurveyQuestionsScreen() {
       {/* Question Content */}
       <ScrollView style={styles.questionContainer} showsVerticalScrollIndicator={false}>
         <Text style={styles.questionText}>{currentQuestion.questionText}</Text>
+        {currentQuestion.questionTextTamil && (
+          <Text style={[styles.questionText, { fontSize: 15, color: '#666', marginTop: 4 }]}>
+            {currentQuestion.questionTextTamil}
+          </Text>
+        )}
 
         {/* Options */}
         <View style={styles.optionsContainer}>

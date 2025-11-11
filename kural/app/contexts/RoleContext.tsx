@@ -10,6 +10,9 @@ export interface UserData {
   mobileNumber: string;
   role: string;
   boothAllocation?: string;
+  booth_id?: string;
+  aci_id?: number;
+  aci_name?: string;
   activeElection?: string;
   email?: string;
   status?: string;
@@ -71,6 +74,8 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
         if (savedUserData) {
           try {
             const data = JSON.parse(savedUserData);
+            console.log('🔍 RoleContext - Loaded userData from AsyncStorage:', data);
+            console.log('🔍 RoleContext - booth_id in loaded data:', data.booth_id);
             setUserDataState(data);
           } catch (parseError) {
             console.warn('Failed to parse saved user data:', parseError);

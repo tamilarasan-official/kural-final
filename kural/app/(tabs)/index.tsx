@@ -19,8 +19,9 @@ export default function DashboardScreen() {
   const { banners } = useBanner();
   const { t } = useLanguage();
   const [constituency, setConstituency] = useState('118 - Thondamuthur');
+  const [totalBooths, setTotalBooths] = useState(0);
   const { width } = Dimensions.get('window');
-  // Responsive layout measurements for "Cadre Overview"
+  // Responsive layout measurements for "Booth Overview"
   const contentHorizontalPadding = 16;
   const columnGap = 12;
   const contentWidth = width - contentHorizontalPadding * 2;
@@ -38,6 +39,31 @@ export default function DashboardScreen() {
   const [showElectionModal, setShowElectionModal] = useState(false); // State for election dropdown modal
   const [selectedElection, setSelectedElection] = useState('118 - Thondamuthur'); // State for selected election
   const [showElectionDropdown, setShowElectionDropdown] = useState(false); // State for election dropdown
+  const [showSurveyDetailsModal, setShowSurveyDetailsModal] = useState(false); // State for survey details modal
+  const [surveyProgress, setSurveyProgress] = useState<any>(null); // State for survey progress data
+  const [surveyLoading, setSurveyLoading] = useState(false); // State for survey loading
+  const [showFormCreationModal, setShowFormCreationModal] = useState(false); // State for form creation modal
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    assignedBooths: [] as string[],
+    questions: [] as any[]
+  });
+  const [selectAllBooths, setSelectAllBooths] = useState(false);
+  const [showQuestionTypeDropdown, setShowQuestionTypeDropdown] = useState<string | null>(null);
+  const [availableBooths, setAvailableBooths] = useState<any[]>([]);
+  const [showBoothDropdown, setShowBoothDropdown] = useState(false);
+  
+  const questionTypes = [
+    { value: 'short_text', label: 'dashboard.questionType.short_text' },
+    { value: 'paragraph', label: 'dashboard.questionType.paragraph' },
+    { value: 'yes_no', label: 'dashboard.questionType.yes_no' },
+    { value: 'multiple_choice', label: 'dashboard.questionType.multiple_choice' },
+    { value: 'checkboxes', label: 'dashboard.questionType.checkboxes' },
+    { value: 'dropdown', label: 'dashboard.questionType.dropdown' },
+    { value: 'date', label: 'dashboard.questionType.date' },
+    { value: 'number', label: 'dashboard.questionType.number' },
+  ];
   
   // Election options (restricted to the configured default)
   const electionOptions = [
@@ -306,20 +332,134 @@ export default function DashboardScreen() {
     setShowElectionModal(false);
   };
 
-  // Load persisted default election on mount
+  // Load constituency from user data on mount
   useEffect(() => {
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(DEFAULT_ELECTION_KEY);
-        if (saved) {
-          setSelectedElection(saved);
-          setConstituency(saved);
+        const userDataStr = await AsyncStorage.getItem('userData');
+        if (userDataStr) {
+          const userData = JSON.parse(userDataStr);
+          if (userData?.aci_id && userData?.aci_name) {
+            const constituencyName = `${userData.aci_id} - ${userData.aci_name}`;
+            setConstituency(constituencyName);
+            setSelectedElection(constituencyName);
+            console.log('Loaded constituency from user data:', constituencyName);
+            
+            // Fetch total booths count and survey progress
+            await fetchTotalBooths(userData.aci_id);
+            await fetchSurveyProgress(userData.aci_id);
+          }
+        } else {
+          // Fallback to saved election if userData not available
+          const saved = await AsyncStorage.getItem(DEFAULT_ELECTION_KEY);
+          if (saved) {
+            setSelectedElection(saved);
+            setConstituency(saved);
+          }
         }
       } catch (err) {
-        console.warn('Failed to load saved default election', err);
+        console.warn('Failed to load constituency', err);
       }
     })();
   }, []);
+
+  // Function to fetch total booths count
+  const fetchTotalBooths = async (aciId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.warn('No token found');
+        return;
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/booth-count?aci_id=${aciId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setTotalBooths(data.data.count || 0);
+        console.log('Total booths count:', data.data.count);
+      } else {
+        console.error('Failed to fetch booth count:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching booth count:', error);
+    }
+  };
+
+  // Function to fetch survey progress
+  const fetchSurveyProgress = async (aciId: string) => {
+    try {
+      setSurveyLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.warn('No token found');
+        return;
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/surveys/progress?aci_id=${aciId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setSurveyProgress(data.data);
+        console.log('Survey progress:', data.data);
+      } else {
+        console.error('Failed to fetch survey progress:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching survey progress:', error);
+    } finally {
+      setSurveyLoading(false);
+    }
+  };
+
+  // Fetch available booths for form assignment
+  const fetchAvailableBooths = async (aciId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.warn('No token found');
+        return;
+      }
+
+      console.log('Fetching booths for aci_id:', aciId);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users?aci_id=${aciId}&role=Booth Agent&status=Active`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('Booths API Response:', data);
+      
+      if (data.success && data.data) {
+        setAvailableBooths(data.data);
+        console.log('Available booths count:', data.data.length);
+        console.log('Sample booth:', data.data[0]);
+      } else {
+        console.error('Failed to fetch booths:', data.message);
+        setAvailableBooths([]);
+      }
+    } catch (error) {
+      console.error('Error fetching booths:', error);
+      setAvailableBooths([]);
+    }
+  };
 
   // Handle election modal close
   const handleElectionClose = () => {
@@ -332,15 +472,20 @@ export default function DashboardScreen() {
       <View style={styles.topArea}>
         <View style={styles.headerRow}>
           <View style={styles.leftSection}>
-            <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/(drawer)/drawerscreen')}>
+            <TouchableOpacity 
+              style={styles.menuButton}
+              onPress={() => {
+                console.log('Menu button clicked - navigating to drawer');
+                router.push('/(tabs)/dashboard/drawer/drawerscreen');
+              }}
+            >
               <View style={styles.menuBar} />
               <View style={styles.menuBar} />
               <View style={styles.menuBar} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.selector} activeOpacity={0.8} onPress={handleElectionSelect}>
-              <Text style={styles.selectorText}>{constituency}</Text>
-              <Text style={styles.selectorChevron}>▾</Text>
-            </TouchableOpacity>
+            <View style={styles.constituencyDisplay}>
+              <Text style={styles.constituencyText}>{constituency}</Text>
+            </View>
           </View>
           <TouchableOpacity style={styles.bell} onPress={() => router.push('/(tabs)/dashboard/notifications')}>
             <Icon name="notifications" size={24} color="#0D47A1" />
@@ -352,24 +497,25 @@ export default function DashboardScreen() {
         
         <View style={styles.quickRow}>
           <ManagerCard 
-            title={t('dashboard.cadreManager')} 
-            source={require('../../assets/images/cadre_manager.png')} 
-            onPress={() => router.push('/(tabs)/dashboard/my_cadre')}
+            title={t('dashboard.insights')} 
+            value={totalBooths.toString()}
+            subtitle={t('dashboard.totalBooths')}
+            isInsights={true}
           />
           <ManagerCard 
-            title={t('dashboard.voterManager')} 
-            source={require('../../assets/images/voter_manager.png')} 
-            onPress={() => router.push('/(tabs)/dashboard/voter_manager_parts')}
+            title="Voters"
+            isInsights={true}
+            isPlaceholder={true}
           />
           <ManagerCard 
-            title={t('dashboard.familyManager')} 
-            source={require('../../assets/images/family_manager.png')} 
-            onPress={() => router.push('/(tabs)/dashboard/family_manager?partNumber=1')}
+            title="Familys"
+            isInsights={true}
+            isPlaceholder={true}
           />
           <ManagerCard 
-            title={t('dashboard.surveyManager')} 
-            source={require('../../assets/images/survey_manager.png')} 
-            onPress={() => router.push('/(tabs)/dashboard/survey')}
+            title="Survey"
+            isInsights={true}
+            isPlaceholder={true}
           />
         </View>
       </View>
@@ -403,7 +549,7 @@ export default function DashboardScreen() {
       {/* Feature grid (icons + labels, no squares) */}
       <View style={styles.grid}>
         <IconTile 
-          title={t('dashboard.cadre')} 
+          title={t('dashboard.booth')} 
           src={require('../../assets/images/cadre.png')} 
           onPress={() => router.push('/(tabs)/dashboard/volunteers_tracking')}
         />
@@ -448,30 +594,65 @@ export default function DashboardScreen() {
         ))}
       </View>
 
-      {/* Cadre Overview */}
-      <Text style={styles.sectionTitle}>{t('dashboard.cadreOverview')}</Text>
-      <View style={styles.cadreOverviewContainer}>
-        {/* Top row - Total Cadres (full width) */}
-        <View style={styles.cadreOverviewRowFull}>
-          <OverviewCard title={t('dashboard.totalCadres')} value={'0'} accent="#1976D2" iconName="directions-walk" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=all')} />
+      {/* Survey Overview */}
+      <Text style={styles.sectionTitle}>{t('dashboard.surveyOverview')}</Text>
+      <TouchableOpacity 
+        style={styles.surveyOverviewBox}
+        onPress={() => setShowSurveyDetailsModal(true)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.surveyOverviewHeader}>
+          <Text style={styles.surveyOverviewTitle}>{t('dashboard.overallAssemblySurvey')}</Text>
+          <Icon name="chevron-right" size={24} color="#1976D2" />
         </View>
-        
-        {/* First row - Cadre Active & Inactive */}
-        <View style={styles.cadreOverviewRow}>
-          <View style={styles.cadreOverviewItem}>
-            <OverviewCard title={t('dashboard.cadreActive')} value={'0'} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=active')} />
+        <View style={styles.surveyProgressContainer}>
+          <View style={styles.surveyProgressBar}>
+            <View style={[styles.surveyProgressFill, { width: `${surveyProgress?.surveyRate || 0}%` }]} />
           </View>
-          <View style={styles.cadreOverviewItem}>
-            <OverviewCard title={t('dashboard.cadreInActive')} value={'0'} accent="#D32F2F" onPress={() => router.push('/(tabs)/dashboard/my_cadre?tab=inactive')} />
+          <Text style={styles.surveyProgressText}>{surveyProgress?.surveyRate || 0}% {t('dashboard.surveyRate')}</Text>
+        </View>
+        <View style={styles.surveyStatsRow}>
+          <View style={styles.surveyStatItem}>
+            <Text style={styles.surveyStatValue}>{surveyProgress?.avgCompleted || 0}</Text>
+            <Text style={styles.surveyStatLabel}>{t('dashboard.avgCompleted')}</Text>
+          </View>
+          <View style={styles.surveyStatDivider} />
+          <View style={styles.surveyStatItem}>
+            <Text style={styles.surveyStatValue}>{surveyProgress?.fullyCompletedBooths || 0}</Text>
+            <Text style={styles.surveyStatLabel}>{t('dashboard.fullyCompleted')}</Text>
+          </View>
+          <View style={styles.surveyStatDivider} />
+          <View style={styles.surveyStatItem}>
+            <Text style={styles.surveyStatValue}>{surveyProgress?.totalBooths || totalBooths}</Text>
+            <Text style={styles.surveyStatLabel}>{t('dashboard.totalBooths')}</Text>
           </View>
         </View>
-        
+      </TouchableOpacity>
+
+      {/* Booth Overview */}
+      <Text style={styles.sectionTitle}>{t('dashboard.boothOverview')}</Text>
+      <View style={styles.boothOverviewContainer}>
+        {/* Top row - Total Booths (full width) */}
+        <View style={styles.boothOverviewRowFull}>
+          <OverviewCard title={t('dashboard.totalBooths')} value={totalBooths.toString()} accent="#1976D2" iconName="directions-walk" onPress={() => router.push('/(tabs)/dashboard/my_booth?tab=all')} />
+        </View>
+
+        {/* First row - Booth Active & Inactive */}
+        <View style={styles.boothOverviewRow}>
+          <View style={styles.boothOverviewItem}>
+            <OverviewCard title={t('dashboard.boothActive')} value={'0'} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_booth?tab=active')} />
+          </View>
+          <View style={styles.boothOverviewItem}>
+            <OverviewCard title={t('dashboard.boothInActive')} value={'0'} accent="#D32F2F" onPress={() => router.push('/(tabs)/dashboard/my_booth?tab=inactive')} />
+          </View>
+        </View>
+
         {/* Second row - Logged In & Not Logged */}
-        <View style={styles.cadreOverviewRow}>
-          <View style={styles.cadreOverviewItem}>
+        <View style={styles.boothOverviewRow}>
+          <View style={styles.boothOverviewItem}>
             <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
           </View>
-          <View style={styles.cadreOverviewItem}>
+          <View style={styles.boothOverviewItem}>
             <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
           </View>
         </View>
@@ -932,15 +1113,389 @@ export default function DashboardScreen() {
           </View>
         </Modal>
       )}
+
+      {/* Survey Details Modal */}
+      {showSurveyDetailsModal && (
+        <Modal
+          visible={showSurveyDetailsModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('dashboard.boothSurveyProgress')}</Text>
+              <View style={styles.modalHeaderActions}>
+                <TouchableOpacity 
+                  onPress={async () => {
+                    const userDataStr = await AsyncStorage.getItem('userData');
+                    if (userDataStr) {
+                      const userData = JSON.parse(userDataStr);
+                      await fetchAvailableBooths(userData.aci_id);
+                    }
+                    setShowFormCreationModal(true);
+                    setFormData({
+                      title: '',
+                      description: '',
+                      assignedBooths: [],
+                      questions: []
+                    });
+                    setSelectAllBooths(false);
+                  }}
+                  style={styles.createFormButton}
+                >
+                  <Icon name="add-circle-outline" size={24} color="#1976D2" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => setShowSurveyDetailsModal(false)}
+                  style={styles.closeButton}
+                >
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              {surveyLoading ? (
+                <View style={styles.boothSurveyCard}>
+                  <Text style={styles.boothNumberText}>{t('dashboard.loading')}</Text>
+                </View>
+              ) : surveyProgress?.booths && surveyProgress.booths.length > 0 ? (
+                surveyProgress.booths.map((booth: any, index: number) => (
+                  <View key={booth.boothId || index} style={styles.boothSurveyCard}>
+                    <View style={styles.boothSurveyHeader}>
+                      <View style={styles.boothInfoSection}>
+                        <Text style={styles.boothNumberText}>{booth.boothNumber}</Text>
+                        <Text style={styles.boothAgentName}>Agent: {booth.agentName}</Text>
+                        <Text style={styles.boothAgentPhone}>📞 {booth.agentPhone || 'N/A'}</Text>
+                      </View>
+                      <View style={styles.boothProgressBadge}>
+                        <Text style={styles.boothProgressPercentage}>{booth.progressPercentage || 0}%</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.boothProgressBarContainer}>
+                      <View style={styles.boothProgressBar}>
+                        <View style={[styles.boothProgressFill, { width: `${booth.progressPercentage || 0}%` }]} />
+                      </View>
+                    </View>
+
+                    <View style={styles.boothSurveyStats}>
+                      <View style={styles.boothSurveyStatItem}>
+                        <Text style={styles.boothSurveyStatValue}>{booth.completed || 0}</Text>
+                        <Text style={styles.boothSurveyStatLabel}>{t('dashboard.completed')}</Text>
+                      </View>
+                      <View style={styles.boothSurveyStatItem}>
+                        <Text style={styles.boothSurveyStatValue}>{booth.total || 0}</Text>
+                        <Text style={styles.boothSurveyStatLabel}>{t('dashboard.total')}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.boothSurveyCard}>
+                  <Text style={styles.boothNumberText}>{t('dashboard.noVotersFound')}</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
+
+      {/* Form Creation Modal */}
+      {showFormCreationModal && (
+        <Modal
+          visible={showFormCreationModal}
+          animationType="slide"
+          presentationStyle="fullScreen"
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('dashboard.createSurveyForm')}</Text>
+              <TouchableOpacity 
+                onPress={() => setShowFormCreationModal(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              {/* Form Title */}
+              <View style={styles.formSection}>
+                <Text style={styles.formLabel}>{t('dashboard.formTitle')}</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder={t('dashboard.enterFormTitle')}
+                  value={formData.title}
+                  onChangeText={(text) => setFormData({...formData, title: text})}
+                />
+              </View>
+
+              {/* Form Description */}
+              <View style={styles.formSection}>
+                <Text style={styles.formLabel}>{t('dashboard.formDescription')}</Text>
+                <TextInput
+                  style={[styles.formInput, styles.formTextArea]}
+                  placeholder={t('dashboard.enterFormDescription')}
+                  value={formData.description}
+                  onChangeText={(text) => setFormData({...formData, description: text})}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+
+              {/* Assign to Booths */}
+              <View style={styles.formSection}>
+                <View style={styles.boothsHeaderRow}>
+                  <Text style={styles.formLabel}>{t('dashboard.assignToBooths')}</Text>
+                  <TouchableOpacity 
+                    style={styles.selectAllBoothsButton}
+                    onPress={() => {
+                      const allBoothIds = availableBooths.map((b: any) => b._id);
+                      if (selectAllBooths) {
+                        setFormData({...formData, assignedBooths: []});
+                        setSelectAllBooths(false);
+                      } else {
+                        setFormData({...formData, assignedBooths: allBoothIds});
+                        setSelectAllBooths(true);
+                      }
+                    }}
+                  >
+                    <View style={styles.checkbox}>
+                      {selectAllBooths && <Icon name="check" size={18} color="#1976D2" />}
+                    </View>
+                    <Text style={styles.selectAllBoothsText}>{t('dashboard.selectAllBooths')}</Text>
+                  </TouchableOpacity>
+                </View>
+                
+                {/* Booths Dropdown */}
+                <TouchableOpacity 
+                  style={styles.boothDropdownButton}
+                  onPress={() => setShowBoothDropdown(!showBoothDropdown)}
+                >
+                  <Text style={styles.boothDropdownText}>
+                    {formData.assignedBooths.length > 0 
+                      ? `${formData.assignedBooths.length} ${t('dashboard.boothsSelected')}`
+                      : t('dashboard.selectBooths')}
+                  </Text>
+                  <Icon name={showBoothDropdown ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#666" />
+                </TouchableOpacity>
+
+                {/* Dropdown List */}
+                {showBoothDropdown && (
+                  <View style={styles.boothDropdownList}>
+                    {availableBooths.length > 0 ? (
+                      availableBooths.map((booth: any) => (
+                        <TouchableOpacity 
+                          key={booth._id}
+                          style={styles.boothDropdownItem}
+                          onPress={() => {
+                            const isSelected = formData.assignedBooths.includes(booth._id);
+                            if (isSelected) {
+                              setFormData({
+                                ...formData, 
+                                assignedBooths: formData.assignedBooths.filter(id => id !== booth._id)
+                              });
+                            } else {
+                              setFormData({
+                                ...formData, 
+                                assignedBooths: [...formData.assignedBooths, booth._id]
+                              });
+                            }
+                            // Update selectAll state
+                            const newLength = isSelected ? formData.assignedBooths.length - 1 : formData.assignedBooths.length + 1;
+                            setSelectAllBooths(newLength === availableBooths.length);
+                          }}
+                        >
+                          <View style={styles.checkbox}>
+                            {formData.assignedBooths.includes(booth._id) && <Icon name="check" size={18} color="#1976D2" />}
+                          </View>
+                          <View style={styles.boothDropdownItemInfo}>
+                            <Text style={styles.boothDropdownItemName}>
+                              {booth.booth_id || `Booth ${booth.name}`}
+                            </Text>
+                            <Text style={styles.boothDropdownItemAgent}>{booth.name} • {booth.phone || 'No phone'}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <View style={styles.boothDropdownItem}>
+                        <Text style={styles.boothDropdownItemAgent}>{t('dashboard.noBooths')}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* Questions Section */}
+              <View style={styles.formSection}>
+                <View style={styles.questionsSectionHeader}>
+                  <Text style={styles.formLabel}>{t('dashboard.questions')}</Text>
+                  <TouchableOpacity 
+                    style={styles.addQuestionButton}
+                    onPress={() => {
+                      setFormData({
+                        ...formData,
+                        questions: [...formData.questions, {
+                          id: Date.now().toString(),
+                          question: '',
+                          type: 'short_text',
+                          required: false
+                        }]
+                      });
+                    }}
+                  >
+                    <Icon name="add" size={20} color="#FFFFFF" />
+                    <Text style={styles.addQuestionButtonText}>{t('dashboard.addQuestion')}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Questions List */}
+                {formData.questions.map((question, index) => (
+                  <View key={question.id} style={styles.questionCard}>
+                    <View style={styles.questionHeader}>
+                      <Text style={styles.questionNumber}>{t('dashboard.question')} {index + 1}</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setFormData({
+                            ...formData,
+                            questions: formData.questions.filter((_, i) => i !== index)
+                          });
+                        }}
+                        style={styles.deleteQuestionButton}
+                      >
+                        <Icon name="delete" size={20} color="#F44336" />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Question Text */}
+                    <TextInput
+                      style={styles.formInput}
+                      placeholder={t('dashboard.enterQuestion')}
+                      value={question.question}
+                      onChangeText={(text) => {
+                        const updatedQuestions = [...formData.questions];
+                        updatedQuestions[index].question = text;
+                        setFormData({...formData, questions: updatedQuestions});
+                      }}
+                    />
+
+                    {/* Question Type Dropdown */}
+                    <View style={styles.questionTypeContainer}>
+                      <Text style={styles.questionTypeLabel}>{t('dashboard.questionType')}</Text>
+                      <TouchableOpacity 
+                        style={styles.questionTypeSelector}
+                        onPress={() => {
+                          setShowQuestionTypeDropdown(
+                            showQuestionTypeDropdown === question.id ? null : question.id
+                          );
+                        }}
+                      >
+                        <Text style={styles.questionTypeText}>
+                          {t(`dashboard.questionType.${question.type}`)}
+                        </Text>
+                        <Icon name={showQuestionTypeDropdown === question.id ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#666" />
+                      </TouchableOpacity>
+                      
+                      {/* Dropdown Options */}
+                      {showQuestionTypeDropdown === question.id && (
+                        <View style={styles.questionTypeDropdown}>
+                          {questionTypes.map((type) => (
+                            <TouchableOpacity
+                              key={type.value}
+                              style={[
+                                styles.questionTypeOption,
+                                question.type === type.value && styles.questionTypeOptionSelected
+                              ]}
+                              onPress={() => {
+                                const updatedQuestions = [...formData.questions];
+                                updatedQuestions[index].type = type.value;
+                                setFormData({...formData, questions: updatedQuestions});
+                                setShowQuestionTypeDropdown(null);
+                              }}
+                            >
+                              <Text style={[
+                                styles.questionTypeOptionText,
+                                question.type === type.value && styles.questionTypeOptionTextSelected
+                              ]}>
+                                {t(type.label)}
+                              </Text>
+                              {question.type === type.value && (
+                                <Icon name="check" size={20} color="#1976D2" />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Required Toggle */}
+                    <View style={styles.requiredToggleContainer}>
+                      <Text style={styles.requiredToggleLabel}>{t('dashboard.required')}</Text>
+                      <TouchableOpacity
+                        style={[styles.toggleSwitch, question.required && styles.toggleSwitchActive]}
+                        onPress={() => {
+                          const updatedQuestions = [...formData.questions];
+                          updatedQuestions[index].required = !question.required;
+                          setFormData({...formData, questions: updatedQuestions});
+                        }}
+                      >
+                        <View style={[styles.toggleThumb, question.required && styles.toggleThumbActive]} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity 
+                style={styles.saveFormButton}
+                onPress={() => {
+                  // TODO: Implement form submission logic
+                  console.log('Form Data:', formData);
+                  setShowFormCreationModal(false);
+                  setShowSurveyDetailsModal(false);
+                }}
+              >
+                <Text style={styles.saveFormButtonText}>{t('dashboard.saveForm')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
     </ScrollView>
   );
 }
 
-type ManagerCardProps = { title: string; source: any; onPress?: () => void };
-const ManagerCard = ({ title, source, onPress }: ManagerCardProps) => (
-  <TouchableOpacity style={styles.managerCard} activeOpacity={0.8} onPress={onPress}>
-    <Image source={source} style={styles.managerIcon} />
-    <Text style={styles.managerLabel}>{title}</Text>
+type ManagerCardProps = { 
+  title: string; 
+  source?: any; 
+  onPress?: () => void;
+  value?: string;
+  subtitle?: string;
+  isInsights?: boolean;
+  isPlaceholder?: boolean;
+};
+
+const ManagerCard = ({ title, source, onPress, value, subtitle, isInsights, isPlaceholder }: ManagerCardProps) => (
+  <TouchableOpacity style={styles.managerCard} activeOpacity={0.8} onPress={onPress} disabled={isInsights || isPlaceholder}>
+    {isInsights ? (
+      <View style={styles.insightsContent}>
+        {isPlaceholder ? (
+          <Text style={styles.placeholderTitle}>{title}</Text>
+        ) : (
+          <>
+            <Text style={styles.insightsValue}>{value || '0'}</Text>
+            <Text style={styles.insightsSubtitle}>{subtitle}</Text>
+          </>
+        )}
+      </View>
+    ) : (
+      <>
+        {source && <Image source={source} style={styles.managerIcon} />}
+        <Text style={styles.managerLabel}>{title}</Text>
+      </>
+    )}
   </TouchableOpacity>
 );
 
@@ -1032,6 +1587,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     flex: 1,
   },
+  constituencyDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    flex: 1,
+  },
+  constituencyText: {
+    fontWeight: '700',
+    color: '#000000',
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
   selectorText: {
     fontWeight: '700',
     color: '#000000',
@@ -1084,6 +1653,28 @@ const styles = StyleSheet.create({
   },
   managerIcon: { width: 32, height: 32, resizeMode: 'contain', marginBottom: 8 },
   managerLabel: { textAlign: 'center', fontSize: 13, color: '#263238', fontWeight: '500' },
+  insightsContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightsValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1976D2',
+    marginBottom: 4,
+  },
+  insightsSubtitle: {
+    fontSize: 11,
+    color: '#546E7A',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  placeholderTitle: {
+    fontSize: 14,
+    color: '#546E7A',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
 
   searchRow: {
     flexDirection: 'row',
@@ -1190,21 +1781,21 @@ const styles = StyleSheet.create({
   overviewItem: {
     marginBottom: 12,
   },
-  // New Cadre Overview Styles
-  cadreOverviewContainer: {
+  // New Booth Overview Styles
+  boothOverviewContainer: {
     paddingHorizontal: 16,
     marginTop: 12,
   },
-  cadreOverviewRow: {
+  boothOverviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8, // Reduced margin for tighter layout
     gap: 8, // Reduced gap for tighter layout
   },
-  cadreOverviewItem: {
+  boothOverviewItem: {
     flex: 1,
   },
-  cadreOverviewRowFull: {
+  boothOverviewRowFull: {
     marginBottom: 8, // Reduced margin for tighter layout
   },
   overviewRightGrid: {
@@ -1845,6 +2436,431 @@ const styles = StyleSheet.create({
     color: '#0D47A1',
     paddingHorizontal: 16,
     marginTop: 8,
+    fontWeight: '600',
+  },
+
+  // Survey Overview Styles
+  surveyOverviewBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  surveyOverviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  surveyOverviewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  surveyProgressContainer: {
+    marginBottom: 16,
+  },
+  surveyProgressBar: {
+    height: 12,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  surveyProgressFill: {
+    height: '100%',
+    backgroundColor: '#1976D2',
+    borderRadius: 6,
+  },
+  surveyProgressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1976D2',
+    textAlign: 'center',
+  },
+  surveyStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  surveyStatItem: {
+    alignItems: 'center',
+  },
+  surveyStatValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1976D2',
+    marginBottom: 4,
+  },
+  surveyStatLabel: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  surveyStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E0E0E0',
+  },
+
+  // Booth Survey Details Modal Styles
+  boothSurveyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1976D2',
+  },
+  boothSurveyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  boothInfoSection: {
+    flex: 1,
+  },
+  boothNumberText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 6,
+  },
+  boothAgentName: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  boothAgentPhone: {
+    fontSize: 13,
+    color: '#1976D2',
+    fontWeight: '500',
+  },
+  boothProgressBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  boothProgressPercentage: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1976D2',
+  },
+  boothProgressBarContainer: {
+    marginBottom: 12,
+  },
+  boothProgressBar: {
+    height: 8,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  boothProgressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 4,
+  },
+  boothSurveyStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  boothSurveyStatItem: {
+    alignItems: 'center',
+  },
+  boothSurveyStatValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  boothSurveyStatLabel: {
+    fontSize: 11,
+    color: '#666666',
+    fontWeight: '500',
+  },
+
+  // Missing Voter Card Styles
+  serialContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  starIcon: {
+    marginRight: 4,
+  },
+  genderIconContainer: {
+    marginRight: 4,
+  },
+  // Form Creation Modal Styles
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  createFormButton: {
+    padding: 8,
+  },
+  formSection: {
+    marginBottom: 24,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#333333',
+  },
+  formTextArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  boothSelectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#1976D2',
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  boothSelectText: {
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  questionsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addQuestionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1976D2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+  },
+  addQuestionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  questionCard: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  questionNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1976D2',
+  },
+  deleteQuestionButton: {
+    padding: 4,
+  },
+  questionTypeContainer: {
+    marginTop: 12,
+  },
+  questionTypeLabel: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 6,
+  },
+  questionTypeSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+  },
+  questionTypeText: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  requiredToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  requiredToggleLabel: {
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  toggleSwitch: {
+    width: 50,
+    height: 28,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleSwitchActive: {
+    backgroundColor: '#1976D2',
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  saveFormButton: {
+    backgroundColor: '#2E7D32',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  saveFormButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  boothsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  selectAllBoothsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selectAllBoothsText: {
+    fontSize: 14,
+    color: '#1976D2',
+    fontWeight: '500',
+  },
+  boothDropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+  },
+  boothDropdownText: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  boothDropdownList: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    marginTop: 8,
+    maxHeight: 300,
+  },
+  boothDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  boothDropdownItemInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  boothDropdownItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  boothDropdownItemAgent: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  questionTypeDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  questionTypeOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  questionTypeOptionSelected: {
+    backgroundColor: '#E3F2FD',
+  },
+  questionTypeOptionText: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  questionTypeOptionTextSelected: {
+    color: '#1976D2',
     fontWeight: '600',
   },
 })

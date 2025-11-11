@@ -151,6 +151,31 @@ export const voterAPI = {
     return data;
   },
 
+  // Get voters by booth ID
+  getVotersByBoothId: async (boothId: string, options?: { page?: number; limit?: number }) => {
+    const ts = Date.now();
+    const qp = new URLSearchParams();
+    if (options?.page) qp.append('page', String(options.page));
+    if (options?.limit) qp.append('limit', String(options.limit));
+    qp.append('_', String(ts));
+    const qs = qp.toString();
+    const response = await fetch(`${BASE_URL}/by-booth/${boothId}?${qs}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  },
+
   // Get voter statistics by part number
   getVoterStats: async (partNumber: string) => {
     const ts = Date.now();
@@ -373,6 +398,75 @@ export const voterAPI = {
       const errorData = await response.json();
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
+    const data = await response.json();
+    return data;
+  },
+
+  // Mark voter as verified
+  markAsVerified: async (voterId: string) => {
+    const response = await fetch(`${BASE_URL}/${voterId}/verify`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  },
+
+  // Update voter information
+  updateVoterInfo: async (voterId: string, updateData: any) => {
+    const response = await fetch(`${BASE_URL}/${voterId}/info`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  },
+
+  // Create new voter
+  createVoter: async (voterData: {
+    voterId: string;
+    fullName: string;
+    age: string;
+    gender: string;
+    phoneNumber?: string;
+    address: string;
+    familyId?: string;
+    specialCategories?: string[];
+    boothId: string;
+  }) => {
+    const response = await fetch(`${BASE_URL}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+      body: JSON.stringify(voterData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
     return data;
   },

@@ -13,16 +13,55 @@ export const options = { headerShown: false };
 
 type Fatherless = {
   _id: string;
-  Name: string;
+  Name?: string;
+  name?: {
+    english: string;
+    tamil: string;
+  };
   Relation: string;
-  'Father Name': string;
+  'Father Name'?: string;
+  fathername?: string;
   Number?: string;
+  voterID?: string;
   sex?: string;
+  gender?: string;
   Door_No?: string | number;
+  doornumber?: string;
   age?: number;
   Part_no?: number | string;
   Anubhag_number?: number | string;
+  'Mobile No'?: string;
+  mobile?: string;
   createdAt?: string;
+};
+
+// Helper function to get voter name from either format
+const getVoterName = (voter: Fatherless): string => {
+  if (voter.Name) return voter.Name;
+  if (voter.name?.english) return voter.name.english;
+  if (voter.name?.tamil) return voter.name.tamil;
+  return '-';
+};
+
+// Helper function to get voter ID from either format
+const getVoterID = (voter: Fatherless): string => {
+  if (voter.Number) return voter.Number;
+  if (voter.voterID) return voter.voterID;
+  return '';
+};
+
+// Helper function to get father name from either format
+const getFatherName = (voter: Fatherless): string => {
+  if (voter['Father Name']) return voter['Father Name'];
+  if (voter.fathername) return voter.fathername;
+  return '';
+};
+
+// Helper function to get door number from either format
+const getDoorNo = (voter: Fatherless): string | number => {
+  if (voter.Door_No) return voter.Door_No;
+  if (voter.doornumber) return voter.doornumber;
+  return '-';
 };
 
 export default function FatherlessScreen() {
@@ -177,12 +216,12 @@ export default function FatherlessScreen() {
                   <Icon name="image" size={24} color="#90A4AE" />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.voterName}>{it.Name || '-'}</Text>
-                  {!!it.Number && (
-                    <Text style={styles.voterIdBadge}>{it.Number}</Text>
+                  <Text style={styles.voterName}>{getVoterName(it)}</Text>
+                  {!!getVoterID(it) && (
+                    <Text style={styles.voterIdBadge}>{getVoterID(it)}</Text>
                   )}
-                  <Text style={styles.relationName}>{it['Father Name'] || ''}</Text>
-                  <Text style={styles.address}>{t('dashboard.doorNo')} {it.Door_No ?? '-'}</Text>
+                  <Text style={styles.relationName}>{getFatherName(it)}</Text>
+                  <Text style={styles.address}>{t('dashboard.doorNo')} {getDoorNo(it)}</Text>
                 </View>
               </View>
               <View style={styles.bottomRow}>

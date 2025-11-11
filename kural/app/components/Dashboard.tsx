@@ -340,13 +340,13 @@ export default function Dashboard({ roleOverride }: DashboardProps) {
       />
     ];
 
-    // Only show Cadre Manager for moderator/assembly incharge roles
+    // Only show Booth Manager for moderator/assembly incharge roles
     if (effectiveRole === 'moderator') {
       return [
         <ManagerCard 
-          key="cadre"
-          title={t('dashboard.cadreManager')} 
-          source={require('../../assets/images/cadre_manager.png')} 
+          key="booth"
+          title={t('dashboard.boothManager')} 
+          source={require('../../assets/images/booth_manager.png')} 
           onPress={() => router.push('/(tabs)/dashboard/volunteers_tracking')}
         />,
         ...commonCards
@@ -356,18 +356,18 @@ export default function Dashboard({ roleOverride }: DashboardProps) {
     return commonCards;
   };
 
-  // Render Cadre Overview (only for moderator role)
-  const renderCadreOverview = () => {
+  // Render Booth Overview (only for moderator role)
+  const renderBoothOverview = () => {
     if (effectiveRole !== 'moderator') return null;
 
     return (
       <>
-        <Text style={styles.sectionTitle}>{t('dashboard.cadreOverview')}</Text>
-        <View style={styles.cadreOverviewContainer}>
-          <View style={styles.cadreOverviewRow}>
-            <View style={styles.cadreOverviewItem}>
+        <Text style={styles.sectionTitle}>{t('dashboard.boothOverview')}</Text>
+        <View style={styles.boothOverviewContainer}>
+          <View style={styles.boothOverviewRow}>
+            <View style={styles.boothOverviewItem}>
               <OverviewCard
-                title={t('dashboard.totalCadres')}
+                title={t('dashboard.totalBooths')}
                 value="124"
                 accent="#4CAF50"
                 large={true}
@@ -378,7 +378,7 @@ export default function Dashboard({ roleOverride }: DashboardProps) {
             <View style={styles.overviewRightGrid}>
               <View style={styles.twoColItem}>
                 <OverviewCard
-                  title={t('dashboard.activeCadres')}
+                  title={t('dashboard.boothActive')}
                   value="89"
                   accent="#2196F3"
                   iconName="person"
@@ -387,7 +387,7 @@ export default function Dashboard({ roleOverride }: DashboardProps) {
               </View>
               <View style={styles.twoColItem}>
                 <OverviewCard
-                  title={t('dashboard.inactiveCadres')}
+                  title={t('dashboard.boothInActive')}
                   value="35"
                   accent="#FF9800"
                   iconName="person-off"
@@ -407,7 +407,10 @@ export default function Dashboard({ roleOverride }: DashboardProps) {
       <View style={styles.topArea}>
         <View style={styles.headerRow}>
           <View style={styles.leftSection}>
-            <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/(drawer)/drawerscreen')}>
+            <TouchableOpacity 
+              style={styles.menuButton}
+              onPress={() => router.push('/drawerscreen')}
+            >
               <View style={styles.menuBar} />
               <View style={styles.menuBar} />
               <View style={styles.menuBar} />
@@ -458,7 +461,7 @@ export default function Dashboard({ roleOverride }: DashboardProps) {
       {/* Feature grid (icons + labels) */}
       <View style={styles.grid}>
         <IconTile 
-          title={t('dashboard.cadre')} 
+          title={t('dashboard.booth')} 
           src={require('../../assets/images/cadre.png')} 
           onPress={() => router.push('/(tabs)/dashboard/volunteers_tracking')}
         />
@@ -503,8 +506,8 @@ export default function Dashboard({ roleOverride }: DashboardProps) {
         ))}
       </View>
 
-      {/* Cadre Overview - only for moderator role */}
-      {renderCadreOverview()}
+      {/* Booth Overview - only for moderator role */}
+      {renderBoothOverview()}
 
       {/* All the modal components remain the same... */}
       {/* For brevity, I'll include the key modals but they're identical to the original */}
@@ -801,18 +804,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   
-  // Cadre Overview Styles
-  cadreOverviewContainer: {
+  // Booth Overview Styles
+  boothOverviewContainer: {
     paddingHorizontal: 16,
     marginTop: 12,
   },
-  cadreOverviewRow: {
+  boothOverviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
     gap: 8,
   },
-  cadreOverviewItem: {
+  boothOverviewItem: {
     flex: 1,
   },
   overviewRightGrid: {

@@ -11,10 +11,17 @@ export default function BoothAgentLayout() {
         }} 
       />
       <Stack.Screen 
-        name="age80above" 
+        name="profile" 
         options={{ 
-          title: 'Age 80+ Voters',
-          headerBackTitle: 'Back'
+          headerShown: false,
+          title: 'Profile' 
+        }} 
+      />
+      <Stack.Screen 
+        name="notifications" 
+        options={{ 
+          headerShown: false,
+          title: 'Notifications' 
         }} 
       />
       {/* Add other booth agent specific screens here */}

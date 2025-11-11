@@ -4,16 +4,31 @@ export interface UserSession {
   mobileNumber: string;
   userId: string;
   isLoggedIn: boolean;
+  name?: string;
+  role?: string;
+  aci_id?: number;
+  aci_name?: string;
 }
 
 const SESSION_KEY = 'user_session';
 
-export const saveUserSession = async (mobileNumber: string): Promise<void> => {
+export const saveUserSession = async (
+  mobileNumber: string, 
+  userId?: string, 
+  name?: string, 
+  role?: string,
+  aci_id?: number,
+  aci_name?: string
+): Promise<void> => {
   try {
     const session: UserSession = {
       mobileNumber,
-      userId: `user_${mobileNumber}`, // Generate user ID from mobile number
+      userId: userId || `user_${mobileNumber}`, // Use actual MongoDB ID if provided
       isLoggedIn: true,
+      name,
+      role,
+      aci_id,
+      aci_name,
     };
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch (error) {

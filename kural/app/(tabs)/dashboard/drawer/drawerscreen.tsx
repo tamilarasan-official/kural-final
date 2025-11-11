@@ -4,13 +4,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter, useFocusEffect, router as globalRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { getUserSession, clearUserSession } from '../../services/api/userSession';
-import { API_CONFIG } from '../../services/api/config';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { modalContentAPI } from '../../services/api/modalContent';
+import { getUserSession, clearUserSession } from '../../../../services/api/userSession';
+import { API_CONFIG } from '../../../../services/api/config';
+import { useLanguage } from '../../../../contexts/LanguageContext';
+import { modalContentAPI } from '../../../../services/api/modalContent';
 
 export const options = {
   headerShown: false,
+  href: null, // Hide from tab bar
 };
 
 export default function DrawerScreen() {
@@ -44,15 +45,27 @@ export default function DrawerScreen() {
     try {
       const session = await getUserSession();
       if (session) {
+        console.log('Session found:', session);
         setUserId(session.userId);
+        // Set profile data from session
+        if (session.name || session.role) {
+          setProfileData({
+            firstName: session.name || '',
+            lastName: '',
+            role: session.role || 'User',
+            mobileNumber: session.mobileNumber || ''
+          });
+          setLoading(false);
+        }
       } else {
-        // If no session, redirect to login
-        router.replace('/(auth)/index');
-        return;
+        // If no session, just log error but don't redirect
+        console.log('No session found in drawer screen');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error getting user session:', error);
-      router.replace('/(auth)/index');
+      setLoading(false);
+      // Don't redirect on error, just log it
     }
   };
 
@@ -138,11 +151,10 @@ export default function DrawerScreen() {
 
 
   const menuItems = [
-    { id: 'profile', title: t('nav.profile'), iconName: 'person', route: '/(drawer)/my_profile' },
-    { id: 'elections', title: t('elections.title'), iconName: 'how-to-vote', route: '/(drawer)/your_election' },
-    { id: 'settings', title: t('settings.title'), iconName: 'settings', route: '/(drawer)/settings' },
-    { id: 'language', title: t('settings.language'), iconName: 'language', route: '/(drawer)/app_language' },
-    { id: 'password', title: t('drawer.changePassword'), iconName: 'lock', route: '/(drawer)/change_password' },
+    { id: 'profile', title: t('nav.profile'), iconName: 'person', route: '../drawer/my_profile.tsx' },
+    { id: 'settings', title: t('settings.title'), iconName: 'settings', route: '../drawer/setting' },
+    { id: 'language', title: t('settings.language'), iconName: 'language', route: '/(tabs)/dashboard/drawer/app_language' },
+    { id: 'password', title: t('drawer.changePassword'), iconName: 'lock', route: '../drawer/change_password.tsx' },
     { id: 'privacy', title: t('drawer.privacy'), iconName: 'security', route: '/(drawer)/privacy_policy' },
     { id: 'terms', title: t('drawer.terms'), iconName: 'description', route: '/(drawer)/terms_condition' },
     { id: 'help', title: t('drawer.help'), iconName: 'help', route: '/(drawer)/help' },
@@ -161,9 +173,7 @@ export default function DrawerScreen() {
     } else if (id === 'privacy') {
       setShowPrivacyModal(true);
     } else if (id === 'profile') {
-      router.push('/(drawer)/my_profile');
-    } else if (id === 'elections') {
-      router.push('/(drawer)/your_election');
+      router.push('/(tabs)/dashboard/drawer/my_profile');
     } else {
       router.push(route as any);
     }
@@ -181,7 +191,7 @@ export default function DrawerScreen() {
           onPress: () => {
             setShowChangePasswordModal(false);
             // Navigate to OTP verification screen or show next step
-            router.push('/(drawer)/change_password');
+            router.push('/(tabs)/dashboard/drawer/change_password');
           }
         }
       ]
@@ -194,22 +204,35 @@ export default function DrawerScreen() {
 
   // Helper function to render content with proper formatting
   const renderContent = (content: string) => {
-    const lines = content.split('\n');
+    if (!content) return <Text style={styles.contentText}>No content available</Text>;
+    
+    // Replace literal \n\n and \n• with actual line breaks
+    const formattedContent = content
+      .replace(/\\n\\n/g, '\n\n')  // Replace literal \n\n with actual double line break
+      .replace(/\\n/g, '\n')        // Replace literal \n with actual line break
+      .replace(/•/g, '• ');          // Add space after bullets if missing
+    
+    const lines = formattedContent.split('\n');
     return lines.map((line, index) => {
-      if (line.trim() === '') return <Text key={index} style={styles.contentSpacing}></Text>;
+      const trimmedLine = line.trim();
       
-      // Check if line is a title (starts with number or bullet)
-      if (/^\d+\.|^•|^Key Highlights:|^About|^Our Mission:|^Data We Collect:|^How We Use This Data:|^Prohibited Activities:|^Contact Information:|^Website:|^Email:|^Mobile:|^Linkedin:/.test(line.trim())) {
-        return <Text key={index} style={styles.contentTitle}>{line}</Text>;
+      // Empty line - add spacing
+      if (trimmedLine === '') {
+        return <Text key={index} style={styles.contentSpacing}> </Text>;
       }
       
-      // Check if line is a bullet point
-      if (/^•|^1\.|^2\.|^3\.|^4\.|^5\.|^6\.|^7\.|^8\.|^9\.|^10\.|^11\.|^12\.|^13\.|^14\.|^15\.|^16\.|^17\./.test(line.trim())) {
-        return <Text key={index} style={styles.contentBullet}>{line}</Text>;
+      // Check if line is a section title
+      if (/^(Key Highlights:|About|Our Mission:|Data We Collect:|How We Use This Data:|Prohibited Activities:|Contact Information:|Website:|Email:|Mobile:|Linkedin:|Privacy Policy|Terms & Conditions|Acceptance of Terms|Nature of Service|User Responsibilities|Scope of the Policy|Data Ownership and Control|Data Collection and Usage)/i.test(trimmedLine)) {
+        return <Text key={index} style={styles.contentTitle}>{trimmedLine}</Text>;
       }
       
-      // Regular content
-      return <Text key={index} style={styles.contentText}>{line}</Text>;
+      // Check if line is a numbered or bulleted list item
+      if (/^(\d+\.|•|\*|-)\s/.test(trimmedLine)) {
+        return <Text key={index} style={styles.contentBullet}>{trimmedLine}</Text>;
+      }
+      
+      // Regular content with proper line height
+      return <Text key={index} style={styles.contentText}>{trimmedLine}</Text>;
     });
   };
 
@@ -270,15 +293,17 @@ export default function DrawerScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#E8F3FF' }]} edges={['top', 'bottom']}>
-      <StatusBar translucent={false} backgroundColor="#E8F3FF" barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: '#E3F2FD' }]} edges={['top', 'bottom']}>
+      <StatusBar translucent={false} backgroundColor="#E3F2FD" barStyle="dark-content" />
 
-      {/* Header with wave background */}
-      <View style={[styles.headerContainer, { backgroundColor: '#E8F3FF' }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 12, paddingBottom: 20 }]}> 
-          <TouchableOpacity style={[styles.closeButton, { top: insets.top + 8 }]} onPress={() => router.back()}>
-            <Icon name="arrow-back" size={22} color="#0D47A1" />
-          </TouchableOpacity>
+      {/* Back Button - Fixed at top left */}
+      <TouchableOpacity style={[styles.closeButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <Icon name="arrow-back" size={26} color="#1976D2" />
+      </TouchableOpacity>
+
+      {/* Header */}
+      <View style={[styles.headerContainer, { backgroundColor: '#E3F2FD' }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 12, paddingBottom: 24 }]}>
 
           <View style={styles.profileSection}>
             <View style={styles.profileImageContainer}>
@@ -290,17 +315,17 @@ export default function DrawerScreen() {
                     resizeMode="cover"
                   />
                 ) : (
-                  <Icon name="person" size={60} color="#FFFFFF" />
+                  <Icon name="person" size={50} color="#FFFFFF" />
                 )}
               </TouchableOpacity>
               <TouchableOpacity style={styles.cameraButton} onPress={pickImage}>
-                <Icon name="camera-alt" size={16} color="#FFFFFF" />
+                <Icon name="camera-alt" size={14} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             
             <View style={styles.userInfo}>
               {loading ? (
-                <ActivityIndicator size="small" color="#1976D2" />
+                <ActivityIndicator size="small" color="#333333" />
               ) : (
                 <>
                   <Text style={styles.username}>
@@ -312,6 +337,7 @@ export default function DrawerScreen() {
             </View>
           </View>
         </View>
+        <View style={styles.headerDivider} />
       </View>
 
       {/* Menu List */}
@@ -409,7 +435,7 @@ export default function DrawerScreen() {
                 </View>
               ) : (
                 <View style={styles.aboutSection}>
-                  {renderContent(modalContent.about.content)}
+                  {renderContent(modalContent?.about?.content || '')}
                 </View>
               )}
             </ScrollView>
@@ -440,7 +466,7 @@ export default function DrawerScreen() {
                 </View>
               ) : (
                 <View style={styles.helpSection}>
-                  {renderContent(modalContent.help.content)}
+                  {renderContent(modalContent?.help?.content || '')}
                 </View>
               )}
             </ScrollView>
@@ -471,7 +497,7 @@ export default function DrawerScreen() {
                 </View>
               ) : (
                 <View style={styles.termsSection}>
-                  {renderContent(modalContent.terms.content)}
+                  {renderContent(modalContent?.terms?.content || '')}
                 </View>
               )}
             </ScrollView>
@@ -502,7 +528,7 @@ export default function DrawerScreen() {
                 </View>
               ) : (
                 <View style={styles.privacySection}>
-                  {renderContent(modalContent.privacy.content)}
+                  {renderContent(modalContent?.privacy?.content || '')}
                 </View>
               )}
             </ScrollView>
@@ -519,128 +545,139 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   headerContainer: {
-    backgroundColor: '#E8F3FF',
+    backgroundColor: '#E3F2FD',
   },
   header: {
-    backgroundColor: '#E8F3FF',
-    paddingTop: 50,
-    paddingBottom: 60,
+    backgroundColor: '#E3F2FD',
+    paddingTop: 20,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     position: 'relative',
   },
+  headerDivider: {
+    height: 1,
+    backgroundColor: '#BBDEFB',
+    marginHorizontal: 20,
+  },
   closeButton: {
     position: 'absolute',
-    top: 34,
-    left: 12,
+    top: 12,
+    left: 16,
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    // No shadow to match the flat arrow style in the screenshot
     elevation: 0,
+    zIndex: 100,
   },
-  // closeIcon removed - using vector icons now
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-    paddingHorizontal: 20,
+    marginTop: 24,
+    paddingHorizontal: 8,
   },
   profileImageContainer: {
     position: 'relative',
     zIndex: 10,
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  // profileIcon removed - using vector icons now
-  profileImageActual: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#1976D2',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
+    marginRight: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+  },
+  profileImageActual: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#1976D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-  // cameraIcon removed - using vector icons now
   userInfo: {
     flex: 1,
     alignItems: 'flex-start',
-    marginLeft: 10,
   },
   username: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 4,
-    flexWrap: 'wrap',
+    letterSpacing: 0.3,
   },
   userType: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666666',
-    flexWrap: 'wrap',
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   versionContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: '#F0F0F0',
+    backgroundColor: '#FAFAFA',
   },
   versionText: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 12,
+    color: '#999999',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   menuContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    paddingTop: 8,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#FFFFFF',
   },
   menuIcon: {
     width: 24,
     height: 24,
-    marginRight: 16,
+    marginRight: 20,
     textAlign: 'center',
   },
   menuTitle: {
     fontSize: 16,
-    color: '#000000',
+    color: '#1A1A1A',
     flex: 1,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   separator: {
     height: 1,
-    backgroundColor: '#E0E0E0',
-    marginLeft: 60,
+    backgroundColor: '#F5F5F5',
+    marginLeft: 68,
   },
   modalOverlay: {
     flex: 1,
@@ -661,15 +698,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1976D2',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
   modalCloseIcon: {
-    fontSize: 20,
-    color: '#666666',
+    fontSize: 24,
+    color: '#999999',
+    fontWeight: '300',
   },
   modalContent: {
     marginBottom: 30,
@@ -715,11 +757,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   aboutTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1976D2',
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
   // aboutCloseIcon removed - using vector icons now
   aboutContent: {
@@ -828,11 +874,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   helpTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1976D2',
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
   // helpCloseIcon removed - using vector icons now
   helpContent: {
@@ -873,11 +923,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   termsTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1976D2',
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
   // termsCloseIcon removed - using vector icons now
   termsContent: {
@@ -941,11 +995,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   privacyTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1976D2',
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
   // privacyCloseIcon removed - using vector icons now
   privacyContent: {
@@ -1003,27 +1061,31 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   contentSpacing: {
-    height: 10,
+    height: 8,
+    fontSize: 8,
   },
   contentTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#1976D2',
     marginBottom: 8,
-    marginTop: 10,
+    marginTop: 16,
+    lineHeight: 24,
   },
   contentBullet: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
     color: '#333333',
-    marginBottom: 5,
-    marginLeft: 10,
+    marginBottom: 6,
+    marginLeft: 0,
+    paddingLeft: 10,
   },
   contentText: {
     fontSize: 14,
-    lineHeight: 20,
-    color: '#333333',
-    marginBottom: 5,
+    lineHeight: 22,
+    color: '#444444',
+    marginBottom: 6,
+    textAlign: 'left',
   },
 });
 

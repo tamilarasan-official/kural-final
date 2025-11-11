@@ -29,31 +29,34 @@ export default function BoothAgentDashboard() {
     try {
       setLoading(true);
       
-      // Get booth allocation from user data
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
+      // Get booth ID from user data
+      const boothId = userData?.booth_id || '';
+      
+      console.log('🔍 Dashboard - Loading stats for booth:', boothId);
+      console.log('🔍 Dashboard - Full userData:', JSON.stringify(userData, null, 2));
       
       let totalVoters = 0;
       let totalFamilies = 0;
       let verifiedVoters = 0;
       
-      if (boothNumber) {
+      if (boothId) {
         try {
-          // First get the total count
-          const initialResponse = await voterAPI.getVotersByPart(boothNumber, { page: 1, limit: 50 });
-          console.log('Initial Voters API Response:', initialResponse);
+          // First get the total count using booth ID
+          const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
+          console.log('📊 Dashboard - Initial Voters API Response:', initialResponse);
           
           if (initialResponse?.success) {
-            // Use pagination.total for accurate total count
-            totalVoters = initialResponse.pagination?.total || 0;
+            // Use pagination.totalVoters for accurate total count
+            totalVoters = initialResponse.pagination?.totalVoters || 0;
             
             // Now fetch all voters to calculate families accurately
-            const allVotersResponse = await voterAPI.getVotersByPart(boothNumber, { 
+            const allVotersResponse = await voterAPI.getVotersByBoothId(boothId, { 
               page: 1, 
               limit: totalVoters || 5000 
             });
             
             if (allVotersResponse?.success) {
-              const votersData = allVotersResponse.data || allVotersResponse.voters || [];
+              const votersData = allVotersResponse.voters || [];
               
               // Calculate verified voters count
               verifiedVoters = votersData.filter((voter: any) => 
@@ -99,32 +102,49 @@ export default function BoothAgentDashboard() {
           }
         } catch (voterError) {
           console.warn('Failed to fetch voters:', voterError);
-          // Fallback to stats endpoint
-          try {
-            const statsResponse = await voterAPI.getVoterStats(boothNumber);
-            if (statsResponse?.success) {
-              totalVoters = statsResponse.data?.total || 0;
-              totalFamilies = Math.ceil(totalVoters / 3);
-            }
-          } catch (statsError) {
-            console.warn('Failed to fetch voter stats:', statsError);
-          }
+          // Fallback: estimate families
+          totalFamilies = Math.ceil(totalVoters / 3);
         }
+      } else {
+        console.warn('⚠️ Dashboard - No boothId found in userData!');
+        console.warn('⚠️ Dashboard - userData:', userData);
       }
 
       // Fetch surveys - count total responses submitted across all survey forms
       let surveysCompleted = 0;
+      let activeSurveyFormsCount = 0;
       try {
         const surveysResponse = await surveyAPI.getAll({ limit: 100 });
         if (surveysResponse?.success && Array.isArray(surveysResponse.data)) {
-          console.log('Dashboard - Survey forms:', surveysResponse.data.map((s: any) => ({
+          console.log('Dashboard - All survey forms:', surveysResponse.data.map((s: any) => ({
             formId: s.formId,
             title: s.title,
-            responseCount: s.responseCount
+            responseCount: s.responseCount,
+            boothid: s.boothid,
+            status: s.status
           })));
           
-          // Sum up all responseCount from all surveys
-          surveysCompleted = surveysResponse.data.reduce((total: number, survey: any) => {
+          // Filter surveys for this booth
+          const boothSurveys = boothId 
+            ? surveysResponse.data.filter((s: any) => {
+                const surveyBoothId = s.boothid || s.boothId || s.booth_id || s.booth;
+                return surveyBoothId === boothId;
+              })
+            : surveysResponse.data;
+          
+          console.log('Dashboard - Booth surveys:', boothSurveys.length);
+          
+          // Count only active survey forms
+          const activeSurveys = boothSurveys.filter((s: any) => {
+            const status = (s.status || '').toLowerCase();
+            return status === 'active';
+          });
+          activeSurveyFormsCount = activeSurveys.length;
+          
+          console.log('Dashboard - Active survey forms:', activeSurveyFormsCount);
+          
+          // Sum up all responseCount from booth surveys
+          surveysCompleted = boothSurveys.reduce((total: number, survey: any) => {
             const count = survey.responseCount || 0;
             console.log(`Survey ${survey.formId}: responseCount = ${count}`);
             return total + count;
@@ -136,8 +156,17 @@ export default function BoothAgentDashboard() {
         console.warn('Failed to fetch surveys:', surveyError);
       }
 
-      // Calculate visits pending
-      const visitsPending = Math.max(0, totalFamilies - surveysCompleted);
+      // Calculate visits pending using Option 2 logic:
+      // Total survey responses needed = (Total voters × Number of active survey forms) - Completed responses
+      const totalResponsesNeeded = totalVoters * activeSurveyFormsCount;
+      const visitsPending = Math.max(0, totalResponsesNeeded - surveysCompleted);
+      
+      console.log('Dashboard - Calculation:');
+      console.log('  Total voters:', totalVoters);
+      console.log('  Active survey forms:', activeSurveyFormsCount);
+      console.log('  Total responses needed:', totalResponsesNeeded);
+      console.log('  Surveys completed:', surveysCompleted);
+      console.log('  Visits pending:', visitsPending);
 
       setStats({
         totalVoters,
@@ -163,22 +192,24 @@ export default function BoothAgentDashboard() {
           <View style={styles.headerLeft}>
             <TouchableOpacity 
               style={styles.menuButton}
-              onPress={() => router.push('/(drawer)/drawerscreen')}
+              onPress={() => router.push('/(boothAgent)/profile')}
             >
               <Icon name="menu" size={24} color="#000" />
             </TouchableOpacity>
             <View>
               <Text style={styles.headerTitle}>
-                Booth 119-001
+                {userData?.booth_id ? `Booth ${userData.booth_id}` : 'Booth Agent'}
               </Text>
               <Text style={styles.headerSubtitle}>
-                119-Thondamuthur
+                {userData?.aci_id && userData?.aci_name 
+                  ? `${userData.aci_id} - ${userData.aci_name}`
+                  : 'Assembly Constituency'}
               </Text>
             </View>
           </View>
           <TouchableOpacity 
             style={styles.notificationButton}
-            onPress={() => router.push('/(tabs)/dashboard/notifications')}
+            onPress={() => router.push('/(boothAgent)/notifications')}
           >
             <Icon name="notifications" size={24} color="#000" />
             <View style={styles.notificationBadge} />

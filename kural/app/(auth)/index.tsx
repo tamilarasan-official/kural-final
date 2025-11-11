@@ -26,11 +26,14 @@ export default function IndexScreen() {
       <View style={styles.modalSection}>
         <View style={styles.curvedModal}>
           {/* Title */}
-          <Text style={styles.modalTitle}>Thedal Election Analytics Manager</Text>
+          <Text style={styles.modalTitle}>Kural.ai Election Intelligence Platform</Text>
 
           {/* Subtitle */}
-          <Text style={styles.modalSubtitle}>
-            The first-ever SaaS-based comprehensive election campaign management tool for all candidates
+          <Text style={styles.modalSubtitle}>Empowering data-driven campaigns.</Text>
+
+          {/* Content */}
+          <Text style={styles.modalContent}>
+            The first AI-powered election analytics and management platform — built to help candidates track, analyze, and optimize their campaign strategy in real time.
           </Text>
 
           {/* Login Button */}
@@ -88,11 +91,19 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   modalSubtitle: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a237e',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 26,
+  },
+  modalContent: {
+    fontSize: 15,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 50,
+    lineHeight: 22,
+    marginBottom: 30,
     paddingHorizontal: 10,
   },
   modalLoginButton: {

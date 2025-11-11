@@ -19,6 +19,13 @@
       "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyCiwZbwy5fgQQ-0E6zFGrdSPWQGh1XVFPQ"
@@ -48,6 +55,7 @@
         "expo-build-properties",
         {
           "android": {
+            "minSdkVersion": 23,
             "manifestPlaceholders": {
               "merge_strategy": "always_use_first"
             }

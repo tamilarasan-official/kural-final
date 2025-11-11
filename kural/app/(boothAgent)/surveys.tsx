@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useRole } from '../contexts/RoleContext';
@@ -16,21 +16,38 @@ export default function SurveysScreen() {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [totalVoters, setTotalVoters] = useState(0);
 
-  useEffect(() => {
-    loadSurveys();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadSurveys();
+    }, [userData])
+  );
 
   const loadSurveys = async () => {
     try {
       setLoading(true);
       
       // Fetch total voters count for the booth
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
-      if (boothNumber) {
+      console.log('Surveys - Full userData:', JSON.stringify(userData, null, 2));
+      const boothId = userData?.booth_id || '';
+      console.log('Surveys - Loading for booth_id:', boothId);
+      console.log('Surveys - booth_id type:', typeof boothId);
+      
+      if (!boothId) {
+        console.error('❌ Surveys - No booth_id found! userData keys:', Object.keys(userData || {}));
+        Alert.alert('Error', 'No booth assigned to your account. Please contact admin.');
+        setLoading(false);
+        return;
+      }
+      
+      if (boothId) {
         try {
-          const votersResponse = await voterAPI.getVotersByPart(boothNumber, { page: 1, limit: 1 });
-          if (votersResponse?.success && votersResponse.pagination?.total) {
-            setTotalVoters(votersResponse.pagination.total);
+          const votersResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 1 });
+          console.log('Surveys - Voters response:', votersResponse);
+          
+          if (votersResponse?.success && votersResponse.pagination) {
+            const total = votersResponse.pagination.totalVoters || votersResponse.pagination.total || 0;
+            setTotalVoters(total);
+            console.log('Surveys - Total voters in booth:', total);
           }
         } catch (error) {
           console.warn('Failed to fetch voter count:', error);
@@ -38,10 +55,54 @@ export default function SurveysScreen() {
       }
       
       // Fetch surveys
+      console.log('Surveys - Fetching surveys...');
       const response = await surveyAPI.getAll({ limit: 100 });
+      console.log('Surveys - API response:', response);
+      
       if (response?.success && Array.isArray(response.data)) {
-        setSurveys(response.data);
+        console.log('Surveys - Found surveys:', response.data.length);
+        console.log('Surveys - All surveys:', response.data.map((s: any) => ({
+          _id: s._id,
+          title: s.title,
+          titleEnglish: s.title?.english,
+          titleTamil: s.title?.tamil,
+          status: s.status,
+          responseCount: s.responseCount,
+          questionALength: s.questionA?.length,
+          questionsLength: s.questions?.length,
+          formId: s.formId,
+          boothid: s.boothid,
+          acid: s.acid
+        })));
+        
+        // Filter surveys by booth_id
+        let filteredSurveys = response.data;
+        if (boothId) {
+          console.log(`\n🔍 FILTERING SURVEYS FOR BOOTH: "${boothId}" (type: ${typeof boothId})\n`);
+          
+          filteredSurveys = response.data.filter((s: any) => {
+            // Check if survey is assigned to this booth
+            const surveyBoothId = s.boothid || s.boothId || s.booth_id || s.booth;
+            const matches = surveyBoothId === boothId;
+            
+            console.log(`  📋 Survey: "${s.title}"`);
+            console.log(`     - Survey boothid: "${surveyBoothId}" (type: ${typeof surveyBoothId})`);
+            console.log(`     - User booth_id:  "${boothId}" (type: ${typeof boothId})`);
+            console.log(`     - Matches: ${matches ? '✅ YES' : '❌ NO'}`);
+            console.log(`     - Strict equal: ${surveyBoothId === boothId}`);
+            console.log(`     - Loose equal: ${surveyBoothId == boothId}`);
+            console.log('');
+            
+            return matches;
+          });
+          
+          console.log(`\n✅ FILTER RESULT: ${filteredSurveys.length} of ${response.data.length} surveys match\n`);
+        }
+        
+        console.log('Surveys - Setting surveys:', filteredSurveys.length);
+        setSurveys(filteredSurveys);
       } else {
+        console.log('Surveys - No surveys found');
         setSurveys([]);
       }
     } catch (error) {
@@ -101,11 +162,38 @@ export default function SurveysScreen() {
               const percentage = getProgressPercentage(progress, total);
               const isCompleted = survey.status === 'completed' || survey.status === 'closed';
               const isActive = survey.status === 'Active' || survey.status === 'active' || survey.status === 'ongoing';
+              
+              // Handle title - can be Object with english/tamil or String
+              let surveyTitle = 'Unnamed Survey';
+              let surveyTitleTamil = '';
+              
+              if (survey.title) {
+                if (typeof survey.title === 'object' && survey.title !== null) {
+                  // Title is an object with english and tamil properties
+                  surveyTitle = survey.title.english || survey.title.tamil || 'Unnamed Survey';
+                  surveyTitleTamil = survey.title.tamil || '';
+                } else {
+                  // Title is a string
+                  surveyTitle = survey.title || survey.name || 'Unnamed Survey';
+                }
+              } else if (survey.tamilTitle) {
+                surveyTitle = survey.tamilTitle;
+              }
+              
+              const surveyDescription = survey.description || 'No description available';
+              const questionsCount = survey.questionA?.length || survey.questions?.length || survey.questionsCount || 0;
 
               return (
                 <View key={survey._id || survey.id} style={styles.surveyCard}>
                   <View style={styles.surveyHeader}>
-                    <Text style={styles.surveyTitle}>{survey.title || survey.name || 'Unnamed Survey'}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.surveyTitle}>{surveyTitle}</Text>
+                      {surveyTitleTamil ? (
+                        <Text style={[styles.surveyTitle, { fontSize: 14, color: '#666', marginTop: 2 }]}>
+                          {surveyTitleTamil}
+                        </Text>
+                      ) : null}
+                    </View>
                     <View style={[
                       styles.statusBadge,
                       { backgroundColor: isCompleted ? '#4CAF50' : isActive ? '#2196F3' : '#FF9800' }
@@ -117,14 +205,14 @@ export default function SurveysScreen() {
                   </View>
 
                   <Text style={styles.surveyDescription}>
-                    {survey.description || 'No description available'}
+                    {surveyDescription}
                   </Text>
 
                   <View style={styles.surveyMeta}>
                     <View style={styles.metaItem}>
                       <Icon name="assignment" size={16} color="#666" />
                       <Text style={styles.metaText}>
-                        {survey.questionsCount || survey.questions?.length || 0} questions
+                        {questionsCount} questions
                       </Text>
                     </View>
                     {survey.deadline && (
@@ -161,14 +249,14 @@ export default function SurveysScreen() {
                         console.log('=== NAVIGATING TO SURVEY ===');
                         console.log('Survey object:', JSON.stringify(survey, null, 2));
                         console.log('Using survey ID:', surveyIdToUse);
-                        console.log('Available IDs - formId:', survey.formId, '_id:', survey._id, 'id:', survey.id);
+                        console.log('Survey title:', surveyTitle);
                         console.log('===========================');
                         
                         router.push({
                           pathname: '/(boothAgent)/survey-voter-selection',
                           params: {
                             surveyId: surveyIdToUse,
-                            surveyTitle: survey.title || survey.name || 'Survey',
+                            surveyTitle: surveyTitle,
                           },
                         });
                       }}

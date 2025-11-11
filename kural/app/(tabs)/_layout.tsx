@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.tsx
 import React from 'react';
 import { Tabs, useRouter, usePathname } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -15,10 +15,10 @@ export default function Layout() {
 
   const tabItems = [
     { id: 'report', label: t('nav.report'), iconName: 'assessment', route: '/(tabs)/report' },
-    { id: 'catalogue', label: t('nav.catalogue'), iconName: 'description', route: '/(tabs)/catalogue' },
+    { id: 'boothManager', label: 'Booths', iconType: 'image', iconSource: require('../../assets/images/booth_manager.png'), route: '/(tabs)/dashboard/my_booth' },
     { id: 'home', label: '', iconName: 'home', route: '/(tabs)/' },
-    { id: 'slip', label: t('nav.slip'), iconName: 'receipt', route: '/(tabs)/slip' },
-    { id: 'poll', label: t('nav.poll'), iconName: 'how-to-vote', route: '/(tabs)/poll' },
+    { id: 'voterManager', label: 'Voters', iconType: 'image', iconSource: require('../../assets/images/voter_manager.png'), route: '/(tabs)/dashboard/voter_manager_parts' },
+    { id: 'familyManager', label: 'Familys', iconType: 'image', iconSource: require('../../assets/images/family_manager.png'), route: '/(tabs)/dashboard/family_manager?partNumber=1' },
   ];
 
   const isActive = (route: string) => {
@@ -27,6 +27,9 @@ export default function Layout() {
     }
     return pathname === route;
   };
+
+  // Check if we're on a drawer screen (hide footer)
+  const isDrawerScreen = pathname?.includes('/drawer/');
 
   const handleTabPress = (item: { id: string; route: string }) => {
     if (item.id === 'report') {
@@ -55,38 +58,51 @@ export default function Layout() {
           }} 
         />
       </SafeAreaView>
-      <SafeAreaView edges={['bottom']} style={styles.footerWrapper}>
-        <View style={styles.footer}>
-        {tabItems.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.tabItem}
-            onPress={() => handleTabPress(item as any)}
-            activeOpacity={0.7}
-          >
-            <View style={[
-              styles.iconContainer,
-              // Keep the center HOME as a persistent FAB-style button
-              item.id === 'home' ? styles.activeIconContainer : undefined
-            ]}>
-              <Icon 
-                name={item.iconName} 
-                size={item.id === 'home' ? 32 : 24}
-                color={item.id === 'home' ? '#FFFFFF' : (isActive(item.route) ? '#1976D2' : '#666666')} 
-              />
-            </View>
-            {item.label && (
-              <Text style={[
-                styles.label,
-                isActive(item.route) && styles.activeLabel
+      {!isDrawerScreen && (
+        <SafeAreaView edges={['bottom']} style={styles.footerWrapper}>
+          <View style={styles.footer}>
+          {tabItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.tabItem}
+              onPress={() => handleTabPress(item as any)}
+              activeOpacity={0.7}
+            >
+              <View style={[
+                styles.iconContainer,
+                // Keep the center HOME as a persistent FAB-style button
+                item.id === 'home' ? styles.activeIconContainer : undefined
               ]}>
-                {item.label}
-              </Text>
-            )}
-          </TouchableOpacity>
-        ))}
-        </View>
-      </SafeAreaView>
+                {item.iconType === 'image' ? (
+                  <Image 
+                    source={item.iconSource} 
+                    style={[
+                      styles.imageIcon,
+                      isActive(item.route) && styles.imageIconActive
+                    ]}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Icon 
+                    name={item.iconName} 
+                    size={item.id === 'home' ? 32 : 24}
+                    color={item.id === 'home' ? '#FFFFFF' : (isActive(item.route) ? '#1976D2' : '#666666')} 
+                  />
+                )}
+              </View>
+              {item.label && (
+                <Text style={[
+                  styles.label,
+                  isActive(item.route) && styles.activeLabel
+                ]}>
+                  {item.label}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
+          </View>
+        </SafeAreaView>
+      )}
       {showToast && (
         <View style={styles.toastContainer} pointerEvents="none">
           <Text style={styles.toastText}>{toastMessage}</Text>
@@ -147,6 +163,14 @@ const styles = StyleSheet.create({
   activeLabel: {
     color: '#1976D2',
     fontWeight: '600',
+  },
+  imageIcon: {
+    width: 24,
+    height: 24,
+    tintColor: '#666666',
+  },
+  imageIconActive: {
+    tintColor: '#1976D2',
   },
   toastContainer: {
     position: 'absolute',

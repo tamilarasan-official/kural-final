@@ -27,24 +27,37 @@ export default function SurveyVoterSelectionScreen() {
     try {
       setLoading(true);
       
+      console.log('Survey Voter Selection - userData:', userData);
+      console.log('Survey Voter Selection - surveyId:', surveyId);
+      console.log('Survey Voter Selection - surveyTitle:', surveyTitle);
+      
       // Load voters
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
-      if (boothNumber) {
-        const response = await voterAPI.getVotersByPart(boothNumber, { limit: 1000 });
-        console.log('Voters Response:', response);
+      const boothId = userData?.booth_id || '';
+      console.log('Survey Voter Selection - booth_id:', boothId);
+      
+      if (boothId) {
+        const response = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 5000 });
+        console.log('Survey Voter Selection - Voters Response:', response);
         
         if (response?.success) {
-          const votersData = response.data || response.voters || [];
+          const votersData = response.voters || response.data || [];
+          console.log('Survey Voter Selection - Voters loaded:', votersData.length);
           setVoters(Array.isArray(votersData) ? votersData : []);
         }
+      } else {
+        console.error('Survey Voter Selection - No booth_id found!');
+        Alert.alert('Error', 'No booth assigned to your account');
       }
 
       // Load completed voter IDs for this survey
       if (surveyId) {
         try {
           const completedResponse = await surveyAPI.getCompletedVoters(surveyId);
-          if (completedResponse?.success && Array.isArray(completedResponse.voterIds)) {
-            setCompletedVoters(new Set(completedResponse.voterIds));
+          console.log('Survey Voter Selection - Completed voters response:', completedResponse);
+          if (completedResponse?.success && completedResponse.data) {
+            const voterIds = completedResponse.data.completedVoterIds || [];
+            console.log('Survey Voter Selection - Completed voter IDs:', voterIds);
+            setCompletedVoters(new Set(voterIds));
           }
         } catch (error) {
           console.warn('Failed to load completed voters:', error);
@@ -59,22 +72,48 @@ export default function SurveyVoterSelectionScreen() {
     }
   };
 
-  const filteredVoters = voters.filter(voter => 
-    voter.Name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    voter.Number?.includes(searchQuery) ||
-    voter['Mobile No']?.includes(searchQuery)
-  );
+  const filteredVoters = voters.filter(voter => {
+    const voterName = voter.name?.english || voter.Name || '';
+    const voterId = voter.voterID || voter.Number || voter['EPIC No'] || '';
+    const mobile = voter.mobile || voter['Mobile No'] || '';
+    
+    return voterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           voterId.includes(searchQuery) ||
+           mobile.includes(searchQuery);
+  });
 
   const handleSelectVoter = (voter: any) => {
+    const voterId = voter.voterID || voter.Number || voter['EPIC No'] || voter._id;
+    const voterName = voter.name?.english || voter.Name || 'Unknown';
+    const voterAge = voter.age || voter.Age || '';
+    const voterMobile = voter.mobile || voter['Mobile No'] || '';
+    
+    // Check if voter has already completed this survey
+    if (completedVoters.has(voterId)) {
+      Alert.alert(
+        'Survey Already Completed',
+        `${voterName} has already completed this survey.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    console.log('Survey Voter Selection - Selected voter:', {
+      voterId,
+      voterName,
+      voterAge,
+      voterMobile
+    });
+    
     router.push({
       pathname: '/(boothAgent)/survey-questions',
       params: {
         surveyId: surveyId,
         surveyTitle: surveyTitle,
-        voterId: voter.Number || voter._id,
-        voterName: voter.Name,
-        voterAge: voter.age?.toString() || '',
-        voterMobile: voter['Mobile No'] || '',
+        voterId: voterId,
+        voterName: voterName,
+        voterAge: voterAge?.toString() || '',
+        voterMobile: voterMobile,
       },
     });
   };
@@ -127,7 +166,15 @@ export default function SurveyVoterSelectionScreen() {
           </View>
         ) : (
           filteredVoters.map((voter, index) => {
-            const isCompleted = completedVoters.has(voter.Number || voter._id);
+            const voterId = voter.voterID || voter.Number || voter['EPIC No'] || '';
+            const isCompleted = completedVoters.has(voterId || voter._id);
+            const voterName = voter.name?.english || voter.Name || 'Unknown';
+            const age = voter.age || voter.Age || '';
+            const gender = voter.gender || voter.sex || voter.Sex || '';
+            const mobile = voter.mobile || voter['Mobile No'] || '';
+            const houseNo = voter['Address-House no'] || voter.HouseNo || voter.Door_No || '';
+            const street = voter['Address-Street'] || voter.Street || '';
+            const locality = voter['Address-Locality'] || voter.Anubhag_name || '';
             
             return (
               <TouchableOpacity
@@ -145,15 +192,17 @@ export default function SurveyVoterSelectionScreen() {
                 </View>
 
                 <View style={styles.voterInfo}>
-                  <Text style={styles.voterName}>{voter.Name}</Text>
+                  <Text style={styles.voterName}>{voterName}</Text>
                   <Text style={styles.voterDetails}>
-                    {voter.Number} • {voter.age}y • {voter.sex}
+                    {voterId} • {age}y • {gender}
                   </Text>
-                  <Text style={styles.voterAddress}>
-                    {voter['Address-House no']}, {voter['Address-Street']}, {voter['Address-Locality']}
-                  </Text>
-                  {voter['Mobile No'] && (
-                    <Text style={styles.voterMobile}>📱 {voter['Mobile No']}</Text>
+                  {(houseNo || street || locality) && (
+                    <Text style={styles.voterAddress}>
+                      {houseNo}{street ? ', ' + street : ''}{locality ? ', ' + locality : ''}
+                    </Text>
+                  )}
+                  {mobile && (
+                    <Text style={styles.voterMobile}>📱 {mobile}</Text>
                   )}
                 </View>
 

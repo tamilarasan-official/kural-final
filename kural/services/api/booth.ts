@@ -1,9 +1,27 @@
 import { API_CONFIG } from './config';
 
-const BASE_URL = `${API_CONFIG.BASE_URL}/cadres`;
+const BASE_URL = `${API_CONFIG.BASE_URL}/booths`;
 
-export const cadreAPI = {
-  // Get all cadres with optional filters
+export const boothAPI = {
+  // Login booth (booth agent)
+  login: async (phone: string, password: string) => {
+    const response = await fetch(`${BASE_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ phone, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Login failed');
+    }
+
+    return await response.json();
+  },
+
+  // Get all booths with optional filters
   getAll: async (params?: {
     page?: number;
     limit?: number;
@@ -34,7 +52,7 @@ export const cadreAPI = {
     return await response.json();
   },
 
-  // Get cadre by ID
+  // Get booth by ID
   getById: async (id: string) => {
     const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'GET',
@@ -51,15 +69,15 @@ export const cadreAPI = {
     return await response.json();
   },
 
-  // Create new cadre
-  create: async (cadreData: any) => {
+  // Create new booth
+  create: async (boothData: any) => {
     const response = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${API_CONFIG.getToken()}`,
       },
-      body: JSON.stringify(cadreData),
+      body: JSON.stringify(boothData),
     });
 
     if (!response.ok) {
@@ -70,15 +88,15 @@ export const cadreAPI = {
     return await response.json();
   },
 
-  // Update cadre
-  update: async (id: string, cadreData: any) => {
+  // Update booth
+  update: async (id: string, boothData: any) => {
     const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${API_CONFIG.getToken()}`,
       },
-      body: JSON.stringify(cadreData),
+      body: JSON.stringify(boothData),
     });
 
     if (!response.ok) {
@@ -89,7 +107,7 @@ export const cadreAPI = {
     return await response.json();
   },
 
-  // Delete cadre
+  // Delete booth
   delete: async (id: string) => {
     const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'DELETE',
@@ -107,7 +125,7 @@ export const cadreAPI = {
     return await response.json();
   },
 
-  // Get cadre statistics
+  // Get booth statistics
   getStats: async () => {
     const response = await fetch(`${BASE_URL}/stats`, {
       method: 'GET',

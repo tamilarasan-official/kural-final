@@ -2,43 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, StatusBar } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { getUserSession } from '../../services/api/userSession';
-import { API_CONFIG } from '../../services/api/config';
-import { useLanguage } from '../../contexts/LanguageContext';
-import HeaderBack from '../components/HeaderBack';
+import { getUserSession, saveUserSession } from '../../../../services/api/userSession';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_CONFIG } from '../../../../services/api/config';
+import { useLanguage } from '../../../../contexts/LanguageContext';
+import HeaderBack from '../../../components/HeaderBack';
 
 export default function MyProfileScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    constituency: '',
+    name: '',
     email: '',
     mobileNumber: '',
-    role: 'User',
+    role: '',
   });
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [originalData, setOriginalData] = useState(null);
-  const [userId, setUserId] = useState('');
-  const [userMobile, setUserMobile] = useState('');
 
   // Get user session and set up user data
   const initializeUser = async () => {
     try {
       const session = await getUserSession();
-      if (session) {
-        setUserId(session.userId);
-        setUserMobile(session.mobileNumber);
-        setFormData(prev => ({
-          ...prev,
-          mobileNumber: session.mobileNumber
-        }));
+      console.log('Session data in profile:', session);
+      
+      // Also get userData from AsyncStorage (which has aci_id and aci_name)
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      console.log('UserData from AsyncStorage:', userData);
+      
+      if (session || userData) {
+        // Format constituency as "aci_id - aci_name" from userData
+        const constituency = userData?.aci_id && userData?.aci_name 
+          ? `${userData.aci_id} - ${userData.aci_name}`
+          : '';
+        
+        const name = session?.name || userData?.name || 'User';
+        const role = session?.role || userData?.role || 'User';
+        const mobileNumber = session?.mobileNumber || userData?.phone || '';
+        
+        console.log('Formatted constituency:', constituency);
+        
+        // Set data from session
+        setFormData({
+          constituency: constituency,
+          name: name,
+          email: '', // Email initially blank, user can edit
+          mobileNumber: mobileNumber,
+          role: role,
+        });
+        setOriginalData({
+          constituency: constituency,
+          name: name,
+          email: '',
+          mobileNumber: mobileNumber,
+          role: role,
+        });
+        setLoading(false);
       } else {
         // If no session, redirect to login
+        console.log('No session found, redirecting to login');
         router.replace('/(auth)/index');
         return;
       }
@@ -48,66 +76,10 @@ export default function MyProfileScreen() {
     }
   };
 
-  // Fetch profile data from API
-  const fetchProfile = async () => {
-    if (!userId) return;
-    
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/profile/${userId}`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setFormData({
-            firstName: result.data.firstName || '',
-            lastName: result.data.lastName || '',
-            email: result.data.email || '',
-            mobileNumber: result.data.mobileNumber || userMobile,
-            role: result.data.role || 'User',
-          });
-          setOriginalData(result.data);
-        } else {
-          // If profile doesn't exist, create default one
-          createDefaultProfile();
-        }
-      } else {
-        // If profile doesn't exist, create default one
-        createDefaultProfile();
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-        Alert.alert(t('profile.error'), t('profile.failedToLoad'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Create default profile
-  const createDefaultProfile = async () => {
-    const defaultData = {
-      firstName: 'User',
-      lastName: 'Name',
-      email: `user${userId}@example.com`,
-      mobileNumber: userMobile,
-      role: 'User',
-    };
-    
-    setFormData(defaultData);
-    setOriginalData(defaultData);
-  };
-
   // Load profile data on component mount
   useEffect(() => {
     initializeUser();
   }, []);
-
-  // Fetch profile when userId is available
-  useEffect(() => {
-    if (userId) {
-      fetchProfile();
-    }
-  }, [userId]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -117,48 +89,66 @@ export default function MyProfileScreen() {
   };
 
   const handleSave = async () => {
-    // Basic validation
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
+    // Basic validation - only email is required if entered
+    if (formData.email && formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        Alert.alert('Error', 'Please enter a valid email address');
+        return;
+      }
     }
 
     try {
       setSaving(true);
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}/profile/${userId}`, {
+      // Get token and userId from AsyncStorage
+      const token = await AsyncStorage.getItem('userToken');
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const userId = userData?._id || userData?.id;
+      
+      if (!token || !userId) {
+        Alert.alert('Error', 'Session expired. Please login again.');
+        return;
+      }
+      
+      // Update user via API
+      const response = await fetch(`http://10.19.146.109:5000/api/v1/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          firstName: formData.firstName.trim(),
-          lastName: formData.lastName.trim(),
-          email: formData.email.trim(),
-          mobileNumber: formData.mobileNumber,
-          role: formData.role,
+          email: formData.email.trim() || undefined, // Only send if not empty
         }),
       });
 
       const result = await response.json();
-
+      
       if (response.ok && result.success) {
+        // Update session with new email if changed
+        const session = await getUserSession();
+        if (session) {
+          await saveUserSession(
+            session.mobileNumber,
+            session.userId,
+            session.name,
+            session.role,
+            session.aci_id,
+            session.aci_name
+          );
+        }
+        
         setOriginalData(formData);
         setIsEditing(false);
-        Alert.alert(t('profile.success'), t('profile.updatedSuccessfully'));
+        Alert.alert('Success', 'Profile updated successfully');
       } else {
-        Alert.alert(t('profile.error'), result.message || t('profile.failedToUpdate'));
+        Alert.alert('Error', result.error || 'Failed to update profile');
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      Alert.alert(t('profile.error'), t('profile.failedToSave'));
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -172,8 +162,8 @@ export default function MyProfileScreen() {
     // Reset form data to original values
     if (originalData) {
       setFormData({
-        firstName: originalData.firstName || '',
-        lastName: originalData.lastName || '',
+        constituency: originalData.constituency || '',
+        name: originalData.name || '',
         email: originalData.email || '',
         mobileNumber: originalData.mobileNumber || '',
         role: originalData.role || 'User',
@@ -202,39 +192,37 @@ export default function MyProfileScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-        {/* First Name */}
+        {/* Constituency */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>{t('profile.firstName')}</Text>
+          <Text style={styles.label}>Constituency</Text>
           <TextInput
-            style={[styles.input, !isEditing && styles.inputDisabled]}
-            value={formData.firstName}
-            onChangeText={(value) => handleInputChange('firstName', value)}
-            editable={isEditing}
-            placeholder={t('profile.enterFirstName')}
+            style={[styles.input, styles.inputReadOnly]}
+            value={formData.constituency}
+            editable={false}
+            placeholder="Constituency"
           />
         </View>
 
-        {/* Last Name */}
+        {/* Name */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>{t('profile.lastName')}</Text>
+          <Text style={styles.label}>Name</Text>
           <TextInput
-            style={[styles.input, !isEditing && styles.inputDisabled]}
-            value={formData.lastName}
-            onChangeText={(value) => handleInputChange('lastName', value)}
-            editable={isEditing}
-            placeholder={t('profile.enterLastName')}
+            style={[styles.input, styles.inputReadOnly]}
+            value={formData.name}
+            editable={false}
+            placeholder="Enter name"
           />
         </View>
 
         {/* Email */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>{t('profile.email')}</Text>
+          <Text style={styles.label}>Email</Text>
           <TextInput
             style={[styles.input, !isEditing && styles.inputDisabled]}
             value={formData.email}
             onChangeText={(value) => handleInputChange('email', value)}
             editable={isEditing}
-            placeholder={t('profile.enterEmail')}
+            placeholder="Enter email"
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -242,25 +230,25 @@ export default function MyProfileScreen() {
 
         {/* Mobile Number */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>{t('profile.mobileNumber')}</Text>
+          <Text style={styles.label}>Mobile Number</Text>
           <TextInput
             style={[styles.input, styles.inputReadOnly]}
             value={formData.mobileNumber}
             editable={false}
-            placeholder={t('profile.enterMobile')}
+            placeholder="Enter mobile"
             keyboardType="phone-pad"
           />
-          <Text style={styles.readOnlyText}>{t('profile.mobileCannotChange')}</Text>
+          <Text style={styles.readOnlyText}>Mobile number cannot be changed</Text>
         </View>
 
         {/* Role */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>{t('profile.role')}</Text>
+          <Text style={styles.label}>Role</Text>
           <TextInput
             style={[styles.input, styles.inputReadOnly]}
             value={formData.role}
             editable={false}
-            placeholder={t('profile.selectRole')}
+            placeholder="Select role"
           />
         </View>
 

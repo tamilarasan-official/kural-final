@@ -4,9 +4,9 @@ import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import HeaderBack from '../../components/HeaderBack';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { cadreAPI } from '../../../services/api/cadre';
+import { boothAPI } from '../../../services/api/booth';
 
-type Cadre = {
+type booth = {
   _id: string;
   name: string;
   mobile: string;
@@ -22,8 +22,8 @@ export const options = { headerShown: false };
 export default function VolunteersTrackingScreen() {
   const { t } = useLanguage();
   const router = useRouter();
-  const [cadres, setCadres] = useState<Cadre[]>([]);
-  const [filteredCadres, setFilteredCadres] = useState<Cadre[]>([]);
+  const [cadres, setCadres] = useState<booth[]>([]);
+  const [filteredCadres, setFilteredCadres] = useState<booth[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -40,7 +40,7 @@ export default function VolunteersTrackingScreen() {
   const loadCadres = async () => {
     try {
       setLoading(true);
-      const response = await cadreAPI.getAll();
+      const response = await boothAPI.getAll();
       
       if (response?.success && Array.isArray(response.data)) {
         setCadres(response.data);
@@ -53,7 +53,7 @@ export default function VolunteersTrackingScreen() {
         setStats({ active: 0, inactive: 0, total: 0 });
       }
     } catch (error) {
-      console.error('Error loading cadres:', error);
+      console.error('Error loading booths:', error);
       setCadres([]);
       setStats({ active: 0, inactive: 0, total: 0 });
     } finally {
@@ -61,7 +61,7 @@ export default function VolunteersTrackingScreen() {
     }
   };
 
-  const calculateStats = (cadreList: Cadre[]) => {
+  const calculateStats = (cadreList: booth[]) => {
     const active = cadreList.filter(c => c.status === 'active').length;
     const inactive = cadreList.filter(c => c.status === 'inactive').length;
     setStats({ active, inactive, total: cadreList.length });
@@ -183,20 +183,20 @@ export default function VolunteersTrackingScreen() {
             <Text style={styles.emptyText}>{t('volunteers.noVolunteers')}</Text>
           </View>
         ) : (
-          filteredCadres.map((cadre) => (
-            <View key={cadre._id} style={styles.cadreCard}>
+          filteredCadres.map((booth) => (
+            <View key={booth._id} style={styles.cadreCard}>
               <View style={styles.cadreInfo}>
-                <Text style={styles.cadreName}>{cadre.name}</Text>
-                <Text style={styles.cadreMobile}>{cadre.mobile}</Text>
-                {cadre.designation && (
-                  <Text style={styles.cadreDesignation}>{cadre.designation}</Text>
+                <Text style={styles.cadreName}>{booth.name}</Text>
+                <Text style={styles.cadreMobile}>{booth.mobile}</Text>
+                {booth.designation && (
+                  <Text style={styles.cadreDesignation}>{booth.designation}</Text>
                 )}
-                {cadre.area && (
-                  <Text style={styles.cadreArea}>{cadre.area}</Text>
+                {booth.area && (
+                  <Text style={styles.cadreArea}>{booth.area}</Text>
                 )}
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: cadre.status === 'active' ? '#4CAF50' : '#F44336' }]}>
-                <Text style={styles.statusText}>{cadre.status.toUpperCase()}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: booth.status === 'active' ? '#4CAF50' : '#F44336' }]}>
+                <Text style={styles.statusText}>{booth.status.toUpperCase()}</Text>
               </View>
             </View>
           ))
@@ -243,3 +243,4 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
   statusText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
+

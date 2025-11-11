@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Alert, Dimensions, ActivityIndicator, StatusBar } from 'react-native';
 import { router } from 'expo-router';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { voterLanguageAPI } from '../../../services/api/settings';
+import { useLanguage } from '../../../../../contexts/LanguageContext';
+import { voterLanguageAPI } from '../../../../../services/api/settings';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import HeaderBack from '../../components/HeaderBack';
+import HeaderBack from '../../../../components/HeaderBack';
 
 const { width } = Dimensions.get('window');
 

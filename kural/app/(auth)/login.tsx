@@ -18,6 +18,9 @@ import { db } from '../../services/api/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { saveUserSession } from '../../services/api/userSession';
 import { MaterialIcons } from '@expo/vector-icons';
+import { boothAPI } from '../../services/api/booth';
+import { authAPI } from '../../services/api/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -30,12 +33,84 @@ export default function LoginScreen() {
     const trimmedMobile = mobile.trim();
     const trimmedPassword = password.trim();
 
+    console.log('Login attempt with:', trimmedMobile);
+
     if (!trimmedMobile || !trimmedPassword) {
       Alert.alert('Missing info', 'Please enter mobile number and password.');
       return;
     }
 
     try {
+      // Try Assembly CI / Admin login first (using phone)
+      try {
+        console.log('Attempting Assembly CI login...');
+        const authResponse = await authAPI.login(trimmedMobile, trimmedPassword);
+        
+        console.log('Assembly CI response:', authResponse);
+        
+        if (authResponse?.success && authResponse?.token) {
+          // Save token and user data
+          await AsyncStorage.setItem('userToken', authResponse.token);
+          await AsyncStorage.setItem('userData', JSON.stringify(authResponse.data));
+          await AsyncStorage.setItem('userRole', authResponse.data.role);
+          
+          // Save user session with complete info
+          await saveUserSession(
+            trimmedMobile, 
+            authResponse.data._id || authResponse.data.id,
+            authResponse.data.name,
+            authResponse.data.role,
+            authResponse.data.aci_id,
+            authResponse.data.aci_name
+          );
+          
+          console.log('Assembly CI/Admin logged in successfully:', authResponse.data);
+          
+          // Navigate based on role
+          if (authResponse.data.role === 'Assembly CI' || authResponse.data.role === 'AssemblyIncharge') {
+            router.replace('/(tabs)'); // Assembly CI dashboard is at (tabs)/index.tsx
+          } else if (authResponse.data.role === 'admin') {
+            router.replace('/(tabs)'); // Admin also goes to Assembly CI dashboard
+          } else {
+            router.replace('/(tabs)');
+          }
+          return;
+        }
+      } catch (authError: any) {
+        console.log('Assembly CI login failed, trying Booth Agent login...', authError.message);
+        // If Assembly CI login fails, try Booth Agent login
+      }
+
+      // Try Booth Agent login
+      try {
+        console.log('Attempting Booth Agent login...');
+        const boothResponse = await boothAPI.login(trimmedMobile, trimmedPassword);
+        
+        console.log('Booth Agent response:', boothResponse);
+        
+        if (boothResponse?.success && boothResponse?.token) {
+          // Save token and user data
+          await AsyncStorage.setItem('userToken', boothResponse.token);
+          await AsyncStorage.setItem('userData', JSON.stringify(boothResponse.data));
+          await AsyncStorage.setItem('userRole', boothResponse.data.role);
+          
+          console.log('✅ Booth agent logged in successfully:', boothResponse.data);
+          console.log('✅ Saved to AsyncStorage - booth_id:', boothResponse.data.booth_id);
+          
+          // Verify what was saved
+          const savedData = await AsyncStorage.getItem('userData');
+          console.log('✅ Verification - Data in AsyncStorage:', savedData);
+          
+          // Navigate to Booth Agent dashboard
+          router.replace('/(boothAgent)/dashboard');
+          return;
+        }
+      } catch (boothError: any) {
+        console.log('Booth agent login failed, trying Firebase...', boothError.message);
+        // If booth agent login fails, continue to try Firebase login
+      }
+
+      // If booth agent login fails, try Firebase (regular user)
       // First try with mobile as Number (if Firestore stored as number)
       let q = query(
         collection(db, 'kural app'),
@@ -63,7 +138,7 @@ export default function LoginScreen() {
         Alert.alert('Login Failed', 'Invalid mobile number or password');
       }
     } catch (error) {
-      console.log(error);
+      console.log('Login error:', error);
       Alert.alert('Error', (error as Error).message ?? 'Something went wrong');
     }
   };

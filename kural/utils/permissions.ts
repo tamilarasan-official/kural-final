@@ -12,11 +12,11 @@ export const isBoothAgent = (user?: UserSession | null) => {
   return role === 'booth_agent' || role.includes('booth');
 };
 
-export const canCreateCadre = (user?: UserSession | null) => {
+export const canCreateBooth = (user?: UserSession | null) => {
   return isModerator(user);
 };
 
-export const canManageCadre = (user?: UserSession | null) => {
+export const canManageBooth = (user?: UserSession | null) => {
   return isModerator(user);
 };
 
@@ -38,8 +38,8 @@ export const currentUserIsModerator = async () => {
 export default {
   isModerator,
   isBoothAgent,
-  canCreateCadre,
-  canManageCadre,
+  canCreateBooth,
+  canManageBooth,
   canEditVoter,
   currentUserIsModerator,
 };

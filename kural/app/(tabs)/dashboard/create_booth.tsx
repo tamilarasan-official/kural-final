@@ -7,7 +7,7 @@ import { boothAPI } from '../../../services/api/booth';
 
 const { width } = Dimensions.get('window');
 
-export default function CreateCadreScreen() {
+export default function CreateBoothScreen() {
   const { t } = useLanguage();
   
   const [formData, setFormData] = useState({
@@ -56,7 +56,7 @@ export default function CreateCadreScreen() {
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
     
     if (missingFields.length > 0) {
-      Alert.alert(t('common.error'), t('cadre.fillRequiredFields'));
+      Alert.alert(t('common.error'), t('booth.fillRequiredFields'));
       return;
     }
 
@@ -66,15 +66,15 @@ export default function CreateCadreScreen() {
       const response = await boothAPI.create(formData);
       
       if (response.success) {
-        Alert.alert(t('common.success'), t('cadre.createdSuccessfully'), [
-          { text: t('common.ok'), onPress: () => { try { router.push('/(tabs)/dashboard/my_cadre'); } catch { router.replace('/(tabs)/dashboard/my_cadre' as any); } } }
+        Alert.alert(t('common.success'), t('booth.createdSuccessfully'), [
+          { text: t('common.ok'), onPress: () => { try { router.push('/(tabs)/dashboard/my_booth'); } catch { router.replace('/(tabs)/dashboard/my_booth' as any); } } }
         ]);
       } else {
-        Alert.alert(t('common.error'), response.message || t('cadre.failedToCreate'));
+        Alert.alert(t('common.error'), response.message || t('booth.failedToCreate'));
       }
     } catch (error: any) {
       console.error('Error creating booth:', error);
-      Alert.alert(t('common.error'), error.message || t('cadre.failedToCreate'));
+      Alert.alert(t('common.error'), error.message || t('booth.failedToCreate'));
     } finally {
       setSaving(false);
     }
@@ -83,10 +83,10 @@ export default function CreateCadreScreen() {
   const renderForm = () => (
     <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
       {/* Personal Details Section */}
-      <Text style={styles.sectionTitle}>{t('cadre.personalDetails')}</Text>
+      <Text style={styles.sectionTitle}>{t('booth.personalDetails')}</Text>
       
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.activeElection')}</Text>
+        <Text style={styles.label}>{t('booth.activeElection')}</Text>
         <TextInput
           style={[styles.input, styles.readOnlyInput]}
           value={formData.activeElection}
@@ -95,10 +95,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.firstName')} *</Text>
+        <Text style={styles.label}>{t('booth.firstName')} *</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.firstName')}
+          placeholder={t('booth.firstName')}
           placeholderTextColor="#999999"
           value={formData.firstName}
           onChangeText={(value) => handleInputChange('firstName', value)}
@@ -106,10 +106,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.lastName')}</Text>
+        <Text style={styles.label}>{t('booth.lastName')}</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.lastName')}
+          placeholder={t('booth.lastName')}
           placeholderTextColor="#999999"
           value={formData.lastName}
           onChangeText={(value) => handleInputChange('lastName', value)}
@@ -117,10 +117,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.mobileNumber')} *</Text>
+        <Text style={styles.label}>{t('booth.mobileNumber')} *</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.mobileNumber')}
+          placeholder={t('booth.mobileNumber')}
           placeholderTextColor="#999999"
           value={formData.mobileNumber}
           onChangeText={(value) => handleInputChange('mobileNumber', value)}
@@ -129,7 +129,7 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.gender')} *</Text>
+        <Text style={styles.label}>{t('booth.gender')} *</Text>
         <View style={styles.genderContainer}>
           {['Male', 'Female', 'Other'].map((gender) => (
             <TouchableOpacity
@@ -156,10 +156,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.password')} *</Text>
+        <Text style={styles.label}>{t('booth.password')} *</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.password')}
+          placeholder={t('booth.password')}
           placeholderTextColor="#999999"
           value={formData.password}
           onChangeText={(value) => handleInputChange('password', value)}
@@ -168,36 +168,36 @@ export default function CreateCadreScreen() {
       </View>
 
       {/* Role and Allocation Section */}
-      <Text style={styles.sectionTitle}>{t('cadre.roleAndAllocation')}</Text>
+      <Text style={styles.sectionTitle}>{t('booth.roleAndAllocation')}</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.role')} *</Text>
+        <Text style={styles.label}>{t('booth.role')} *</Text>
         <TouchableOpacity
           style={styles.dropdownInput}
           onPress={() => setShowRoleModal(true)}
         >
           <Text style={[styles.dropdownText, !formData.role && styles.placeholderText]}>
-            {formData.role || t('cadre.selectRole')}
+            {formData.role || t('booth.selectRole')}
           </Text>
           <Text style={styles.dropdownArrow}>▼</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.boothAllocation')} *</Text>
+        <Text style={styles.label}>{t('booth.boothAllocation')} *</Text>
         <TouchableOpacity
           style={styles.dropdownInput}
           onPress={() => setShowBoothModal(true)}
         >
           <Text style={[styles.dropdownText, !formData.boothAllocation && styles.placeholderText]}>
-            {formData.boothAllocation || t('cadre.selectBooth')}
+            {formData.boothAllocation || t('booth.selectBooth')}
           </Text>
           <Text style={styles.dropdownArrow}>▼</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.status')} *</Text>
+        <Text style={styles.label}>{t('booth.status')} *</Text>
         <TouchableOpacity
           style={styles.dropdownInput}
           onPress={() => setShowStatusModal(true)}
@@ -210,10 +210,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.email')}</Text>
+        <Text style={styles.label}>{t('booth.email')}</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.email')}
+          placeholder={t('booth.email')}
           placeholderTextColor="#999999"
           value={formData.email}
           onChangeText={(value) => handleInputChange('email', value)}
@@ -222,13 +222,13 @@ export default function CreateCadreScreen() {
       </View>
 
       {/* Address Details Section */}
-      <Text style={styles.sectionTitle}>{t('cadre.addressDetails')}</Text>
+      <Text style={styles.sectionTitle}>{t('booth.addressDetails')}</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.street')}</Text>
+        <Text style={styles.label}>{t('booth.street')}</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.street')}
+          placeholder={t('booth.street')}
           placeholderTextColor="#999999"
           value={formData.street}
           onChangeText={(value) => handleInputChange('street', value)}
@@ -236,10 +236,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.city')}</Text>
+        <Text style={styles.label}>{t('booth.city')}</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.city')}
+          placeholder={t('booth.city')}
           placeholderTextColor="#999999"
           value={formData.city}
           onChangeText={(value) => handleInputChange('city', value)}
@@ -247,7 +247,7 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.state')} *</Text>
+        <Text style={styles.label}>{t('booth.state')} *</Text>
         <TouchableOpacity
           style={styles.dropdownInput}
           onPress={() => setShowStateModal(true)}
@@ -260,7 +260,7 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.country')}</Text>
+        <Text style={styles.label}>{t('booth.country')}</Text>
         <TextInput
           style={[styles.input, styles.readOnlyInput]}
           value={formData.country}
@@ -269,10 +269,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.postalCode')}</Text>
+        <Text style={styles.label}>{t('booth.postalCode')}</Text>
         <TextInput
           style={styles.input}
-          placeholder={t('cadre.postalCode')}
+          placeholder={t('booth.postalCode')}
           placeholderTextColor="#999999"
           value={formData.postalCode}
           onChangeText={(value) => handleInputChange('postalCode', value)}
@@ -281,10 +281,10 @@ export default function CreateCadreScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('cadre.remarks')}</Text>
+        <Text style={styles.label}>{t('booth.remarks')}</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder={t('cadre.remarks')}
+          placeholder={t('booth.remarks')}
           placeholderTextColor="#999999"
           value={formData.remarks}
           onChangeText={(value) => handleInputChange('remarks', value)}
@@ -336,8 +336,8 @@ export default function CreateCadreScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <HeaderBack onPress={() => { try { router.push('/(tabs)/dashboard/my_cadre'); } catch { router.replace('/(tabs)/dashboard/my_cadre' as any); } }} />
-        <Text style={styles.headerTitle}>{t('cadre.createCadre')}</Text>
+        <HeaderBack onPress={() => { try { router.push('/(tabs)/dashboard/my_booth'); } catch { router.replace('/(tabs)/dashboard/my_booth' as any); } }} />
+        <Text style={styles.headerTitle}>{t('booth.createBooth')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -354,16 +354,16 @@ export default function CreateCadreScreen() {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveButtonText}>{t('cadre.saveAndContinue')}</Text>
+            <Text style={styles.saveButtonText}>{t('booth.saveAndContinue')}</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {/* Dropdown Modals */}
-      {renderDropdownModal(t('cadre.selectRole'), roles, 'role', showRoleModal, () => setShowRoleModal(false))}
-      {renderDropdownModal(t('cadre.selectBooth'), booths, 'boothAllocation', showBoothModal, () => setShowBoothModal(false))}
-      {renderDropdownModal(t('cadre.selectStatus'), statuses, 'status', showStatusModal, () => setShowStatusModal(false))}
-      {renderDropdownModal(t('cadre.selectState'), states, 'state', showStateModal, () => setShowStateModal(false))}
+      {renderDropdownModal(t('booth.selectRole'), roles, 'role', showRoleModal, () => setShowRoleModal(false))}
+      {renderDropdownModal(t('booth.selectBooth'), booths, 'boothAllocation', showBoothModal, () => setShowBoothModal(false))}
+      {renderDropdownModal(t('booth.selectStatus'), statuses, 'status', showStatusModal, () => setShowStatusModal(false))}
+      {renderDropdownModal(t('booth.selectState'), states, 'state', showStateModal, () => setShowStateModal(false))}
     </View>
   );
 }
@@ -586,3 +586,4 @@ const styles = StyleSheet.create({
     color: '#333333',
   },
 });
+

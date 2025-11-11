@@ -8,7 +8,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { width } = Dimensions.get('window');
 
-export default function MyCadreScreen() {
+export default function MyBoothScreen() {
   const { t } = useLanguage();
   const { tab } = useLocalSearchParams();
   
@@ -16,7 +16,7 @@ export default function MyCadreScreen() {
   const [activeTab, setActiveTab] = useState(tab as string || 'active');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cadres, setCadres] = useState([]);
+  const [booths, setBooths] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -28,7 +28,7 @@ export default function MyCadreScreen() {
   const [boothFilter, setBoothFilter] = useState('');
 
   useEffect(() => {
-    loadCadres();
+    loadBooths();
     loadStats();
   }, [activeTab, searchQuery, boothFilter]);
 
@@ -39,7 +39,7 @@ export default function MyCadreScreen() {
     }
   }, [tab]);
 
-  const loadCadres = async () => {
+  const loadBooths = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -51,7 +51,7 @@ export default function MyCadreScreen() {
       });
       
       if (response.success) {
-        setCadres(response.data);
+        setBooths(response.data);
       } else {
         setError('Failed to load booths');
       }
@@ -77,13 +77,13 @@ export default function MyCadreScreen() {
   const handleApplyFilter = () => {
     setShowFilterModal(false);
     setBoothFilter('');
-    loadCadres();
+    loadBooths();
   };
 
   const handleClearFilter = () => {
     setBoothFilter('');
     setShowFilterModal(false);
-    loadCadres();
+    loadBooths();
   };
 
   const handleCloseModal = () => {
@@ -98,15 +98,15 @@ export default function MyCadreScreen() {
     return stats.pending;
   };
 
-  const renderCadreCard = (cadre: any) => (
-    <View key={cadre._id} style={styles.cadreCard}>
-      <View style={styles.cadreInfo}>
-        <Text style={styles.cadreName}>{cadre.firstName} {cadre.lastName}</Text>
-        <Text style={styles.cadreMobile}>{cadre.mobileNumber}</Text>
-        <Text style={styles.cadreBooth}>{cadre.boothAllocation}</Text>
+  const renderBoothCard = (booth: any) => (
+    <View key={booth._id} style={styles.boothCard}>
+      <View style={styles.boothInfo}>
+        <Text style={styles.boothName}>{booth.firstName} {booth.lastName}</Text>
+        <Text style={styles.boothMobile}>{booth.mobileNumber}</Text>
+        <Text style={styles.boothBooth}>{booth.boothAllocation}</Text>
       </View>
-      <View style={[styles.statusBadge, { backgroundColor: cadre.status === 'Active' ? '#4CAF50' : '#F44336' }]}>
-        <Text style={styles.statusText}>{cadre.status.toUpperCase()}</Text>
+      <View style={[styles.statusBadge, { backgroundColor: booth.status === 'Active' ? '#4CAF50' : '#F44336' }]}>
+        <Text style={styles.statusText}>{booth.status.toUpperCase()}</Text>
       </View>
     </View>
   );
@@ -116,10 +116,10 @@ export default function MyCadreScreen() {
       {/* Header */}
       <View style={styles.header}>
         <HeaderBack onPress={() => { try { router.back(); } catch { router.replace('/(tabs)/' as any); } }} />
-        <Text style={styles.headerTitle}>{t('myCadre.title')}</Text>
+        <Text style={styles.headerTitle}>{t('myBooth.title')}</Text>
         <TouchableOpacity 
           style={styles.addButton} 
-          onPress={() => router.push('/(tabs)/dashboard/create_cadre')}
+          onPress={() => router.push('/(tabs)/dashboard/create_booth')}
         >
           <Icon name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -130,7 +130,7 @@ export default function MyCadreScreen() {
         <View style={styles.searchInputContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder={t('myCadre.searchPlaceholder')}
+            placeholder={t('myBooth.searchPlaceholder')}
             placeholderTextColor="#999999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -153,7 +153,7 @@ export default function MyCadreScreen() {
           style={[styles.tab, activeTab === 'active' && styles.activeTab]} 
           onPress={() => setActiveTab('active')}
         >
-          <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>{t('myCadre.active')}</Text>
+          <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>{t('myBooth.active')}</Text>
           <View style={[styles.tabBadge, { backgroundColor: '#4CAF50' }]}>
             <Text style={styles.tabBadgeText}>{getTabCount('active')}</Text>
           </View>
@@ -163,7 +163,7 @@ export default function MyCadreScreen() {
           style={[styles.tab, activeTab === 'inactive' && styles.activeTab]} 
           onPress={() => setActiveTab('inactive')}
         >
-          <Text style={[styles.tabText, activeTab === 'inactive' && styles.activeTabText]}>{t('myCadre.inactive')}</Text>
+          <Text style={[styles.tabText, activeTab === 'inactive' && styles.activeTabText]}>{t('myBooth.inactive')}</Text>
           <View style={[styles.tabBadge, { backgroundColor: '#F44336' }]}>
             <Text style={styles.tabBadgeText}>{getTabCount('inactive')}</Text>
           </View>
@@ -173,7 +173,7 @@ export default function MyCadreScreen() {
           style={[styles.tab, activeTab === 'all' && styles.activeTab]} 
           onPress={() => setActiveTab('all')}
         >
-          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>{t('myCadre.all')}</Text>
+          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>{t('myBooth.all')}</Text>
           <View style={[styles.tabBadge, { backgroundColor: '#9E9E9E' }]}>
             <Text style={styles.tabBadgeText}>{getTabCount('all')}</Text>
           </View>
@@ -185,13 +185,13 @@ export default function MyCadreScreen() {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1976D2" />
-            <Text style={styles.loadingText}>{t('myCadre.loading')}</Text>
+            <Text style={styles.loadingText}>{t('myBooth.loading')}</Text>
           </View>
-        ) : cadres.length > 0 ? (
-          cadres.map(renderCadreCard)
+        ) : booths.length > 0 ? (
+          booths.map(renderBoothCard)
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>{t('myCadre.noCadres')}</Text>
+            <Text style={styles.emptyText}>{t('myBooth.noBooths')}</Text>
           </View>
         )}
       </ScrollView>
@@ -206,14 +206,14 @@ export default function MyCadreScreen() {
         <Pressable style={styles.modalOverlay} onPress={handleCloseModal}>
           <Pressable style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('myCadre.filterTitle')}</Text>
+              <Text style={styles.modalTitle}>{t('myBooth.filterTitle')}</Text>
             </View>
             
             <View style={styles.modalContent}>
-              <Text style={styles.filterLabel}>{t('myCadre.searchByBooth')}</Text>
+              <Text style={styles.filterLabel}>{t('myBooth.searchByBooth')}</Text>
               <TextInput
                 style={styles.boothInput}
-                placeholder={t('myCadre.enterBooth')}
+                placeholder={t('myBooth.enterBooth')}
                 placeholderTextColor="#999999"
                 value={boothFilter}
                 onChangeText={setBoothFilter}
@@ -233,7 +233,7 @@ export default function MyCadreScreen() {
                 style={styles.clearButton}
                 onPress={handleClearFilter}
               >
-                <Text style={styles.clearButtonText}>{t('myCadre.clearFilter')}</Text>
+                <Text style={styles.clearButtonText}>{t('myBooth.clearFilter')}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     color: '#999999',
     fontWeight: '500',
   },
-  cadreCard: {
+  boothCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -426,21 +426,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  cadreInfo: {
+  boothInfo: {
     flex: 1,
   },
-  cadreName: {
+  boothName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333333',
     marginBottom: 4,
   },
-  cadreMobile: {
+  boothMobile: {
     fontSize: 14,
     color: '#666666',
     marginBottom: 2,
   },
-  cadreBooth: {
+  boothBooth: {
     fontSize: 14,
     color: '#666666',
   },
@@ -530,3 +530,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+
+

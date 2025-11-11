@@ -388,7 +388,7 @@ export default function NoFamilyScreen() {
                 </View>
 
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 }}>{t('cadre.mobileNumber')}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 }}>{t('booth.mobileNumber')}</Text>
                   <TextInput style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 }} value={adv.mobileNo} onChangeText={(t) => setAdv({ ...adv, mobileNo: t })} placeholder={t('noFamily.enterMobileNumber')} keyboardType="phone-pad" />
                 </View>
               </ScrollView>

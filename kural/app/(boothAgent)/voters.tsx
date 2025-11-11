@@ -36,31 +36,31 @@ export default function VotersScreen() {
   const loadVoters = useCallback(async (page: number = 1) => {
       try {
         setLoading(true);
-        const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
+        const boothId = userData?.booth_id || '';
         
-        console.log('Loading voters for booth:', boothNumber, 'Page:', page);
+        console.log('🔍 Voters Screen - Loading voters for booth:', boothId, 'Page:', page);
+        console.log('🔍 Voters Screen - userData:', JSON.stringify(userData, null, 2));
         
-        if (boothNumber) {
-          // Load only the requested page with server-side pagination
-          const response = await voterAPI.getVotersByPart(boothNumber, { 
+        if (boothId) {
+          // Load voters by booth ID with server-side pagination
+          const response = await voterAPI.getVotersByBoothId(boothId, { 
             page: page,
             limit: ITEMS_PER_PAGE 
           });
-          console.log('Voters API Response:', response);
+          console.log('📊 Voters Screen - API Response:', response);
           
           if (response?.success) {
-            // Handle both 'data' and 'voters' response formats
-            const votersData = response.data || response.voters || [];
-            const votersArray = Array.isArray(votersData) ? votersData : [];
+            // Handle 'voters' response format
+            const votersArray = Array.isArray(response.voters) ? response.voters : [];
             
             // Set voters for current page
             setVoters(votersArray);
             
             // Update pagination info from server response
             if (response.pagination) {
-              setTotalPages(response.pagination.pages || 1);
-              setTotalVoters(response.pagination.total || 0);
-              setCurrentPage(response.pagination.current || page);
+              setTotalPages(response.pagination.totalPages || 1);
+              setTotalVoters(response.pagination.totalVoters || 0);
+              setCurrentPage(response.pagination.currentPage || page);
             }
           } else {
             setVoters([]);
@@ -86,22 +86,29 @@ export default function VotersScreen() {
   // Reload voters when screen comes into focus (e.g., after navigating back from detail screen)
   useFocusEffect(
     useCallback(() => {
+      console.log('🔄 Screen focused - Reloading voters for page:', currentPage);
       loadVoters(currentPage);
-    }, [currentPage, loadVoters])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage])
   );
 
   // Filter voters based on search query and selected filter
   const filteredVoters = voters.filter(voter => {
-    // Apply search filter
-    const matchesSearch = 
-      voter.Name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      voter.Number?.includes(searchQuery) ||
-      voter['EPIC No']?.toLowerCase().includes(searchQuery.toLowerCase());
+    // Apply search filter - support both old and new field names
+    const voterName = voter.name?.english || voter.name?.tamil || voter.Name || '';
+    const voterNumber = voter.voterID || voter.Number || voter['EPIC No'] || '';
+    const voterMobile = voter.mobile || voter.phoneNumber || '';
+    
+    const matchesSearch = searchQuery.trim() === '' || 
+      voterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      voterNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      voterMobile.includes(searchQuery);
     
     if (!matchesSearch) return false;
 
     // Apply dropdown filter
     const age = parseInt(voter.age || voter.Age) || 0;
+    const voterGender = voter.gender || voter.sex || '';
     
     switch (selectedFilter) {
       case 'All Voters':
@@ -115,7 +122,7 @@ export default function VotersScreen() {
       case 'Age 80+':
         return age >= 80;
       case 'Transgender':
-        return voter.specialCategories?.includes('Transgender') || false;
+        return voterGender.toLowerCase() === 'transgender' || voterGender.toLowerCase() === 'others' || voter.specialCategories?.includes('Transgender');
       case 'Fatherless':
         return voter.specialCategories?.includes('Fatherless') || false;
       case 'Overseas':
@@ -126,6 +133,8 @@ export default function VotersScreen() {
         return true;
     }
   });
+  
+  console.log(`🔍 Voters Screen - Total voters: ${voters.length}, Filtered: ${filteredVoters.length}, Search: "${searchQuery}", Filter: ${selectedFilter}`);
 
   const handleFilterSelect = (filter: string) => {
     setSelectedFilter(filter);
@@ -145,10 +154,10 @@ export default function VotersScreen() {
     }
 
     try {
-      // Get booth allocation for partNumber
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
+      // Get booth ID from userData
+      const boothId = userData?.booth_id || '';
       
-      if (!boothNumber) {
+      if (!boothId) {
         Alert.alert('Error', 'Booth allocation not found. Please contact administrator.');
         return;
       }
@@ -163,7 +172,7 @@ export default function VotersScreen() {
         address: newVoter.address,
         familyId: newVoter.familyId,
         specialCategories: newVoter.specialCategory ? [newVoter.specialCategory] : [],
-        partNumber: boothNumber,
+        boothId: boothId,
       });
 
       if (response.success) {
@@ -391,7 +400,7 @@ export default function VotersScreen() {
               const age = parseInt(voter.age || voter.Age) || 0;
               const isSenior60 = age >= 60 && age < 80;
               const isSenior80 = age >= 80;
-              const hasPhone = voter['Mobile No'] || voter.Mobile || voter['Mobile Number'];
+              const hasPhone = voter.mobile || voter['Mobile No'] || voter.Mobile || voter['Mobile Number'];
               const isVerified = voter.verified === true || voter.status === 'verified';
               const specialCategories = voter.specialCategories || [];
               const hasSpecialCategories = specialCategories.length > 0 || isSenior60 || isSenior80;
@@ -410,7 +419,16 @@ export default function VotersScreen() {
                 >
                   {/* Voter Name and Status Badge */}
                   <View style={styles.voterHeader}>
-                    <Text style={styles.voterName}>{voter.Name || 'Unknown'}</Text>
+                    <View style={styles.nameContainer}>
+                      <Text style={styles.voterName}>
+                        {voter.name?.english || voter.Name || 'Unknown'}
+                      </Text>
+                      {voter.name?.tamil && (
+                        <Text style={styles.voterNameTamil}>
+                          {voter.name.tamil}
+                        </Text>
+                      )}
+                    </View>
                     {isVerified ? (
                       <View style={styles.verifiedBadge}>
                         <Text style={styles.verifiedText}>Verified</Text>
@@ -423,17 +441,17 @@ export default function VotersScreen() {
                   </View>
 
                   {/* Voter ID */}
-                  <Text style={styles.voterId}>ID: {voter['EPIC No'] || voter.Number || 'N/A'}</Text>
+                  <Text style={styles.voterId}>ID: {voter.voterID || voter['EPIC No'] || voter.Number || 'N/A'}</Text>
 
                   {/* Age and Gender */}
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Age: </Text>
-                    <Text style={styles.infoValue}>{voter.age || voter.Age || 'N/A'} years</Text>
+                    <Text style={styles.infoValue}>{voter.age || voter.Age || 'N/A'}</Text>
                   </View>
 
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Gender: </Text>
-                    <Text style={styles.infoValue}>{voter.sex || voter.Sex || voter.Gender || 'N/A'}</Text>
+                    <Text style={styles.infoValue}>{voter.gender || voter.sex || voter.Sex || voter.Gender || 'N/A'}</Text>
                   </View>
 
                   {/* Phone Number */}
@@ -964,12 +982,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
+  nameContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
   voterName: {
     fontSize: 18,
     fontWeight: '600',
     color: '#000',
-    flex: 1,
-    marginRight: 8,
+  },
+  voterNameTamil: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
   verifiedBadge: {
     backgroundColor: '#4CAF50',

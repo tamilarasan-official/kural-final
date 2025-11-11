@@ -1,43 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { voterAPI } from '../../services/api/voter';
-import DateTimePicker from '@react-native-community/datetimepicker';
-
+import VoterSlipTemplate from '../../components/VoterSlipTemplate';
 export default function VoterDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [voter, setVoter] = useState<any>(null);
   const [verifying, setVerifying] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const slipRef = useRef<View>(null);
   
-  // Contact Information
-  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
+  // Editable fields
   const [mobileNumber, setMobileNumber] = useState('');
-  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [location, setLocation] = useState('');
-  
-  // Additional Information
-  const [aadharNumber, setAadharNumber] = useState('');
-  const [panNumber, setPanNumber] = useState('');
-  const [membershipNumber, setMembershipNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [aadhar, setAadhar] = useState('');
+  const [pan, setPan] = useState('');
   const [religion, setReligion] = useState('');
   const [caste, setCaste] = useState('');
   const [subCaste, setSubCaste] = useState('');
-  const [category, setCategory] = useState('');
-  const [casteCategory, setCasteCategory] = useState('');
-  const [party, setParty] = useState('');
-  const [schemes, setSchemes] = useState('');
-  const [history, setHistory] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [language, setLanguage] = useState('');
-  const [remarks, setRemarks] = useState('');
 
   const loadVoterDetails = async () => {
     try {
@@ -63,30 +49,15 @@ export default function VoterDetailScreen() {
         const voterData = response.data || response.voter;
         setVoter(voterData);
         
-        // Populate contact information
-        setMobileNumber(voterData.mobileNumber || voterData['Mobile No'] || '');
-        setWhatsappNumber(voterData.whatsappNumber || '');
-        setEmail(voterData.email || '');
-        setLocation(voterData.location || '');
-        if (voterData.dateOfBirth) {
-          setDateOfBirth(new Date(voterData.dateOfBirth));
-        }
-        
-        // Populate additional information
-        setAadharNumber(voterData.aadharNumber || '');
-        setPanNumber(voterData.panNumber || '');
-        setMembershipNumber(voterData.membershipNumber || '');
+        // Populate editable fields
+        setMobileNumber(voterData.mobile || voterData.mobileNumber || voterData['Mobile No'] || '');
+        setEmail(voterData.emailid || voterData.email || '');
+        setAddress(voterData.address || voterData.Address || '');
+        setAadhar(voterData.aadhar || voterData.aadharNumber || '');
+        setPan(voterData.PAN || voterData.panNumber || '');
         setReligion(voterData.religion || '');
         setCaste(voterData.caste || '');
-        setSubCaste(voterData.subCaste || '');
-        setCategory(voterData.category || '');
-        setCasteCategory(voterData.casteCategory || '');
-        setParty(voterData.party || '');
-        setSchemes(voterData.schemes || '');
-        setHistory(voterData.history || '');
-        setFeedback(voterData.feedback || '');
-        setLanguage(voterData.language || '');
-        setRemarks(voterData.remarks || '');
+        setSubCaste(voterData.subcaste || voterData.subCaste || '');
       } else {
         Alert.alert('Error', 'Failed to load voter details');
         router.back();
@@ -131,11 +102,8 @@ export default function VoterDetailScreen() {
     } finally {
       setVerifying(false);
     }
-  };
-
-  const handleSaveAdditionalInfo = async () => {
+  const handleSave = async () => {
     try {
-      setSaving(true);
       const voterId = voter._id || voter.Number;
       
       if (!voterId) {
@@ -143,48 +111,100 @@ export default function VoterDetailScreen() {
         return;
       }
 
-      // Prepare data to save
-      const additionalData = {
-        // Contact Information
-        dateOfBirth: dateOfBirth?.toISOString(),
-        mobileNumber,
-        whatsappNumber,
-        email,
-        location,
-        // Additional Information
-        aadharNumber,
-        panNumber,
-        membershipNumber,
-        religion,
-        caste,
-        subCaste,
-        category,
-        casteCategory,
-        party,
-        schemes,
-        history,
-        feedback,
-        language,
-        remarks
+      // Prepare update data
+      const updateData = {
+        mobile: mobileNumber,
+        emailid: email,
+        address: address,
+        aadhar: aadhar,
+        PAN: pan,
+        religion: religion,
+        caste: caste,
+        subcaste: subCaste,
       };
 
-      // Call API to update voter information
-      const response = await voterAPI.updateVoterInfo(voterId, additionalData);
+      // Call API to update voter info
+      const response = await voterAPI.updateVoterInfo(voterId, updateData);
       
       if (response?.success) {
-        Alert.alert('Success', 'Voter information updated successfully');
-        // Reload voter details
-        await loadVoterDetails();
-        // Exit edit mode
+        // Update local state
+        setVoter({ 
+          ...voter, 
+          mobile: mobileNumber,
+          emailid: email,
+          address: address,
+          aadhar: aadhar,
+          PAN: pan,
+          religion: religion,
+          caste: caste,
+          subcaste: subCaste
+        });
         setIsEditing(false);
+        Alert.alert('Success', 'Voter information updated successfully');
+        
+        // Reload details to get latest data
+        await loadVoterDetails();
       } else {
         Alert.alert('Error', response.message || 'Failed to update voter information');
       }
     } catch (error) {
-      console.error('Failed to save voter information:', error);
-      Alert.alert('Error', 'Failed to save voter information');
+      console.error('Failed to update voter:', error);
+      Alert.alert('Error', 'Failed to update voter information');
+    }
+  };
+
+  const handlePrintSlip = async () => {
+    try {
+      setPrinting(true);
+
+      // Check printer status first
+      const status = await PrintService.checkPrinterStatus();
+      
+      if (!status.bluetoothEnabled) {
+        Alert.alert(
+          'Bluetooth Disabled',
+          'Please enable Bluetooth to print voter slips.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Enable', 
+              onPress: () => router.push('/(boothAgent)/slip_box')
+            }
+          ]
+        );
+        return;
+      }
+
+      if (!status.printerConnected) {
+        Alert.alert(
+          'Printer Not Connected',
+          'Please connect to a printer first. Go to Slip Box to connect.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Connect', 
+              onPress: () => router.push('/(boothAgent)/slip_box')
+            }
+          ]
+        );
+        return;
+      }
+
+      // Print the voter slip
+      const result = await PrintService.printVoterSlip(slipRef);
+      
+      if (result.success) {
+        Alert.alert('Success', 'Voter slip printed successfully!');
+      } else {
+        Alert.alert('Print Failed', result.error || 'Failed to print voter slip');
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      Alert.alert('Error', 'Failed to print voter slip');
     } finally {
-      setSaving(false);
+      setPrinting(false);
+    }
+  };  Alert.alert('Error', 'Failed to update voter information');
     }
   };
 
@@ -213,7 +233,6 @@ export default function VoterDetailScreen() {
   const age = parseInt(voter.age || voter.Age) || 0;
   const isSenior60 = age >= 60 && age < 80;
   const isSenior80 = age >= 80;
-  const hasPhone = voter['Mobile No'] || voter.Mobile || voter['Mobile Number'];
   const isVerified = voter.verified === true || voter.status === 'verified';
 
   return (
@@ -226,26 +245,17 @@ export default function VoterDetailScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Voter Details</Text>
           <TouchableOpacity 
-            style={styles.editButton} 
+            style={styles.editButton}
             onPress={() => {
               if (isEditing) {
-                // Save the changes
-                handleSaveAdditionalInfo();
+                handleSave();
               } else {
-                // Enter edit mode
                 setIsEditing(true);
               }
             }}
-            disabled={saving}
           >
-            {saving ? (
-              <ActivityIndicator size="small" color="#1976D2" />
-            ) : (
-              <>
-                <Icon name={isEditing ? "save" : "edit"} size={24} color="#1976D2" />
-                <Text style={styles.editText}>{isEditing ? "Save" : "Edit"}</Text>
-              </>
-            )}
+            <Icon name={isEditing ? "save" : "edit"} size={24} color="#1976D2" />
+            <Text style={styles.editText}>{isEditing ? "Save" : "Edit"}</Text>
           </TouchableOpacity>
         </View>
 
@@ -265,28 +275,35 @@ export default function VoterDetailScreen() {
 
           {/* Voter Name Card */}
           <View style={styles.card}>
-            <Text style={styles.voterName}>{voter.Name || 'Unknown'}</Text>
+            <Text style={styles.voterName}>
+              {voter.name?.english || voter.Name || 'Unknown'}
+            </Text>
+            {voter.name?.tamil && (
+              <Text style={styles.voterNameTamil}>
+                {voter.name.tamil}
+              </Text>
+            )}
           </View>
 
           {/* Basic Info Card */}
           <View style={styles.card}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Voter ID</Text>
-              <Text style={styles.infoValue}>{voter['EPIC No'] || voter.Number || 'N/A'}</Text>
+              <Text style={styles.infoValue}>{voter.voterID || voter['EPIC No'] || voter.Number || 'N/A'}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Age</Text>
-              <Text style={styles.infoValue}>{voter.age || voter.Age || 'N/A'} years</Text>
+              <Text style={styles.infoValue}>{voter.age || voter.Age || 'N/A'}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Gender</Text>
-              <Text style={styles.infoValue}>{voter.sex || voter.Sex || voter.Gender || 'N/A'}</Text>
+              <Text style={styles.infoValue}>{voter.gender || voter.sex || voter.Sex || voter.Gender || 'N/A'}</Text>
             </View>
 
             <View style={styles.divider} />
@@ -307,108 +324,80 @@ export default function VoterDetailScreen() {
             <View style={styles.divider} />
 
             {/* Date of Birth */}
-            <View style={styles.inputGroup}>
-              <Icon name="cake" size={18} color="#666" style={styles.inputIcon} />
-              <TouchableOpacity 
-                style={styles.input}
-                onPress={() => isEditing && setShowDatePicker(true)}
-                disabled={!isEditing}
-              >
-                <Text style={dateOfBirth ? styles.inputText : styles.inputPlaceholder}>
-                  {dateOfBirth ? dateOfBirth.toLocaleDateString() : 'Select Date of Birth'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {showDatePicker && isEditing && (
-              <DateTimePicker
-                value={dateOfBirth || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) {
-                    setDateOfBirth(selectedDate);
-                  }
-                }}
-                maximumDate={new Date()}
-              />
+            {voter.DOB && (
+              <>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Date of Birth</Text>
+                  <Text style={styles.infoValue}>{new Date(voter.DOB).toLocaleDateString()}</Text>
+                </View>
+                <View style={styles.divider} />
+              </>
             )}
 
             {/* Mobile Number */}
-            <View style={styles.inputGroup}>
-              <Icon name="phone" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Mobile Number"
-                placeholderTextColor="#999"
-                value={mobileNumber}
-                onChangeText={setMobileNumber}
-                keyboardType="phone-pad"
-                editable={isEditing}
-              />
-            </View>
-
-            {/* WhatsApp Number */}
-            <View style={styles.inputGroup}>
-              <Icon name="chat" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Whatsapp Number"
-                placeholderTextColor="#999"
-                value={whatsappNumber}
-                onChangeText={setWhatsappNumber}
-                keyboardType="phone-pad"
-                editable={isEditing}
-              />
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Mobile Number</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+                    value={mobileNumber}
+                    onChangeText={setMobileNumber}
+                    keyboardType="phone-pad"
+                    placeholder="Enter mobile number"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={[styles.infoValue, styles.phoneValue]}>
+                    {mobileNumber || 'N/A'}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.divider} />
+            </>
 
             {/* Email */}
-            <View style={styles.inputGroup}>
-              <Icon name="email" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Email"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Location */}
-            <View style={styles.inputGroup}>
-              <Icon name="location-on" size={18} color="#666" style={styles.inputIcon} />
-              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="No Location"
-                  placeholderTextColor="#999"
-                  value={location}
-                  onChangeText={setLocation}
-                  editable={false}
-                />
-                <TouchableOpacity style={styles.fetchLocationButton}>
-                  <Text style={styles.fetchLocationText}>Fetch Location</Text>
-                </TouchableOpacity>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholder="Enter email"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{email || 'N/A'}</Text>
+                )}
               </View>
-            </View>
+              <View style={styles.divider} />
+            </>
 
             {/* Address */}
-            <View style={styles.inputGroup}>
-              <Icon name="home" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Enter Address"
-                placeholderTextColor="#999"
-                value={voter.address || voter.Address || (voter.Door_No ? `Door No: ${voter.Door_No}` : '')}
-                multiline
-                numberOfLines={3}
-                editable={false}
-              />
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Address</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput, styles.textArea]}
+                    value={address}
+                    onChangeText={setAddress}
+                    multiline
+                    numberOfLines={3}
+                    placeholder="Enter address"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={[styles.infoValue, { textAlign: 'left' }]}>
+                    {address || 'N/A'}
+                  </Text>
+                )}
+              </View>
+            </>
           </View>
 
           {/* Additional Information Card */}
@@ -421,230 +410,155 @@ export default function VoterDetailScreen() {
             <View style={styles.divider} />
 
             {/* Aadhar Number */}
-            <View style={styles.inputGroup}>
-              <Icon name="fingerprint" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Aadhar Number"
-                placeholderTextColor="#999"
-                value={aadharNumber}
-                onChangeText={setAadharNumber}
-                keyboardType="numeric"
-                maxLength={12}
-                editable={isEditing}
-              />
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Aadhar Number</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+                    value={aadhar}
+                    onChangeText={setAadhar}
+                    keyboardType="numeric"
+                    maxLength={12}
+                    placeholder="Enter Aadhar number"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{aadhar || 'N/A'}</Text>
+                )}
+              </View>
+              <View style={styles.divider} />
+            </>
 
             {/* PAN Number */}
-            <View style={styles.inputGroup}>
-              <Icon name="credit-card" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Pan Number"
-                placeholderTextColor="#999"
-                value={panNumber}
-                onChangeText={(text) => setPanNumber(text.toUpperCase())}
-                autoCapitalize="characters"
-                maxLength={10}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Membership Number */}
-            <View style={styles.inputGroup}>
-              <Icon name="card-membership" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Membership Number"
-                placeholderTextColor="#999"
-                value={membershipNumber}
-                onChangeText={setMembershipNumber}
-                editable={isEditing}
-              />
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>PAN Number</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+                    value={pan}
+                    onChangeText={(text) => setPan(text.toUpperCase())}
+                    autoCapitalize="characters"
+                    maxLength={10}
+                    placeholder="Enter PAN number"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{pan || 'N/A'}</Text>
+                )}
+              </View>
+              <View style={styles.divider} />
+            </>
 
             {/* Religion */}
-            <View style={styles.inputGroup}>
-              <Icon name="add-circle-outline" size={18} color="#666" style={styles.inputIcon} />
-              <TouchableOpacity 
-                style={styles.input}
-                onPress={() => {
-                  if (isEditing) {
-                    Alert.alert('Select Religion', '', [
-                      { text: 'Hindu', onPress: () => setReligion('Hindu') },
-                      { text: 'Muslim', onPress: () => setReligion('Muslim') },
-                      { text: 'Christian', onPress: () => setReligion('Christian') },
-                      { text: 'Sikh', onPress: () => setReligion('Sikh') },
-                      { text: 'Buddhist', onPress: () => setReligion('Buddhist') },
-                      { text: 'Jain', onPress: () => setReligion('Jain') },
-                      { text: 'Other', onPress: () => setReligion('Other') },
-                      { text: 'Cancel', style: 'cancel' }
-                    ]);
-                  }
-                }}
-                disabled={!isEditing}
-              >
-                <Text style={religion ? styles.inputText : styles.inputPlaceholder}>
-                  {religion || 'Select Religion'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Religion</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+                    value={religion}
+                    onChangeText={setReligion}
+                    placeholder="Enter religion"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{religion || 'N/A'}</Text>
+                )}
+              </View>
+              <View style={styles.divider} />
+            </>
 
             {/* Caste */}
-            <View style={styles.inputGroup}>
-              <Icon name="people-outline" size={18} color="#666" style={styles.inputIcon} />
-              <TouchableOpacity 
-                style={styles.input}
-                onPress={() => {
-                  if (isEditing) {
-                    Alert.alert('Select Caste', '', [
-                      { text: 'General', onPress: () => setCaste('General') },
-                      { text: 'OBC', onPress: () => setCaste('OBC') },
-                      { text: 'SC', onPress: () => setCaste('SC') },
-                      { text: 'ST', onPress: () => setCaste('ST') },
-                      { text: 'Other', onPress: () => setCaste('Other') },
-                      { text: 'Cancel', style: 'cancel' }
-                    ]);
-                  }
-                }}
-                disabled={!isEditing}
-              >
-                <Text style={caste ? styles.inputText : styles.inputPlaceholder}>
-                  {caste || 'Select Caste'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Caste</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+                    value={caste}
+                    onChangeText={setCaste}
+                    placeholder="Enter caste"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{caste || 'N/A'}</Text>
+                )}
+              </View>
+              <View style={styles.divider} />
+            </>
 
             {/* Sub-Caste */}
-            <View style={styles.inputGroup}>
-              <Icon name="add-circle-outline" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select Sub-Caste"
-                placeholderTextColor="#999"
-                value={subCaste}
-                onChangeText={setSubCaste}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Category */}
-            <View style={styles.inputGroup}>
-              <Icon name="category" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select Category"
-                placeholderTextColor="#999"
-                value={category}
-                onChangeText={setCategory}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Caste Category */}
-            <View style={styles.inputGroup}>
-              <Icon name="people-outline" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select Caste Category"
-                placeholderTextColor="#999"
-                value={casteCategory}
-                onChangeText={setCasteCategory}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Party */}
-            <View style={styles.inputGroup}>
-              <Icon name="flag" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select Party"
-                placeholderTextColor="#999"
-                value={party}
-                onChangeText={setParty}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Schemes */}
-            <View style={styles.inputGroup}>
-              <Icon name="loyalty" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select Schemes"
-                placeholderTextColor="#999"
-                value={schemes}
-                onChangeText={setSchemes}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* History */}
-            <View style={styles.inputGroup}>
-              <Icon name="history" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select History"
-                placeholderTextColor="#999"
-                value={history}
-                onChangeText={setHistory}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Feedback */}
-            <View style={styles.inputGroup}>
-              <Icon name="feedback" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select Feedback"
-                placeholderTextColor="#999"
-                value={feedback}
-                onChangeText={setFeedback}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Language */}
-            <View style={styles.inputGroup}>
-              <Icon name="language" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Select Language"
-                placeholderTextColor="#999"
-                value={language}
-                onChangeText={setLanguage}
-                editable={isEditing}
-              />
-            </View>
-
-            {/* Remarks */}
-            <View style={styles.inputGroup}>
-              <Icon name="comment" size={18} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Enter Remarks"
-                placeholderTextColor="#999"
-                value={remarks}
-                onChangeText={setRemarks}
-                multiline
-                numberOfLines={3}
-                editable={isEditing}
-              />
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Sub-Caste</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+          {/* Hidden Voter Slip Template for Printing */}
+          <View style={{ position: 'absolute', left: -9999, top: 0 }}>
+            <VoterSlipTemplate
+              ref={slipRef}
+              data={{
+                slipNumber: voter.slipNo || voter['Sl.No.'] || 'N/A',
+                serialNumber: voter.Number || voter.voterID || 'N/A',
+                voterName: voter.name?.english || voter.Name || 'Unknown',
+                voterNameTamil: voter.name?.tamil || '',
+                age: voter.age || voter.Age || 'N/A',
+                gender: voter.gender || voter.sex || voter.Sex || voter.Gender || 'N/A',
+                address: voter.address || voter.Address || '',
+                voterID: voter.voterID || voter['EPIC No'] || voter.Number || 'N/A',
+                boothName: voter.boothName || 'Booth',
+                boothNumber: voter.boothNumber || voter.PS_NO || 'N/A',
+                partyName: voter.partyName || '',
+                partySymbol: voter.partySymbol || '',
+                candidateName: voter.candidateName || '',
+              }}
+            />
           </View>
 
-          {/* Special Categories */}
-          {(isSenior60 || isSenior80 || (voter.specialCategories && voter.specialCategories.length > 0)) && (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Special Categories</Text>
-              
-              <View style={styles.divider} />
+          <View style={{ height: 100 }} />
+        </ScrollView>
 
-              <View style={styles.tagsContainer}>
-                {isSenior60 && (
-                  <View style={styles.tag}>
+        {/* Action Buttons Footer */}
+        <View style={styles.footer}>
+          <View style={styles.buttonRow}>
+            {/* Print Button - Always visible */}
+            <TouchableOpacity 
+              style={[styles.printButton, printing && styles.printButtonDisabled]}
+              onPress={handlePrintSlip}
+              disabled={printing}
+            >
+              {printing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Icon name="print" size={20} color="#fff" />
+                  <Text style={styles.printButtonText}>Print Slip</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Mark as Verified Button - Only show if not verified */}
+            {!isVerified && (
+              <TouchableOpacity 
+                style={[styles.verifyButton, verifying && styles.verifyButtonDisabled]}
+                onPress={handleMarkAsVerified}
+                disabled={verifying}
+              >
+                {verifying ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Icon name="check-circle" size={20} color="#fff" />
+                    <Text style={styles.verifyButtonText}>Verify</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>        <View style={styles.tag}>
                     <Text style={styles.tagText}>Age 60+</Text>
                   </View>
                 )}
@@ -781,23 +695,53 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    textAlign: 'center',
+  footer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
   },
-  cardHeader: {
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  printButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
     gap: 8,
-    marginBottom: 4,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+  printButtonDisabled: {
+    backgroundColor: '#A5D6A7',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: 12,
+  printButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  verifyButton: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  verifyButtonDisabled: {
+    backgroundColor: '#90CAF9',
+  },
+  verifyButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },marginVertical: 12,
   },
   infoRow: {
     flexDirection: 'row',
@@ -817,6 +761,15 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: '600',
     flex: 1,
+    textAlign: 'right',
+  },
+  editableInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     textAlign: 'right',
   },
   phoneValue: {

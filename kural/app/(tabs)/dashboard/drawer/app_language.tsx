@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useLanguage, Language } from '../../contexts/LanguageContext';
+import { useLanguage, Language } from '../../../../contexts/LanguageContext';
 
 const languages = [
   { id: 'en' as Language, labelKey: 'language.english', character: 'A' },
@@ -49,7 +49,7 @@ export default function AppLanguageScreen() {
             </View>
           ) : (
             <Image
-              source={require('../../assets/images/icon.png')}
+              source={require('../../../../assets/images/icon.png')}
               style={styles.logoImage}
               resizeMode="cover"
             />

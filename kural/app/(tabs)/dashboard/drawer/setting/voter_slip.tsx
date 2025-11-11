@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Switch, Alert, Dimensions, StatusBar } from 'react-native';
 import { router } from 'expo-router';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import HeaderBack from '../../components/HeaderBack';
+import { useLanguage } from '../../../../../contexts/LanguageContext';
+import HeaderBack from '../../../../components/HeaderBack';
 
 const { width } = Dimensions.get('window');
 

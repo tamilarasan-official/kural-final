@@ -14,14 +14,21 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 interface FamilyMember {
   _id?: string;
-  Name: string;
+  name?: {
+    english?: string;
+    tamil?: string;
+  };
+  Name?: string;
   age?: number;
   Age?: number;
+  gender?: string;
   sex?: string;
   Sex?: string;
   Gender?: string;
+  voterID?: string;
   'EPIC No'?: string;
   Number?: string;
+  mobile?: string;
   'Mobile No'?: string;
   Mobile?: string;
   verified?: boolean;
@@ -56,9 +63,9 @@ export default function FamilyDetailScreen() {
   const loadFamilyMembers = async () => {
     try {
       setLoading(true);
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
+      const boothId = userData?.booth_id || '';
       
-      if (boothNumber && params.address) {
+      if (boothId && params.address) {
         let allVoters = [];
         const now = Date.now();
         
@@ -69,18 +76,18 @@ export default function FamilyDetailScreen() {
         } else {
           console.log('Fetching fresh voter data');
           // Fetch all voters for this booth
-          const initialResponse = await voterAPI.getVotersByPart(boothNumber, { page: 1, limit: 50 });
+          const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
           
           if (initialResponse?.success) {
-            const totalVoters = initialResponse.pagination?.total || 0;
+            const totalVoters = initialResponse.pagination?.total || initialResponse.pagination?.totalVoters || 0;
             
-            const response = await voterAPI.getVotersByPart(boothNumber, { 
+            const response = await voterAPI.getVotersByBoothId(boothId, { 
               page: 1, 
               limit: totalVoters || 5000 
             });
             
-            if (response?.success && Array.isArray(response.data)) {
-              allVoters = response.data;
+            if (response?.success && Array.isArray(response.voters)) {
+              allVoters = response.voters;
               // Update cache
               voterDataCache = allVoters;
               cacheTimestamp = now;
@@ -255,10 +262,11 @@ export default function FamilyDetailScreen() {
           </View>
 
           {members.map((member: FamilyMember, index: number) => {
+            const memberName = member.name?.english || member.Name || 'Unknown';
             const age = member.age || member.Age || 0;
-            const gender = member.sex || member.Sex || member.Gender || 'N/A';
-            const voterId = member['EPIC No'] || member.Number || 'N/A';
-            const phone = member['Mobile No'] || member.Mobile || '';
+            const gender = member.gender || member.sex || member.Sex || member.Gender || 'N/A';
+            const voterId = member.voterID || member['EPIC No'] || member.Number || 'N/A';
+            const phone = member.mobile || member['Mobile No'] || member.Mobile || '';
             const isVerified = member.verified === true || member.status === 'verified';
             const relation = member.Relation || '';
             const fatherName = member['Father Name'] || '';
@@ -287,7 +295,7 @@ export default function FamilyDetailScreen() {
                   
                   <View style={styles.memberInfo}>
                     <View style={styles.memberNameRow}>
-                      <Text style={styles.memberName}>{member.Name || 'Unknown'}</Text>
+                      <Text style={styles.memberName}>{memberName}</Text>
                       {index === 0 && (
                         <View style={styles.headBadge}>
                           <Text style={styles.headBadgeText}>Head</Text>

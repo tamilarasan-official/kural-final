@@ -1,22 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Image, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import HeaderBack from '../components/HeaderBack';
 import { voterAPI } from '../../services/api/voter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../components/ScreenWrapper';
+import { useRole } from '../contexts/RoleContext';
 
 export default function PollScreen() {
   const router = useRouter();
   const { t } = useLanguage();
-  const insets = useSafeAreaInsets();
+  const { userData } = useRole();
   const [query, setQuery] = useState('');
-  const numbers = useMemo(() => Array.from({ length: 299 }, (_, i) => i + 1), []);
-  const filtered = numbers.filter(n => String(n).includes(query.trim()))
-  const [selectedPart, setSelectedPart] = useState<number|null>(null);
   const [loading, setLoading] = useState(false);
   const [serials, setSerials] = useState<number[]>([]);
   const [voters, setVoters] = useState<any[]>([]);
@@ -28,150 +25,156 @@ export default function PollScreen() {
   const [viewMode, setViewMode] = useState<'grid'|'list'>('grid');
 
   useEffect(() => {
-    if (selectedPart == null) return;
+    const boothId = userData?.booth_id;
+    if (!boothId) return;
+    
     (async () => {
       try {
         setLoading(true);
         setHydrated(false);
-        const res = await voterAPI.getVotersByPart(String(selectedPart));
-        const items = Array.isArray(res?.voters)
-          ? res.voters
-          : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+        
+        // Load voters by booth ID instead of part number
+        const res = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 5000 });
+        const items = Array.isArray(res?.voters) ? res.voters : [];
+        
         const srs = items.map((it: any) => Number(it.sr || it.serial || it.Serial || it.serialNo)).filter((n: any) => Number.isFinite(n));
         const sorted = [...srs].sort((a: number, b: number) => a - b);
-        // temporary until stats fetched
+        
         setSerials(sorted);
-        // keep raw voters for list view; sort by serial
+        
+        // Sort voters by serial number
         const bySerial = [...items].sort((a: any, b: any) => {
           const as = Number(a.sr || a.serial || a.Serial || a.serialNo || 0);
           const bs = Number(b.sr || b.serial || b.Serial || b.serialNo || 0);
           return as - bs;
         });
         setVoters(bySerial);
-        setVoted(new Set());
-        setFavorites(new Set());
-        // fetch stats for part
-        try {
-          const st = await voterAPI.getVoterStats(String(selectedPart));
-          const stat = st?.stats || st || {};
-          const newStats = {
-            total: Number(stat.total || srs.length || 0),
-            male: Number(stat.male || 0),
-            female: Number(stat.female || 0),
-            other: Number(stat.other || 0),
-          };
-          // translate male/female/other to total; voted/notVoted are dynamic client-side
-          setStats({ total: Number(newStats.total || 0), voted: 0, notVoted: Number(newStats.total || 0) });
-          const t = newStats.total > 0 ? newStats.total : sorted.length;
-          if (t > 0) {
-            setSerials(Array.from({ length: t }, (_, i) => i + 1));
-          }
-          // Load persisted voted set per part
-          try {
-            const saved = await AsyncStorage.getItem(`poll_voted_part_${selectedPart}`);
-            if (saved) {
-              const arr = (JSON.parse(saved) as any[]).map((n) => Number(n)).filter((n) => Number.isFinite(n));
-              const s = new Set<number>(arr);
-              setVoted(s);
-            } else {
-              setVoted(new Set());
-            }
-          } catch { setVoted(new Set()); }
-          // Load favorites per part
-          try {
-            const fav = await AsyncStorage.getItem(`poll_fav_part_${selectedPart}`);
-            if (fav) {
-              const arr = (JSON.parse(fav) as any[]).map((n) => Number(n)).filter((n) => Number.isFinite(n));
-              setFavorites(new Set<number>(arr));
-            } else {
-              setFavorites(new Set());
-            }
-          } catch { setFavorites(new Set()); }
-          finally { setHydrated(true); }
-        } catch {
-          const t = sorted.length;
-          setStats({ total: t, voted: 0, notVoted: t });
-          if (t > 0) setSerials(Array.from({ length: t }, (_, i) => i + 1));
-          setVoted(new Set());
-          setFavorites(new Set());
-          setHydrated(true);
+        
+        // Set total stats
+        const total = res.pagination?.totalVoters || items.length;
+        setStats({ total, voted: 0, notVoted: total });
+        
+        if (total > 0 && sorted.length === 0) {
+          // If no serial numbers, create a numbered list
+          setSerials(Array.from({ length: total }, (_, i) => i + 1));
         }
-      } catch {
-        setSerials([]);
-        setStats({ total: 0, voted: 0, notVoted: 0 });
-        setVoters([]);
+        
+        // Load persisted voted set for this booth
+        try {
+          const saved = await AsyncStorage.getItem(`poll_voted_booth_${boothId}`);
+          if (saved) {
+            const arr = (JSON.parse(saved) as any[]).map((n) => Number(n)).filter((n) => Number.isFinite(n));
+            const s = new Set<number>(arr);
+            setVoted(s);
+          } else {
+            setVoted(new Set());
+          }
+        } catch { 
+          setVoted(new Set()); 
+        }
+        
+        // Load favorites for this booth
+        try {
+          const fav = await AsyncStorage.getItem(`poll_fav_booth_${boothId}`);
+          if (fav) {
+            const arr = (JSON.parse(fav) as any[]).map((n) => Number(n)).filter((n) => Number.isFinite(n));
+            setFavorites(new Set<number>(arr));
+          } else {
+            setFavorites(new Set());
+          }
+        } catch { 
+          setFavorites(new Set()); 
+        }
+        
+        setHydrated(true);
+      } catch (error) {
+        console.error('Error loading booth voters:', error);
+        const t = voters?.length || 0;
+        setStats({ total: t, voted: 0, notVoted: t });
+        if (t > 0) setSerials(Array.from({ length: t }, (_, i) => i + 1));
         setVoted(new Set());
         setFavorites(new Set());
         setHydrated(true);
-      } finally { setLoading(false); }
+      } finally { 
+        setLoading(false); 
+      }
     })();
-  }, [selectedPart]);
+  }, [userData?.booth_id]);
 
   // persist voted changes
   useEffect(() => {
-    if (selectedPart == null || !hydrated) return;
+    const boothId = userData?.booth_id;
+    if (!boothId || !hydrated) return;
     (async () => {
       try {
-        await AsyncStorage.setItem(`poll_voted_part_${selectedPart}`, JSON.stringify(Array.from(voted)));
+        await AsyncStorage.setItem(`poll_voted_booth_${boothId}`, JSON.stringify(Array.from(voted)));
       } catch {}
     })();
-  }, [voted, selectedPart, hydrated]);
+  }, [voted, userData?.booth_id, hydrated]);
 
   // persist favorites
   useEffect(() => {
-    if (selectedPart == null || !hydrated) return;
+    const boothId = userData?.booth_id;
+    if (!boothId || !hydrated) return;
     (async () => {
       try {
-        await AsyncStorage.setItem(`poll_fav_part_${selectedPart}`, JSON.stringify(Array.from(favorites)));
+        await AsyncStorage.setItem(`poll_fav_booth_${boothId}`, JSON.stringify(Array.from(favorites)));
       } catch {}
     })();
-  }, [favorites, selectedPart, hydrated]);
+  }, [favorites, userData?.booth_id, hydrated]);
   
-  if (selectedPart != null) {
-    const total = stats.total || serials.length;
-    const votedCount = voted.size;
-    const notVoted = Math.max(0, total - votedCount);
-    return (
-      <ScreenWrapper userRole="booth_agent">
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.headerBtn} onPress={() => setSelectedPart(null)}>
-              <HeaderBack onPress={() => setSelectedPart(null)} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{`${t('poll.pollDayPart')} ${selectedPart}`}</Text>
-            <TouchableOpacity style={styles.headerBtn} onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
-              <Icon name={viewMode === 'grid' ? 'list' : 'grid-view'} size={22} color="#1976D2" />
-            </TouchableOpacity>
-          </View>
+  // Booth agents always see their voters - no part selection needed
+  const total = stats.total || serials.length;
+  const votedCount = voted.size;
+  const notVoted = Math.max(0, total - votedCount);
+  
+  return (
+    <ScreenWrapper userRole="booth_agent">
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/(boothAgent)/dashboard')}>
+            <HeaderBack onPress={() => router.push('/(boothAgent)/dashboard')} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('poll.pollDay')} - {userData?.booth_id || ''}</Text>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+            <Icon name={viewMode === 'grid' ? 'list' : 'grid-view'} size={22} color="#1976D2" />
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.searchWrap}>
-            <View style={styles.searchBar}>
-              <Icon name="search" size={18} color="#90A4AE" />
-              <TextInput style={styles.searchInput} placeholder={t('poll.voterIdOrName')} placeholderTextColor="#9AA5B1" />
-            </View>
+        <View style={styles.searchWrap}>
+          <View style={styles.searchBar}>
+            <Icon name="search" size={18} color="#90A4AE" />
+            <TextInput 
+              style={styles.searchInput} 
+              placeholder={t('poll.voterIdOrName')} 
+              placeholderTextColor="#9AA5B1"
+              value={query}
+              onChangeText={setQuery}
+            />
           </View>
+        </View>
 
-          <View style={styles.statRow}>
-            <TouchableOpacity onPress={() => setMode('voted')} style={[styles.statCard, { backgroundColor: '#C8E6C9' }, mode==='voted' && styles.statActive]}> 
-              <Text style={styles.statTitle}>{t('poll.voted')}</Text>
-              <Text style={styles.statValue}>{votedCount}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setMode('not')} style={[styles.statCard, { backgroundColor: '#F8BBD0' }, mode==='not' && styles.statActive]}> 
-              <Text style={styles.statTitle}>{t('poll.notVoted')}</Text>
-              <Text style={styles.statValue}>{notVoted}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setMode('all')} style={[styles.statCard, { backgroundColor: '#BBDEFB' }, mode==='all' && styles.statActive]}> 
-              <Text style={styles.statTitle}>{t('poll.total')}</Text>
-              <Text style={styles.statValue}>{total}</Text>
-            </TouchableOpacity>
+        <View style={styles.statRow}>
+          <TouchableOpacity onPress={() => setMode('voted')} style={[styles.statCard, { backgroundColor: '#C8E6C9' }, mode==='voted' && styles.statActive]}> 
+            <Text style={styles.statTitle}>{t('poll.voted')}</Text>
+            <Text style={styles.statValue}>{votedCount}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setMode('not')} style={[styles.statCard, { backgroundColor: '#F8BBD0' }, mode==='not' && styles.statActive]}> 
+            <Text style={styles.statTitle}>{t('poll.notVoted')}</Text>
+            <Text style={styles.statValue}>{notVoted}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setMode('all')} style={[styles.statCard, { backgroundColor: '#BBDEFB' }, mode==='all' && styles.statActive]}> 
+            <Text style={styles.statTitle}>{t('poll.total')}</Text>
+            <Text style={styles.statValue}>{total}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <View style={{ flexGrow: 0, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color="#1976D2" />
           </View>
-
-          {loading ? (
-            <View style={{ flexGrow: 0, alignItems: 'center', justifyContent: 'center' }}>
-              <ActivityIndicator size="large" color="#1976D2" />
-            </View>
-          ) : viewMode === 'grid' ? (
-            <ScrollView contentContainerStyle={styles.serialGrid}>
+        ) : viewMode === 'grid' ? (
+          <ScrollView contentContainerStyle={styles.serialGrid}>
               {serials.filter(s => mode==='all' ? true : (mode==='voted' ? voted.has(s) : !voted.has(s))).map((s, i) => {
                 const isVoted = voted.has(s);
                 return (
@@ -277,50 +280,6 @@ export default function PollScreen() {
                 })}
             </ScrollView>
           )}
-        </View>
-      </ScreenWrapper>
-    );
-  }
-
-  return (
-    <ScreenWrapper userRole="booth_agent">
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/(boothAgent)/dashboard')}>
-            <HeaderBack onPress={() => router.push('/(boothAgent)/dashboard')} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('poll.pollDay')}</Text>
-          <View style={styles.headerBtn} />
-        </View>
-
-        <View style={styles.searchWrap}>
-          <View style={styles.searchBar}>
-            <Icon name="search" size={18} color="#90A4AE" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={t('poll.searchByPart')}
-              placeholderTextColor="#9AA5B1"
-              value={query}
-              onChangeText={setQuery}
-              keyboardType="number-pad"
-            />
-          </View>
-        </View>
-
-        <FlatList
-          data={filtered}
-          renderItem={({ item: n }) => (
-            <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => setSelectedPart(n)}>
-              <Text style={styles.cardText}>{n}</Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => String(item)}
-          numColumns={4}
-          style={styles.contentContainer}
-          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom }]}
-          showsVerticalScrollIndicator={false}
-          columnWrapperStyle={{ justifyContent: 'space-between' }}
-        />
       </View>
     </ScreenWrapper>
   );

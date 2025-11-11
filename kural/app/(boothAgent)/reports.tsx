@@ -33,67 +33,108 @@ export default function ReportsScreen() {
   const loadReportData = async () => {
     try {
       setLoading(true);
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
+      const boothId = userData?.booth_id || '';
+      
+      console.log('Reports - Loading for booth_id:', boothId);
       
       let voters: any[] = [];
       let totalVoters = 0;
       let totalFamilies = 0;
       
-      if (boothNumber) {
+      if (boothId) {
         try {
           // First, get the total count from pagination
-          const initialResponse = await voterAPI.getVotersByPart(boothNumber, { page: 1, limit: 50 });
+          const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
+          
+          console.log('Reports - Initial response:', initialResponse);
           
           if (initialResponse?.success && initialResponse.pagination) {
-            totalVoters = initialResponse.pagination.total;
+            totalVoters = initialResponse.pagination.totalVoters || initialResponse.pagination.total || 0;
             
             // Now fetch all voters with the correct limit
-            const votersResponse = await voterAPI.getVotersByPart(boothNumber, { 
+            const votersResponse = await voterAPI.getVotersByBoothId(boothId, { 
               page: 1, 
               limit: totalVoters || 5000 // Use total or a high number as fallback
             });
             
-            if (votersResponse?.success && Array.isArray(votersResponse.data)) {
-              voters = votersResponse.data;
+            console.log('Reports - Full response:', votersResponse);
+            
+            if (votersResponse?.success && Array.isArray(votersResponse.voters)) {
+              voters = votersResponse.voters;
               
-              // Calculate families
-              const uniqueAddresses = new Set();
+              console.log('Reports - Total voters loaded:', voters.length);
+              
+              // Calculate families using both familyId and address-based grouping
+              const familyIds = new Set();
+              const addressBasedFamilies = new Set();
+              
               voters.forEach((voter: any) => {
-                const address = `${voter['Address-House no'] || ''}-${voter['Address-Street'] || ''}`.trim();
-                if (address && address !== '-') {
-                  uniqueAddresses.add(address);
+                // Check if voter has a manually assigned familyId
+                if (voter.familyId) {
+                  familyIds.add(voter.familyId);
+                } else {
+                  // Fall back to address-based grouping
+                  const houseNo = voter['Address-House no'] || 
+                                 voter.HouseNo || 
+                                 voter.Door_No || 
+                                 voter.Door_no || 
+                                 voter.door_no || 
+                                 '';
+                  const street = voter['Address-Street'] || 
+                                voter.Street || 
+                                voter.Anubhag_name || 
+                                voter.address || 
+                                '';
+                  const address = `${houseNo}-${street}`.trim();
+                  if (address && address !== '-') {
+                    addressBasedFamilies.add(address);
+                  }
                 }
               });
-              totalFamilies = uniqueAddresses.size || Math.ceil(totalVoters / 3);
+              
+              totalFamilies = familyIds.size + addressBasedFamilies.size || Math.ceil(totalVoters / 3);
+              console.log('Reports - Families:', familyIds.size, 'manually mapped +', addressBasedFamilies.size, 'address-based =', totalFamilies);
             }
           }
         } catch (error) {
           console.warn('Failed to fetch voters:', error);
         }
+      } else {
+        console.warn('Reports - No booth_id found in userData');
       }
 
       // Calculate voter categories
-      const verifiedVoters = voters.filter(v => v.verified || v.Verified).length;
-      const maleVoters = voters.filter(v => 
-        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'male' || 
-        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'm'
-      ).length;
-      const femaleVoters = voters.filter(v => 
-        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'female' || 
-        (v.Gender || v.Sex || v.sex || '').toLowerCase() === 'f'
-      ).length;
+      const verifiedVoters = voters.filter(v => v.verified === true || v.status === 'verified').length;
+      const maleVoters = voters.filter(v => {
+        const gender = (v.gender || v.Gender || v.Sex || v.sex || '').toLowerCase();
+        return gender === 'male' || gender === 'm';
+      }).length;
+      const femaleVoters = voters.filter(v => {
+        const gender = (v.gender || v.Gender || v.Sex || v.sex || '').toLowerCase();
+        return gender === 'female' || gender === 'f';
+      }).length;
       const othersVoters = voters.filter(v => {
-        const gender = (v.Gender || v.Sex || v.sex || '').toLowerCase();
+        const gender = (v.gender || v.Gender || v.Sex || v.sex || '').toLowerCase();
         return gender !== 'male' && gender !== 'm' && gender !== 'female' && gender !== 'f' && gender !== '';
       }).length;
       const age60Plus = voters.filter(v => {
-        const age = parseInt(v.Age || v.age);
+        const age = parseInt(v.age || v.Age || '0');
         return age >= 60 && age < 80;
       }).length;
       const age80Plus = voters.filter(v => {
-        const age = parseInt(v.Age || v.age);
+        const age = parseInt(v.age || v.Age || '0');
         return age >= 80;
       }).length;
+
+      console.log('Reports - Stats calculated:', {
+        total: voters.length,
+        verified: verifiedVoters,
+        male: maleVoters,
+        female: femaleVoters,
+        others: othersVoters,
+        age60Plus,
+        age80Plus
+      });
 
       // Fetch surveys - count total responses submitted across all survey forms
       let activeSurveys = 0;
@@ -101,13 +142,28 @@ export default function ReportsScreen() {
       try {
         const surveysResponse = await surveyAPI.getAll({ limit: 100 });
         if (surveysResponse?.success && Array.isArray(surveysResponse.data)) {
-          activeSurveys = surveysResponse.data.filter((s: any) => 
-            s.status === 'Active'
+          console.log('Reports - All surveys:', surveysResponse.data.length);
+          
+          // Filter surveys for this booth
+          const boothSurveys = boothId 
+            ? surveysResponse.data.filter((s: any) => {
+                const surveyBoothId = s.boothid || s.boothId || s.booth_id || s.booth;
+                return surveyBoothId === boothId;
+              })
+            : surveysResponse.data;
+          
+          console.log('Reports - Booth surveys:', boothSurveys.length);
+          
+          activeSurveys = boothSurveys.filter((s: any) => 
+            s.status === 'Active' || s.status === 'active'
           ).length;
-          // Sum up all responseCount from all surveys
-          completedSurveys = surveysResponse.data.reduce((total: number, survey: any) => {
+          
+          // Sum up all responseCount from booth surveys
+          completedSurveys = boothSurveys.reduce((total: number, survey: any) => {
             return total + (survey.responseCount || 0);
           }, 0);
+          
+          console.log('Reports - Active surveys:', activeSurveys, 'Completed surveys:', completedSurveys);
         }
       } catch (error) {
         console.warn('Failed to fetch surveys:', error);
@@ -147,8 +203,11 @@ export default function ReportsScreen() {
   const verificationPercentage = stats.totalVoters > 0 
     ? Math.round((stats.verifiedVoters / stats.totalVoters) * 100) 
     : 0;
-  const surveyPercentage = stats.totalFamilies > 0 
-    ? Math.round((stats.completedSurveys / stats.totalFamilies) * 100) 
+  
+  // Calculate total survey responses needed
+  const totalResponsesNeeded = stats.totalVoters * stats.activeSurveys;
+  const surveyPercentage = totalResponsesNeeded > 0 
+    ? Math.round((stats.completedSurveys / totalResponsesNeeded) * 100) 
     : 0;
 
   return (
@@ -159,7 +218,16 @@ export default function ReportsScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(boothAgent)/dashboard')}>
             <Icon name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booth Report</Text>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={styles.headerTitle}>
+              {userData?.booth_id ? `Booth ${userData.booth_id}` : 'Booth Report'}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {userData?.aci_id && userData?.aci_name 
+                ? `${userData.aci_id} - ${userData.aci_name}`
+                : 'Assembly Constituency'}
+            </Text>
+          </View>
           <View style={{ width: 24 }} />
         </View>
 
@@ -230,9 +298,9 @@ export default function ReportsScreen() {
             <Text style={styles.cardTitle}>Survey Completion Progress</Text>
             
             <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>Surveys Completed</Text>
+              <Text style={styles.progressLabel}>Survey Responses</Text>
               <Text style={styles.progressValue}>
-                {stats.completedSurveys} / {stats.totalFamilies} ({surveyPercentage}%)
+                {stats.completedSurveys} / {totalResponsesNeeded} ({surveyPercentage}%)
               </Text>
             </View>
             <View style={styles.progressBarContainer}>
@@ -244,7 +312,13 @@ export default function ReportsScreen() {
 
             <View style={styles.statsFooter}>
               <Text style={styles.statsSuccess}>✓ {stats.completedSurveys} completed</Text>
-              <Text style={styles.statsError}>{stats.totalFamilies - stats.completedSurveys} pending</Text>
+              <Text style={styles.statsError}>{Math.max(0, totalResponsesNeeded - stats.completedSurveys)} pending</Text>
+            </View>
+            
+            <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E0E0E0' }}>
+              <Text style={[styles.statsLabel, { fontSize: 12, color: '#666' }]}>
+                {stats.activeSurveys} active survey form{stats.activeSurveys !== 1 ? 's' : ''} × {stats.totalVoters} voters = {totalResponsesNeeded} total responses needed
+              </Text>
             </View>
           </View>
         </View>
@@ -348,8 +422,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
-    flex: 1,
     textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 2,
   },
   subtitleContainer: {
     paddingHorizontal: 20,
@@ -451,6 +530,10 @@ const styles = StyleSheet.create({
   statsError: {
     fontSize: 14,
     color: '#F44336',
+  },
+  statsLabel: {
+    fontSize: 13,
+    color: '#666',
   },
   categorySubtitle: {
     fontSize: 12,

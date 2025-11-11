@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useRole } from '../contexts/RoleContext';
@@ -34,31 +34,43 @@ export default function FamiliesScreen() {
   const [selectedVoters, setSelectedVoters] = useState<string[]>([]);
   const [mappingFamily, setMappingFamily] = useState(false);
 
-  useEffect(() => {
-    loadFamilies();
-  }, [userData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadFamilies();
+    }, [userData])
+  );
 
   const loadFamilies = async () => {
     try {
       setLoading(true);
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
+      const boothId = userData?.booth_id || '';
+      console.log('Families - userData:', userData);
+      console.log('Families - booth_id:', boothId);
       
-      if (boothNumber) {
+      if (!boothId) {
+        console.log('Families - No booth_id found, cannot load families');
+        setFamilies([]);
+        setLoading(false);
+        return;
+      }
+      
+      if (boothId) {
         // First get the total count
-        const initialResponse = await voterAPI.getVotersByPart(boothNumber, { page: 1, limit: 50 });
+        const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
+        console.log('Families - Initial response:', initialResponse);
         
         if (initialResponse?.success) {
-          const totalVoters = initialResponse.pagination?.total || 0;
+          const totalVoters = initialResponse.pagination?.total || initialResponse.pagination?.totalVoters || 0;
           
           // Now fetch all voters
-          const response = await voterAPI.getVotersByPart(boothNumber, { 
+          const response = await voterAPI.getVotersByBoothId(boothId, { 
             page: 1, 
             limit: totalVoters || 5000 
           });
           
-          if (response?.success && Array.isArray(response.data)) {
-            console.log('Families - Total voters fetched:', response.data.length);
-            console.log('Families - Sample voter:', response.data[0]);
+          if (response?.success && Array.isArray(response.voters)) {
+            console.log('Families - Total voters fetched:', response.voters.length);
+            console.log('Families - Sample voter:', response.voters[0]);
             
             // Group voters by:
             // 1. Manually mapped families (familyId field) - Priority
@@ -66,7 +78,7 @@ export default function FamiliesScreen() {
             const familyIdMap = new Map<string, any[]>();
             const addressBasedMap = new Map<string, any[]>();
             
-            response.data.forEach((voter: any) => {
+            response.voters.forEach((voter: any) => {
               // Check if voter has a manually assigned familyId
               if (voter.familyId) {
                 if (!familyIdMap.has(voter.familyId)) {
@@ -111,7 +123,9 @@ export default function FamiliesScreen() {
               });
               
               const head = sortedMembers[0];
-              const phone = members.find(m => m['Mobile No'] || m.Mobile)?. ['Mobile No'] || members.find(m => m['Mobile No'] || m.Mobile)?.Mobile;
+              const phone = members.find(m => m.mobile || m['Mobile No'] || m.Mobile)?.mobile || 
+                           members.find(m => m.mobile || m['Mobile No'] || m.Mobile)?.['Mobile No'] || 
+                           members.find(m => m.mobile || m['Mobile No'] || m.Mobile)?.Mobile;
               
               // Build address from first member
               const houseNo = head['Address-House no'] || head.HouseNo || head.Door_No || head.Door_no || head.door_no || '';
@@ -122,7 +136,7 @@ export default function FamiliesScreen() {
                 id: familyId,
                 address: address || familyId,
                 members,
-                headOfFamily: head.Name || head.name || 'Unknown',
+                headOfFamily: head.name?.english || head.Name || head.name || 'Unknown',
                 totalMembers: members.length,
                 verifiedMembers: members.filter(m => m.verified || m.Verified).length,
                 phone,
@@ -139,13 +153,15 @@ export default function FamiliesScreen() {
               });
               
               const head = sortedMembers[0];
-              const phone = members.find(m => m['Mobile No'] || m.Mobile)?. ['Mobile No'] || members.find(m => m['Mobile No'] || m.Mobile)?.Mobile;
+              const phone = members.find(m => m.mobile || m['Mobile No'] || m.Mobile)?.mobile || 
+                           members.find(m => m.mobile || m['Mobile No'] || m.Mobile)?.['Mobile No'] || 
+                           members.find(m => m.mobile || m['Mobile No'] || m.Mobile)?.Mobile;
 
               return {
                 id: `address-family-${index}`,
                 address,
                 members,
-                headOfFamily: head.Name || head.name || 'Unknown',
+                headOfFamily: head.name?.english || head.Name || head.name || 'Unknown',
                 totalMembers: members.length,
                 verifiedMembers: members.filter(m => m.verified || m.Verified).length,
                 phone,
@@ -178,11 +194,11 @@ export default function FamiliesScreen() {
     try {
       setMapFamilyModalVisible(true);
       // Load all voters for selection
-      const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
-      if (boothNumber) {
-        const response = await voterAPI.getVotersByPart(boothNumber, { page: 1, limit: 5000 });
-        if (response?.success && Array.isArray(response.data)) {
-          setAllVoters(response.data);
+      const boothId = userData?.booth_id || '';
+      if (boothId) {
+        const response = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 5000 });
+        if (response?.success && Array.isArray(response.voters)) {
+          setAllVoters(response.voters);
         }
       }
     } catch (error) {
@@ -252,10 +268,12 @@ export default function FamiliesScreen() {
   );
 
   // Filter families based on search query
-  let filteredFamilies = families.filter(family =>
-    family.headOfFamily.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    family.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  let filteredFamilies = families.filter(family => {
+    const headName = (family.headOfFamily || '').toLowerCase();
+    const address = (family.address || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return headName.includes(query) || address.includes(query);
+  });
 
   // Apply selected filter
   if (selectedFilter === 'survey_completed') {

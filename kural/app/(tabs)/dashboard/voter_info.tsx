@@ -16,20 +16,78 @@ const { width } = Dimensions.get('window');
 interface Voter {
   _id: string;
   sr: number;
-  Name: string;
-  Number: string;
+  Name?: string;
+  name?: {
+    english: string;
+    tamil: string;
+  };
+  Number?: string;
+  voterID?: string;
   Relation: string;
-  'Father Name': string;
-  sex: string;
-  Door_No: number;
+  'Father Name'?: string;
+  fathername?: string;
+  sex?: string;
+  gender?: string;
+  Door_No?: number;
+  doornumber?: string;
   age: number;
   Part_no: number;
+  partno?: number;
   'Part Name': string;
+  partname?: string;
   Anubhag_number: number;
   Anubhag_name: string;
   vidhansabha: number;
-  'Mobile No': string;
+  'Mobile No'?: string;
+  mobile?: string;
+  DOB?: string | Date;
+  address?: string;
+  emailid?: string;
+  aadhar?: string;
+  PAN?: string;
+  religion?: string;
+  caste?: string;
+  subcaste?: string;
+  ac?: string;
+  boothid?: string;
 }
+
+// Helper functions to handle both old and new data formats
+const getVoterName = (voter: Voter | null): string => {
+  if (!voter) return '';
+  if (voter.Name) return voter.Name;
+  if (voter.name?.english) return voter.name.english;
+  if (voter.name?.tamil) return voter.name.tamil;
+  return '';
+};
+
+const getVoterID = (voter: Voter | null): string => {
+  if (!voter) return '';
+  if (voter.Number) return voter.Number;
+  if (voter.voterID) return voter.voterID;
+  return '';
+};
+
+const getFatherName = (voter: Voter | null): string => {
+  if (!voter) return '';
+  if (voter['Father Name']) return voter['Father Name'];
+  if (voter.fathername) return voter.fathername;
+  return '';
+};
+
+const getDoorNo = (voter: Voter | null): string | number => {
+  if (!voter) return '';
+  if (voter.Door_No) return voter.Door_No;
+  if (voter.doornumber) return voter.doornumber;
+  return '';
+};
+
+const getMobile = (voter: Voter | null): string => {
+  if (!voter) return '';
+  if (voter['Mobile No']) return voter['Mobile No'];
+  if (voter.mobile) return voter.mobile;
+  return '';
+};
 
 type TabType = 'basic' | 'family' | 'friends' | 'share';
 
@@ -113,17 +171,37 @@ export default function VoterInfoScreen() {
           // serial
           sr: parsedVoter.sr ?? parsedVoter.Sr ?? parsedVoter.serial ?? parsedVoter.Serial ?? parsedVoter['S.No'] ?? parsedVoter['Serial'] ?? 1,
           // part number variants
-          Part_no: parsedVoter.Part_no ?? parsedVoter.PartNo ?? parsedVoter.part_no ?? parsedVoter.part ?? parsedVoter.partNo ?? parsedVoter.Part ?? parsedVoter.PartNo ?? parsedVoter.Part_no ?? parsedVoter['Part No'] ?? parsedVoter['Part_no'] ?? parsedVoter['Part'] ?? parsedVoter.Part ?? 1,
-          // canonical display fields expected by the UI
-          Name: parsedVoter.Name ?? parsedVoter.name ?? parsedVoter.fullName ?? parsedVoter.displayName ?? '',
-          Number: parsedVoter.Number ?? parsedVoter.voterId ?? parsedVoter.epic ?? parsedVoter.epicId ?? '',
-          'Father Name': parsedVoter['Father Name'] ?? parsedVoter.guardianName ?? parsedVoter.fatherName ?? parsedVoter['Father'] ?? '',
+          Part_no: parsedVoter.Part_no ?? parsedVoter.PartNo ?? parsedVoter.part_no ?? parsedVoter.partno ?? parsedVoter.part ?? parsedVoter.partNo ?? parsedVoter.Part ?? 1,
+          // section/anubhag variants
+          Anubhag_number: parsedVoter.Anubhag_number ?? parsedVoter.Anubhag_no ?? parsedVoter.section ?? parsedVoter.Section ?? 1,
+          // canonical display fields expected by the UI - handle name object
+          Name: parsedVoter.Name ?? (parsedVoter.name?.english || parsedVoter.name?.tamil) ?? parsedVoter.fullName ?? parsedVoter.displayName ?? '',
+          Number: parsedVoter.Number ?? parsedVoter.voterID ?? parsedVoter.voterId ?? parsedVoter.epic ?? parsedVoter.epicId ?? '',
+          'Father Name': parsedVoter['Father Name'] ?? parsedVoter.fathername ?? parsedVoter.guardianName ?? parsedVoter.fatherName ?? parsedVoter['Father'] ?? '',
           Relation: parsedVoter.Relation ?? parsedVoter.relationship ?? parsedVoter.relation ?? '',
-          Door_No: parsedVoter.Door_No ?? parsedVoter.Door_no ?? parsedVoter.doorNo ?? parsedVoter.door_no ?? parsedVoter.DoorNo ?? parsedVoter.door ?? '',
+          Door_No: parsedVoter.Door_No ?? parsedVoter.doornumber ?? parsedVoter.Door_no ?? parsedVoter.doorNo ?? parsedVoter.door_no ?? parsedVoter.DoorNo ?? parsedVoter.door ?? '',
           'Mobile No': parsedVoter['Mobile No'] ?? parsedVoter.mobile ?? parsedVoter.phone ?? parsedVoter.mobileNumber ?? '',
           age: parsedVoter.age ?? parsedVoter.Age ?? parsedVoter.years ?? undefined,
           // Ensure sex is present and normalized to avoid callers using toLowerCase on undefined
           sex: parsedVoter.sex ?? parsedVoter.Sex ?? parsedVoter.gender ?? parsedVoter.Gender ?? null,
+          // Keep the original fields from DB
+          name: parsedVoter.name,
+          voterID: parsedVoter.voterID,
+          fathername: parsedVoter.fathername,
+          gender: parsedVoter.gender,
+          doornumber: parsedVoter.doornumber,
+          DOB: parsedVoter.DOB,
+          address: parsedVoter.address,
+          emailid: parsedVoter.emailid,
+          aadhar: parsedVoter.aadhar,
+          PAN: parsedVoter.PAN,
+          religion: parsedVoter.religion,
+          caste: parsedVoter.caste,
+          subcaste: parsedVoter.subcaste,
+          ac: parsedVoter.ac,
+          boothid: parsedVoter.boothid,
+          partno: parsedVoter.partno,
+          partname: parsedVoter.partname,
         } as Voter;
         setVoter(normalizedVoter);
         // Fetch Part & Section Info when voter data is loaded
@@ -185,44 +263,28 @@ export default function VoterInfoScreen() {
         return [];
       };
 
-      // Fetch all dropdown options in parallel
+      // Fetch only available dropdown options (languages)
       const results = await Promise.allSettled([
-        settingsAPI.getReligions(),      // religions
-        settingsAPI.getCastes(),         // castes
-        settingsAPI.getSubCastes(),      // subcastes
-        settingsAPI.getCategories(),     // votercategories
-        settingsAPI.getCasteCategories(),// castecategories
-        settingsAPI.getParties(),        // parties
-        settingsAPI.getSchemes(),        // schemes
         settingsAPI.getLanguages(),      // voterlanguages
-        settingsAPI.getFeedbacks?.(),    // feedbacks (optional)
-        settingsAPI.getHistories?.()     // voterhistory (optional)
       ]);
 
       const get = (idx: number) => results[idx].status === 'fulfilled' ? normalize(results[idx].value) : [];
 
-      setReligions(get(0));
-      setCastes(get(1));
-      setSubCastes(get(2));
-      setCategories(get(3));
-      setCasteCategories(get(4));
-      setParties(get(5));
-      setSchemes(get(6));
-      setLanguages(get(7));
-      setFeedbacks(get(8));
-      setHistories(get(9));
+      // Set empty arrays for removed APIs
+      setReligions([]);
+      setCastes([]);
+      setSubCastes([]);
+      setCategories([]);
+      setCasteCategories([]);
+      setParties([]);
+      setSchemes([]);
+      setLanguages(get(0));
+      setFeedbacks([]);
+      setHistories([]);
       
       console.log('Dropdown options loaded:', {
-        religions: get(0).length,
-        castes: get(1).length,
-        subCastes: get(2).length,
-        categories: get(3).length,
-        casteCategories: get(4).length,
-        parties: get(5).length,
-        schemes: get(6).length,
-        languages: get(7).length,
-        feedbacks: get(8).length,
-        histories: get(9).length
+        languages: get(0).length,
+        note: 'Other settings APIs have been disabled'
       });
 
     } catch (error) {
@@ -232,6 +294,11 @@ export default function VoterInfoScreen() {
 
   const loadVoterAdditionalInfo = async (voterId: string) => {
     try {
+      // Settings API endpoints have been removed, skip loading voter info
+      console.log('loadVoterAdditionalInfo: Settings API disabled, skipping');
+      return;
+      
+      /* DISABLED - Settings API endpoints no longer exist
       const response = await settingsAPI.getVoterInfo(voterId);
       if (response.success && response.data) {
         const voterInfo = response.data;
@@ -261,8 +328,9 @@ export default function VoterInfoScreen() {
         
         console.log('Voter info loaded successfully:', voterInfo);
       }
+      */
     } catch (error) {
-      console.log('No existing voter info found, using defaults');
+      console.log('loadVoterAdditionalInfo: Skipped (API disabled)');
     }
   };
 
@@ -270,6 +338,12 @@ export default function VoterInfoScreen() {
     if (!voter) return;
     
     try {
+      // Settings API endpoints have been removed
+      console.log('saveVoterInfo: Settings API disabled, skipping save');
+      Alert.alert(t('common.info'), 'Settings API is currently disabled');
+      return;
+      
+      /* DISABLED - Settings API endpoints no longer exist
       const voterInfoData = {
         ...selectedValues,
         dob: selectedValues.dob || (dobDate ? dobDate.toISOString().split('T')[0] : '')
@@ -283,6 +357,7 @@ export default function VoterInfoScreen() {
       } else {
         Alert.alert(t('common.error'), t('voterInfo.saveFailed'));
       }
+      */
     } catch (error) {
       console.error('Error saving voter info:', error);
       Alert.alert('Error', 'Failed to save voter information');
@@ -348,8 +423,8 @@ export default function VoterInfoScreen() {
   const handleShare = (type: 'whatsapp' | 'sms' | 'general' | 'print') => {
     if (!voter) return;
     
-    const mobileNumber = voter['Mobile No'];
-    const message = `${t('voterInfo.voterInfo')}:\n${t('voterInfo.name')}: ${voter.Name}\n${t('voterInfo.epic')}: ${voter.Number}\n${t('voterInfo.part')}: ${voter.Part_no}`;
+    const mobileNumber = getMobile(voter);
+    const message = `${t('voterInfo.voterInfo')}:\n${t('voterInfo.name')}: ${getVoterName(voter)}\n${t('voterInfo.epic')}: ${getVoterID(voter)}\n${t('voterInfo.part')}: ${voter.Part_no}`;
     
     // Check if mobile number is available for WhatsApp, SMS, and Share
     if ((type === 'whatsapp' || type === 'sms' || type === 'general') && (!mobileNumber || mobileNumber.trim() === '')) {
@@ -432,256 +507,140 @@ export default function VoterInfoScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('voterInfo.contactInformation')}</Text>
         
+        {/* DOB - Show from database */}
         <View style={styles.inputRow}>
           <Icon name="calendar-today" size={20} color="#666" />
-          <TouchableOpacity
-            style={[styles.dropdownButton, { borderWidth: 1, borderColor: '#E0E0E0' }]}
-            onPress={() => setShowDobPicker(true)}
-          >
-            <Text style={styles.dropdownText}>
-              {selectedValues.dob ? selectedValues.dob : t('voterInfo.selectDateOfBirth')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        {showDobPicker && (
-          <DateTimePicker
-            value={dobDate || new Date(1990, 0, 1)}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, date) => {
-              if (Platform.OS !== 'ios') {
-                setShowDobPicker(false);
-              }
-              if (date) {
-                setDobDate(date);
-                const formatted = formatDate(date);
-                setSelectedValues(prev => ({ ...prev, dob: formatted }));
-              }
-            }}
-            maximumDate={new Date()}
-          />
-        )}
-
-        <View style={styles.inputRow}>
-          <Icon name="phone" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder={t('voterInfo.enterMobileNumber')}
+            placeholder={t('voterInfo.dateOfBirth')}
             placeholderTextColor="#999"
-            value={voter['Mobile No'] || ''}
+            value={voter.DOB ? new Date(voter.DOB).toLocaleDateString() : ''}
             editable={false}
           />
         </View>
 
+        {/* Mobile Number */}
         <View style={styles.inputRow}>
-          <Icon name="message" size={20} color="#25D366" />
+          <Icon name="phone" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder={t('voterInfo.enterWhatsappNumber')}
+            placeholder={t('voterInfo.mobileNumber')}
             placeholderTextColor="#999"
+            value={getMobile(voter)}
+            editable={false}
           />
         </View>
 
+        {/* Email */}
         <View style={styles.inputRow}>
           <Icon name="email" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder={t('voterInfo.enterEmail')}
+            placeholder={t('voterInfo.email')}
             placeholderTextColor="#999"
+            value={voter.emailid || ''}
+            editable={false}
           />
         </View>
 
+        {/* Address/Location */}
         <View style={styles.inputRow}>
           <Icon name="location-on" size={20} color="#666" />
-          <View style={styles.locationContainer}>
-            <TouchableOpacity style={styles.locationButton}>
-              <Text style={styles.locationButtonText}>{t('voterInfo.noLocation')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.fetchLocationButton}>
-              <Text style={styles.fetchLocationButtonText}>{t('voterInfo.fetchLocation')}</Text>
-            </TouchableOpacity>
-          </View>
+          <TextInput
+            style={[styles.textInput, { minHeight: 60 }]}
+            placeholder={t('voterInfo.address')}
+            placeholderTextColor="#999"
+            value={voter.address || ''}
+            editable={false}
+            multiline
+          />
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('voterInfo.additionalInformation')}</Text>
         
+        {/* Aadhar Number */}
         <View style={styles.inputRow}>
           <Icon name="fingerprint" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder={t('voterInfo.enterAadharNumber')}
+            placeholder={t('voterInfo.aadharNumber')}
             placeholderTextColor="#999"
-            value={selectedValues.aadhar}
-            onChangeText={(text) => setSelectedValues(prev => ({ ...prev, aadhar: text }))}
+            value={voter.aadhar || ''}
+            editable={false}
           />
         </View>
 
+        {/* PAN Number */}
         <View style={styles.inputRow}>
           <Icon name="account-balance" size={20} color="#666" />
           <TextInput
             style={styles.textInput}
-            placeholder={t('voterInfo.enterPanNumber')}
+            placeholder={t('voterInfo.panNumber')}
             placeholderTextColor="#999"
-            value={selectedValues.pan}
-            onChangeText={(text) => setSelectedValues(prev => ({ ...prev, pan: text }))}
+            value={voter.PAN || ''}
+            editable={false}
           />
         </View>
 
-        <View style={styles.inputRow}>
-          <Icon name="card-membership" size={20} color="#666" />
-          <TextInput
-            style={styles.textInput}
-            placeholder={t('voterInfo.enterMembershipNumber')}
-            placeholderTextColor="#999"
-            value={selectedValues.membership}
-            onChangeText={(text) => setSelectedValues(prev => ({ ...prev, membership: text }))}
-          />
-        </View>
-
+        {/* Religion */}
         <View style={styles.inputRow}>
           <Icon name="temple-buddhist" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('religion', religions)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.religion && styles.selectedText]}>
-              {selectedValues.religion || t('voterInfo.selectReligion')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
+          <TextInput
+            style={styles.textInput}
+            placeholder={t('voterInfo.religion')}
+            placeholderTextColor="#999"
+            value={voter.religion || ''}
+            editable={false}
+          />
         </View>
 
+        {/* Caste */}
         <View style={styles.inputRow}>
           <Icon name="category" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('caste', castes)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.caste && styles.selectedText]}>
-              {selectedValues.caste || t('voterInfo.selectCaste')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
+          <TextInput
+            style={styles.textInput}
+            placeholder={t('voterInfo.caste')}
+            placeholderTextColor="#999"
+            value={voter.caste || ''}
+            editable={false}
+          />
         </View>
 
+        {/* Sub Caste */}
         <View style={styles.inputRow}>
           <Icon name="add-circle" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('subCaste', subCastes)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.subCaste && styles.selectedText]}>
-              {selectedValues.subCaste || t('voterInfo.selectSubCaste')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="label" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('category', categories)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.category && styles.selectedText]}>
-              {selectedValues.category || t('voterInfo.selectCategory')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="category" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('casteCategory', casteCategories)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.casteCategory && styles.selectedText]}>
-              {selectedValues.casteCategory || t('voterInfo.selectCasteCategory')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="flag" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('party', parties)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.party && styles.selectedText]}>
-              {selectedValues.party || t('voterInfo.selectParty')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="eco" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('schemes', schemes)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.schemes && styles.selectedText]}>
-              {selectedValues.schemes || t('voterInfo.selectSchemes')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="history" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('history', histories)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.history && styles.selectedText]}>
-              {selectedValues.history || t('voterInfo.selectHistory')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="feedback" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('feedback', feedbacks)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.feedback && styles.selectedText]}>
-              {selectedValues.feedback || t('voterInfo.selectFeedback')}
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="language" size={20} color="#666" />
-          <TouchableOpacity 
-            style={styles.dropdownButton}
-            onPress={() => showDropdown('language', languages)}
-          >
-            <Text style={[styles.dropdownText, selectedValues.language && styles.selectedText]}>
-              {selectedValues.language || t('voterInfo.selectLanguage')}   
-            </Text>
-            <Icon name="keyboard-arrow-down" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputRow}>
-          <Icon name="note" size={20} color="#666" />
           <TextInput
-            style={[styles.textInput, styles.remarksInput]}
-            placeholder={t('voterInfo.enterRemarks')}
+            style={styles.textInput}
+            placeholder={t('voterInfo.subCaste')}
             placeholderTextColor="#999"
-            multiline
-            numberOfLines={3}
-            value={selectedValues.remarks}
-            onChangeText={(text) => setSelectedValues(prev => ({ ...prev, remarks: text }))}
+            value={voter.subcaste || ''}
+            editable={false}
+          />
+        </View>
+
+        {/* AC (Assembly Constituency) */}
+        <View style={styles.inputRow}>
+          <Icon name="account-balance-wallet" size={20} color="#666" />
+          <TextInput
+            style={styles.textInput}
+            placeholder="Assembly Constituency"
+            placeholderTextColor="#999"
+            value={voter.ac || ''}
+            editable={false}
+          />
+        </View>
+
+        {/* Booth ID */}
+        <View style={styles.inputRow}>
+          <Icon name="home" size={20} color="#666" />
+          <TextInput
+            style={styles.textInput}
+            placeholder="Booth ID"
+            placeholderTextColor="#999"
+            value={voter.boothid || ''}
+            editable={false}
           />
         </View>
       </View>
@@ -849,10 +808,10 @@ export default function VoterInfoScreen() {
               S.No: <Text style={styles.blueText}>{voter.sr ?? (voter as any).Sr ?? (voter as any).serial ?? (voter as any).Serial ?? 1}</Text>
             </Text>
             <Text style={styles.sectionText} numberOfLines={1} ellipsizeMode="tail">
-              Section: <Text style={styles.blueText}>{voter.Anubhag_number ?? (voter as any).Anubhag_number ?? (voter as any).section ?? 1}</Text>
+              Section: <Text style={styles.blueText}>{voter.Anubhag_number ?? 1}</Text>
             </Text>
             <Text style={styles.partText} numberOfLines={1} ellipsizeMode="tail">
-              Part: <Text style={styles.blueText}>{voter.Part_no ?? (voter as any).PartNo ?? (voter as any).part_no ?? 1}</Text>
+              Part: <Text style={styles.blueText}>{voter.Part_no ?? (voter as any).partno ?? 1}</Text>
             </Text>
           </View>
 
@@ -864,16 +823,16 @@ export default function VoterInfoScreen() {
               <Icon name="camera-alt" size={16} color="#1976D2" style={styles.cameraIcon} />
             </View>
             <View style={styles.epicContainer}>
-              <Text style={styles.epicId}>{voter.Number}</Text>
+              <Text style={styles.epicId}>{getVoterID(voter)}</Text>
             </View>
           </View>
 
           <View style={styles.voterDetails}>
-            <Text style={styles.voterName}>{voter.Name}</Text>
-            <Text style={styles.voterNameTamil}>{voter.NameTamil || voter.Name}</Text>
-            <Text style={styles.relationName}>{voter['Father Name']}</Text>
-            <Text style={styles.relationNameTamil}>{voter.RelationNameTamil || voter['Father Name']}</Text>
-            <Text style={styles.address}>{t('dashboard.doorNo')} {voter.Door_No}</Text>
+            <Text style={styles.voterName}>{getVoterName(voter)}</Text>
+            <Text style={styles.voterNameTamil}>{voter.name?.tamil || getVoterName(voter)}</Text>
+            <Text style={styles.relationName}>{getFatherName(voter)}</Text>
+            <Text style={styles.relationNameTamil}>{getFatherName(voter)}</Text>
+            <Text style={styles.address}>{t('dashboard.doorNo')} {getDoorNo(voter)}</Text>
           </View>
         </View>
 
@@ -882,7 +841,7 @@ export default function VoterInfoScreen() {
             <Icon 
               name="person" 
               size={16} 
-              color={getGenderColor(voter.sex)} 
+              color={getGenderColor(voter.sex || voter.gender)} 
             />
             <Text style={styles.ageText}>{voter.age}</Text>
             <Text style={styles.relationType}>{voter.Relation}</Text>

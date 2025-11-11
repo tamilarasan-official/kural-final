@@ -25,8 +25,8 @@ export default function ScreenWrapper({ children, userRole }: ScreenWrapperProps
     if (userRole === 'booth_agent') {
       return [
         { id: 'home', label: 'Home', iconName: 'home', route: `${baseRoute}/dashboard` },
-        { id: 'voters', label: 'Voters', iconName: 'people', route: `${baseRoute}/voters` },
-        { id: 'surveys', label: 'Surveys', iconName: 'assignment', route: `${baseRoute}/surveys` },
+        { id: 'slip', label: 'Slip', iconName: 'receipt', route: `${baseRoute}/slip` },
+        { id: 'poll', label: 'Poll', iconName: 'how-to-vote', route: `${baseRoute}/poll` },
         { id: 'reports', label: 'Reports', iconName: 'bar-chart', route: `${baseRoute}/reports` },
       ];
     }

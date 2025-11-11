@@ -1,6 +1,23 @@
+// Determine the correct base URL based on environment
+// For Android Emulator: use 10.0.2.2
+// For Physical Device: use your computer's local IP (check ipconfig)
+// For iOS Simulator: use localhost
+
+const getBaseURL = () => {
+  // Default to Physical Device on WiFi (Expo Go)
+  const LOCAL_NETWORK_URL = "http://10.19.146.109:5000/api/v1"; // Your WiFi IP for physical device
+  // const EMULATOR_URL = "http://10.0.2.2:5000/api/v1"; // Uncomment for Android Emulator
+  
+  // You can manually switch between these based on your testing device
+  // For Physical Device with Expo Go: use LOCAL_NETWORK_URL
+  // For Android Emulator: use EMULATOR_URL
+  
+  return LOCAL_NETWORK_URL; // Currently set for Expo Go on physical device
+};
+
 export const API_CONFIG = {
   // Change this to your actual API domain in production
-  BASE_URL: "https://api.kuralapp.in/api/v1",
+  BASE_URL: getBaseURL(),
 
   ENDPOINTS: {
     AUTH: {
@@ -18,7 +35,7 @@ export const API_CONFIG = {
     SETTINGS: "/settings",
     SURVEYS: "/surveys",
     SURVEY_FORMS: "/survey-forms",
-    CADRES: "/cadres",
+    BOOTHS: "/booths",
     MODAL_CONTENT: "/modal-content",
     CATALOGUE: "/catalogue",
     SOON_VOTERS: "/soon-voters",
