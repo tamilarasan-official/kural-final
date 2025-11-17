@@ -25,7 +25,7 @@ export default function VotersScreen() {
       const boothNumber = userData?.boothAllocation || userData?.activeElection || '';
       
       if (boothNumber) {
-        const response = await voterAPI.getVotersByPart(boothNumber, { limit: 1000 });
+        const response = await voterAPI.getVotersByBooth(boothNumber, { limit: 1000 });
         if (response?.success && Array.isArray(response.data)) {
           setVoters(response.data);
         } else {

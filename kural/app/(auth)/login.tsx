@@ -21,9 +21,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { boothAPI } from '../../services/api/booth';
 import { authAPI } from '../../services/api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRole } from '../contexts/RoleContext';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
+  const { setUserData, setRole } = useRole();
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +35,7 @@ export default function LoginScreen() {
     const trimmedMobile = mobile.trim();
     const trimmedPassword = password.trim();
 
-    console.log('Login attempt with:', trimmedMobile);
+    console.log('🔐 Login attempt with:', trimmedMobile);
 
     if (!trimmedMobile || !trimmedPassword) {
       Alert.alert('Missing info', 'Please enter mobile number and password.');
@@ -41,9 +43,14 @@ export default function LoginScreen() {
     }
 
     try {
+      // CRITICAL: Clear all previous session data to prevent cache issues
+      console.log('🧹 Clearing previous session data...');
+      await AsyncStorage.multiRemove(['userToken', 'userData', 'userRole']);
+      console.log('✅ Previous session cleared');
+
       // Try Assembly CI / Admin login first (using phone)
       try {
-        console.log('Attempting Assembly CI login...');
+        console.log('🏛️ Attempting Assembly CI login...');
         const authResponse = await authAPI.login(trimmedMobile, trimmedPassword);
         
         console.log('Assembly CI response:', authResponse);
@@ -53,6 +60,10 @@ export default function LoginScreen() {
           await AsyncStorage.setItem('userToken', authResponse.token);
           await AsyncStorage.setItem('userData', JSON.stringify(authResponse.data));
           await AsyncStorage.setItem('userRole', authResponse.data.role);
+          
+          // CRITICAL: Update RoleContext with fresh data
+          await setUserData(authResponse.data);
+          await setRole('moderator');
           
           // Save user session with complete info
           await saveUserSession(
@@ -83,30 +94,52 @@ export default function LoginScreen() {
 
       // Try Booth Agent login
       try {
-        console.log('Attempting Booth Agent login...');
+        console.log('🏢 Attempting Booth Agent login with phone:', trimmedMobile);
         const boothResponse = await boothAPI.login(trimmedMobile, trimmedPassword);
         
-        console.log('Booth Agent response:', boothResponse);
+        console.log('📦 Booth Agent API Response:', JSON.stringify(boothResponse, null, 2));
         
         if (boothResponse?.success && boothResponse?.token) {
-          // Save token and user data
+          console.log('✅ BOOTH LOGIN SUCCESSFUL');
+          console.log('📋 Booth Data Received:');
+          console.log('   - Name:', boothResponse.data.name);
+          console.log('   - Phone:', boothResponse.data.phone);
+          console.log('   - Booth ID:', boothResponse.data.booth_id);
+          console.log('   - ACI ID:', boothResponse.data.aci_id);
+          console.log('   - ACI Name:', boothResponse.data.aci_name);
+          
+          // CRITICAL: Save token and FRESH user data to AsyncStorage
           await AsyncStorage.setItem('userToken', boothResponse.token);
           await AsyncStorage.setItem('userData', JSON.stringify(boothResponse.data));
           await AsyncStorage.setItem('userRole', boothResponse.data.role);
           
-          console.log('✅ Booth agent logged in successfully:', boothResponse.data);
-          console.log('✅ Saved to AsyncStorage - booth_id:', boothResponse.data.booth_id);
+          // CRITICAL: Update RoleContext with fresh data
+          await setUserData(boothResponse.data);
+          await setRole('booth_agent');
           
-          // Verify what was saved
-          const savedData = await AsyncStorage.getItem('userData');
-          console.log('✅ Verification - Data in AsyncStorage:', savedData);
+          // Double-check what was saved
+          const verifyToken = await AsyncStorage.getItem('userToken');
+          const verifyData = await AsyncStorage.getItem('userData');
+          const verifyRole = await AsyncStorage.getItem('userRole');
+          
+          console.log('✅ VERIFICATION - Data saved to AsyncStorage:');
+          console.log('   - Token exists:', !!verifyToken);
+          console.log('   - Role:', verifyRole);
+          console.log('   - User Data:', verifyData);
+          
+          const parsedVerify = JSON.parse(verifyData || '{}');
+          console.log('✅ VERIFICATION - Parsed booth_id:', parsedVerify.booth_id);
+          console.log('✅ VERIFICATION - Parsed aci_id:', parsedVerify.aci_id);
+          console.log('✅ VERIFICATION - Parsed name:', parsedVerify.name);
           
           // Navigate to Booth Agent dashboard
+          console.log('🚀 Navigating to Booth Agent dashboard...');
           router.replace('/(boothAgent)/dashboard');
           return;
         }
       } catch (boothError: any) {
-        console.log('Booth agent login failed, trying Firebase...', boothError.message);
+        console.log('❌ Booth agent login failed:', boothError.message);
+        console.log('🔄 Trying Firebase login...');
         // If booth agent login fails, continue to try Firebase login
       }
 

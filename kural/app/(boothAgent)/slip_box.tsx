@@ -15,7 +15,6 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScreenWrapper from '../components/ScreenWrapper';
-import { BluetoothPrinterService } from '../../services/BluetoothPrinterService';
 import { PrintService } from '../../services/PrintService';
 
 const { width } = Dimensions.get('window');
@@ -37,8 +36,7 @@ export default function SlipBoxScreen() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [slipBoxSettings, setSlipBoxSettings] = useState<{[key: string]: SlipBoxSettings}>({
-    'Default': { prin: false, candidate: false },
-    'Thondamuthur4': { prin: true, candidate: true }
+    
   });
   const [printerStatus, setPrinterStatus] = useState<{
     bluetoothEnabled: boolean;
@@ -77,16 +75,17 @@ export default function SlipBoxScreen() {
 
   const handleBluetoothAllow = async () => {
     try {
-      // Use the new Bluetooth service
-      const permGranted = await BluetoothPrinterService.requestBluetoothPermissions();
+      // Use the modern Bluetooth service
+      const permGranted = await PrintService.requestBluetoothPermissions();
       if (!permGranted) {
         showToastMessage(t('common.permissionRequired'));
         setShowBluetoothModal(false);
         return;
       }
 
-      const enabled = await BluetoothPrinterService.enableBluetooth();
-      if (enabled) {
+      // Check if Bluetooth is enabled
+      const enabled = await PrintService.checkPrinterStatus();
+      if (enabled.bluetoothEnabled) {
         setBluetoothEnabled(true);
         showToastMessage(t('slip.btEnabled'));
         await checkPrinterStatus(); // Refresh status
@@ -113,17 +112,36 @@ export default function SlipBoxScreen() {
     setShowScanModal(false);
     
     try {
-      const printers = await BluetoothPrinterService.scanForPrinters();
+      // Check if Bluetooth is enabled first
+      if (!bluetoothEnabled) {
+        showToastMessage('Please enable Bluetooth first');
+        setIsScanning(false);
+        setShowBluetoothModal(true);
+        return;
+      }
+
+      const printers = await PrintService.scanForPrinters();
       
       if (printers.length > 0) {
         showToastMessage(`Found ${printers.length} printer(s): ${printers[0].name}`);
+        
+        // Auto-connect to the first printer found
+        showToastMessage('Connecting to printer...');
+        const connected = await PrintService.connectToPrinter(printers[0]);
+        
+        if (connected) {
+          showToastMessage(`Connected to ${printers[0].name} ✅`);
+        } else {
+          showToastMessage('Failed to connect to printer');
+        }
+        
         await checkPrinterStatus(); // Refresh status
       } else {
-        showToastMessage(t('slip.scan.none'));
+        showToastMessage('No printers found. Make sure your printer is turned on and nearby.');
       }
     } catch (error) {
       console.error('Scan error:', error);
-      showToastMessage('Scan failed');
+      showToastMessage('Scan failed. Please enable Bluetooth and try again.');
     } finally {
       setIsScanning(false);
     }
@@ -135,6 +153,8 @@ export default function SlipBoxScreen() {
       const success = await PrintService.testPrint();
       if (success) {
         showToastMessage('Test print successful! ✅');
+        // Refresh status after test print to show connection
+        await checkPrinterStatus();
       }
     } catch (error) {
       console.error('Test print error:', error);
@@ -406,14 +426,14 @@ export default function SlipBoxScreen() {
                 {'\n'}• Within range
               </Text>
               <TouchableOpacity 
-                style={styles.scanButton}
+                style={styles.startScanButton}
                 onPress={startScanning}
                 disabled={isScanning}
               >
                 {isScanning ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.scanButtonText}>Start Scanning</Text>
+                  <Text style={styles.startScanButtonText}>Start Scanning</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -767,13 +787,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 20,
   },
-  scanButton: {
+  startScanButton: {
     backgroundColor: '#1976D2',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
-  scanButtonText: {
+  startScanButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

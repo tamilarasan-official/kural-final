@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type UserRole = 'moderator' | 'booth_agent' | 'user' | null;
@@ -75,8 +75,8 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
           try {
             const data = JSON.parse(savedUserData);
             console.log('🔍 RoleContext - Loaded userData from AsyncStorage:', data);
-            console.log('🔍 RoleContext - booth_id in loaded data:', data.booth_id);
-            setUserDataState(data);
+            // Use the setter function to ensure state and storage are in sync
+            setUserData(data); 
           } catch (parseError) {
             console.warn('Failed to parse saved user data:', parseError);
           }
@@ -120,7 +120,7 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
   };
 
   // Persist user data to AsyncStorage when it changes
-  const setUserData = async (data: UserData | null) => {
+  const setUserData = useCallback(async (data: UserData | null) => {
     try {
       setUserDataState(data);
       if (data) {
@@ -131,7 +131,7 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Failed to save user data to storage:', error);
     }
-  };
+  }, []);
 
   return (
     <RoleContext.Provider

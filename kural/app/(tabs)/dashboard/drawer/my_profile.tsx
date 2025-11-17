@@ -113,7 +113,7 @@ export default function MyProfileScreen() {
       }
       
       // Update user via API
-      const response = await fetch(`http://10.19.146.109:5000/api/v1/users/${userId}`, {
+      const response = await fetch(`http://192.168.10.137:5000/api/v1/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ const {
     searchVoters,
     getVoterById,
     getVotersByPart,
+    getVotersByBoothId,
     getPartGenderStats,
     getPartNames,
     getVotersByAgeRange,
@@ -120,6 +121,32 @@ router.route('/part-names').get(getPartNames);
  *         description: List of voters in part
  */
 router.route('/by-part/:partNumber').get(getVotersByPart);
+
+/**
+ * @swagger
+ * /voter/by-booth/{boothId}:
+ *   get:
+ *     tags: [Voter]
+ *     summary: Get voters by booth ID
+ *     parameters:
+ *       - in: path
+ *         name: boothId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of voters in booth
+ */
+router.route('/by-booth/:aciId/:boothId').get(getVotersByBoothId);
 
 /**
  * @swagger

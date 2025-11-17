@@ -67,12 +67,12 @@ Now you can test all protected endpoints! ✅
 - `POST /survey-forms/{id}/responses` - Submit survey response
 - `GET /survey-forms/{id}/completed-voters` - Get completed voters
 
-### 👔 Cadres (Staff)
-- `GET /cadres` - Get all cadres
-- `POST /cadres` - Create new cadre
-- `POST /cadres/login` - Cadre login
-- `PUT /cadres/{id}` - Update cadre
-- `DELETE /cadres/{id}` - Delete cadre
+### 👔 Booths (Staff)
+- `GET /booths` - Get all booths
+- `POST /booths` - Create new booth
+- `POST /booths/login` - Booth login
+- `PUT /booths/{id}` - Update booth
+- `DELETE /booths/{id}` - Delete booth
 
 ### 🗳️ Elections
 - `GET /elections` - Get all elections
@@ -282,7 +282,7 @@ Select specific fields:
 ### 3. **Population**
 Include related data:
 ```
-?populate=election,cadre
+?populate=election,booth
 ```
 
 ---

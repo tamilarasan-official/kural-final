@@ -12,13 +12,17 @@ const surveySchema = new mongoose.Schema({
         unique: true
     },
     title: {
-        type: String,
-        required: true,
-        trim: true
+        english: {
+            type: String,
+            trim: true
+        },
+        tamil: {
+            type: String,
+            trim: true
+        }
     },
     tamilTitle: {
         type: String,
-        required: true,
         trim: true
     },
     description: {
@@ -33,23 +37,51 @@ const surveySchema = new mongoose.Schema({
         default: 'Active'
     },
     questions: [{
+        id: {
+            type: String,
+            required: false
+        },
         questionId: {
             type: String,
-            required: true
+            required: false
+        },
+        text: {
+            type: String,
+            required: false
         },
         questionText: {
             type: String,
-            required: true
+            required: false
+        },
+        type: {
+            type: String,
+            required: true,
+            enum: [
+                'short-text', // Short Text
+                'paragraph', // Paragraph
+                'yes-no', // Yes / No
+                'multiple-choice', // Multiple Choice
+                'checkboxes', // Checkboxes
+                'dropdown', // Dropdown
+                'date', // Date
+                'number', // Number
+                'multiple_choice', // Legacy support
+                'single_choice', // Legacy support
+                'text', // Legacy support
+                'rating', // Legacy support
+                'yes_no' // Legacy support
+            ]
         },
         questionType: {
             type: String,
-            required: true,
-            enum: ['multiple_choice', 'single_choice', 'text', 'rating', 'yes_no']
+            required: false
         },
         options: [{
             optionId: String,
             optionText: String,
-            optionValue: String
+            optionValue: String,
+            text: String,
+            value: String
         }],
         required: {
             type: Boolean,
@@ -60,6 +92,14 @@ const surveySchema = new mongoose.Schema({
             default: 0
         }
     }],
+    questionA: [{
+        qid: String,
+        question: {
+            english: String,
+            tamil: String
+        },
+        type: String
+    }],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -69,6 +109,18 @@ const surveySchema = new mongoose.Schema({
         type: String,
         required: true,
         default: '119  - Thondamuthur'
+    },
+    assignedACs: [{
+        type: Number,
+        required: false
+    }],
+    acid: {
+        type: String,
+        trim: true
+    },
+    boothid: {
+        type: String,
+        trim: true
     },
     startDate: {
         type: Date,
@@ -104,7 +156,8 @@ const surveySchema = new mongoose.Schema({
         }
     }]
 }, {
-    timestamps: true
+    timestamps: true,
+    collection: 'surveys'
 });
 
 // Index for better query performance
@@ -113,6 +166,9 @@ surveySchema.index({ status: 1 });
 surveySchema.index({ activeElection: 1 });
 surveySchema.index({ createdBy: 1 });
 surveySchema.index({ isPublished: 1 });
+surveySchema.index({ assignedACs: 1 });
+surveySchema.index({ acid: 1 });
+surveySchema.index({ boothid: 1 });
 
 // Virtual for response count
 surveySchema.virtual('responseCount').get(function() {

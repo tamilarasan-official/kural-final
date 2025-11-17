@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, StatusBar } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRole } from '../contexts/RoleContext';
@@ -19,9 +20,12 @@ export default function SurveyVoterSelectionScreen() {
   const surveyId = params.surveyId as string;
   const surveyTitle = params.surveyTitle as string;
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Reload data when screen comes into focus (after submitting survey)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const loadData = async () => {
     try {
@@ -32,36 +36,45 @@ export default function SurveyVoterSelectionScreen() {
       console.log('Survey Voter Selection - surveyTitle:', surveyTitle);
       
       // Load voters
-      const boothId = userData?.booth_id || '';
-      console.log('Survey Voter Selection - booth_id:', boothId);
+      let boothId = userData?.booth_id || '';
+      let aciId = userData?.aci_id || '';
       
-      if (boothId) {
-        const response = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 5000 });
+      // Fallback: Load from AsyncStorage if userData not ready
+      if (!boothId || !aciId) {
+        const savedUserData = await AsyncStorage.getItem('userData');
+        if (savedUserData) {
+          const parsedData = JSON.parse(savedUserData);
+          boothId = parsedData?.booth_id || '';
+          aciId = parsedData?.aci_id || '';
+          console.log('📦 Survey Voter Selection - Loaded from AsyncStorage:', { aciId, boothId });
+        }
+      }
+      
+      console.log('Survey Voter Selection - booth_id:', boothId, 'aci_id:', aciId);
+      
+      if (boothId && aciId) {
+        const aciIdStr = String(aciId);
+        const boothIdStr = String(boothId);
+        const response = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { page: 1, limit: 5000 });
         console.log('Survey Voter Selection - Voters Response:', response);
         
         if (response?.success) {
           const votersData = response.voters || response.data || [];
           console.log('Survey Voter Selection - Voters loaded:', votersData.length);
           setVoters(Array.isArray(votersData) ? votersData : []);
+          
+          // Mark voters as completed based on their 'surveyed' field
+          const surveyedVoterIds = votersData
+            .filter((v: any) => v.surveyed === true)
+            .map((v: any) => v.voterID || v.Number);
+          
+          console.log('Survey Voter Selection - Surveyed voters in booth:', surveyedVoterIds.length);
+          console.log('Survey Voter Selection - Surveyed voter IDs:', surveyedVoterIds);
+          setCompletedVoters(new Set(surveyedVoterIds));
         }
       } else {
-        console.error('Survey Voter Selection - No booth_id found!');
-        Alert.alert('Error', 'No booth assigned to your account');
-      }
-
-      // Load completed voter IDs for this survey
-      if (surveyId) {
-        try {
-          const completedResponse = await surveyAPI.getCompletedVoters(surveyId);
-          console.log('Survey Voter Selection - Completed voters response:', completedResponse);
-          if (completedResponse?.success && completedResponse.data) {
-            const voterIds = completedResponse.data.completedVoterIds || [];
-            console.log('Survey Voter Selection - Completed voter IDs:', voterIds);
-            setCompletedVoters(new Set(voterIds));
-          }
-        } catch (error) {
-          console.warn('Failed to load completed voters:', error);
-        }
+        console.error('Survey Voter Selection - No booth_id or aci_id found!');
+        Alert.alert('Error', 'No booth or assembly assigned to your account');
       }
       
     } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useRole } from '../contexts/RoleContext';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -43,27 +44,41 @@ export default function FamiliesScreen() {
   const loadFamilies = async () => {
     try {
       setLoading(true);
-      const boothId = userData?.booth_id || '';
-      console.log('Families - userData:', userData);
-      console.log('Families - booth_id:', boothId);
+      let boothId = userData?.booth_id || '';
+      let aciId = userData?.aci_id || '';
       
-      if (!boothId) {
-        console.log('Families - No booth_id found, cannot load families');
+      // Fallback: Load from AsyncStorage if userData not available
+      if (!boothId || !aciId) {
+        const savedUserData = await AsyncStorage.getItem('userData');
+        if (savedUserData) {
+          const parsed = JSON.parse(savedUserData);
+          boothId = parsed.booth_id || '';
+          aciId = parsed.aci_id || '';
+        }
+      }
+      
+      console.log('Families - userData:', userData);
+      console.log('Families - loading for:', { aciId, boothId });
+      
+      if (!boothId || !aciId) {
+        console.log('Families - No aci_id or booth_id found, cannot load families');
         setFamilies([]);
         setLoading(false);
         return;
       }
       
-      if (boothId) {
+      if (aciId && boothId) {
+        const aciIdStr = String(aciId);
+        const boothIdStr = String(boothId);
         // First get the total count
-        const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
+        const initialResponse = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { page: 1, limit: 50 });
         console.log('Families - Initial response:', initialResponse);
         
         if (initialResponse?.success) {
           const totalVoters = initialResponse.pagination?.total || initialResponse.pagination?.totalVoters || 0;
           
           // Now fetch all voters
-          const response = await voterAPI.getVotersByBoothId(boothId, { 
+          const response = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { 
             page: 1, 
             limit: totalVoters || 5000 
           });
@@ -195,8 +210,11 @@ export default function FamiliesScreen() {
       setMapFamilyModalVisible(true);
       // Load all voters for selection
       const boothId = userData?.booth_id || '';
-      if (boothId) {
-        const response = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 5000 });
+      const aciId = userData?.aci_id || '';
+      if (aciId && boothId) {
+        const aciIdStr = String(aciId);
+        const boothIdStr = String(boothId);
+        const response = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { page: 1, limit: 5000 });
         if (response?.success && Array.isArray(response.voters)) {
           setAllVoters(response.voters);
         }

@@ -143,7 +143,7 @@ export default function StarScreen() {
           const gender = (it.gender || it.sex || it.Sex || s.sex || s.Sex || '').toString();
           const serial = it.serial ?? it.Serial ?? it.Sr ?? it.sr ?? 0;
           const section = it.section ?? it.Section ?? it.s?.Section ?? it.Anubhag_number ?? it.Anubhag_number ?? 0;
-          const part = it.part ?? it.Part ?? it.partNo ?? it.part_no ?? it.Part_Name ?? it['Part Name'] ?? it.part_no ?? s.part ?? 0;
+          const part = it.part ?? it.Part ?? it.boothno ?? it.part_no ?? it.Part_Name ?? it['Part Name'] ?? it.part_no ?? s.part ?? 0;
           const photo = it.photo || it.Photo || s.photo || '';
           return {
             _id: it._id || it.id || `${serial}_${voterId}`,

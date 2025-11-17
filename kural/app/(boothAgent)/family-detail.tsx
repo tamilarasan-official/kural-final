@@ -64,8 +64,9 @@ export default function FamilyDetailScreen() {
     try {
       setLoading(true);
       const boothId = userData?.booth_id || '';
+      const aciId = userData?.aci_id || '';
       
-      if (boothId && params.address) {
+      if (boothId && aciId && params.address) {
         let allVoters = [];
         const now = Date.now();
         
@@ -75,13 +76,15 @@ export default function FamilyDetailScreen() {
           allVoters = voterDataCache;
         } else {
           console.log('Fetching fresh voter data');
+          const aciIdStr = String(aciId);
+          const boothIdStr = String(boothId);
           // Fetch all voters for this booth
-          const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
+          const initialResponse = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { page: 1, limit: 50 });
           
           if (initialResponse?.success) {
             const totalVoters = initialResponse.pagination?.total || initialResponse.pagination?.totalVoters || 0;
             
-            const response = await voterAPI.getVotersByBoothId(boothId, { 
+            const response = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { 
               page: 1, 
               limit: totalVoters || 5000 
             });

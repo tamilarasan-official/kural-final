@@ -108,7 +108,7 @@ export default function VoterDetailScreen() {
       
       // Try preferred endpoints first
       const [resByPart, resStats] = await Promise.allSettled([
-        voterAPI.getVotersByPart(part),
+        voterAPI.getVotersByBooth(part),
         voterAPI.getVoterStats(part)
       ]);
 

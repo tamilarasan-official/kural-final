@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useRole } from '../contexts/RoleContext';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -24,26 +25,49 @@ export default function VotersScreen() {
   const ITEMS_PER_PAGE = 50;
   const [newVoter, setNewVoter] = useState({
     voterId: '',
-    fullName: '',
+    nameEnglish: '',
+    nameTamil: '',
+    dob: '',
+    address: '',
+    fatherName: '',
+    doorNumber: '',
+    fatherless: false,
+    guardian: '',
     age: '',
     gender: '',
-    phoneNumber: '',
-    address: '',
-    familyId: '',
-    specialCategory: '',
+    mobile: '',
+    email: '',
+    aadhar: '',
+    pan: '',
+    religion: '',
+    caste: '',
+    subcaste: '',
   });
 
   const loadVoters = useCallback(async (page: number = 1) => {
       try {
         setLoading(true);
-        const boothId = userData?.booth_id || '';
+        let boothId = userData?.booth_id || '';
+        let aciId = userData?.aci_id || '';
         
-        console.log('🔍 Voters Screen - Loading voters for booth:', boothId, 'Page:', page);
+        // Fallback: Load from AsyncStorage if userData not available
+        if (!boothId || !aciId) {
+          const savedUserData = await AsyncStorage.getItem('userData');
+          if (savedUserData) {
+            const parsed = JSON.parse(savedUserData);
+            boothId = parsed.booth_id || '';
+            aciId = parsed.aci_id || '';
+          }
+        }
+        
+        console.log('🔍 Voters Screen - Loading voters for:', { aciId, boothId }, 'Page:', page);
         console.log('🔍 Voters Screen - userData:', JSON.stringify(userData, null, 2));
         
-        if (boothId) {
+        if (aciId && boothId) {
+          const aciIdStr = String(aciId);
+          const boothIdStr = String(boothId);
           // Load voters by booth ID with server-side pagination
-          const response = await voterAPI.getVotersByBoothId(boothId, { 
+          const response = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { 
             page: page,
             limit: ITEMS_PER_PAGE 
           });
@@ -148,31 +172,48 @@ export default function VotersScreen() {
 
   const handleAddVoter = async () => {
     // Validate required fields
-    if (!newVoter.voterId || !newVoter.fullName || !newVoter.age || !newVoter.gender || !newVoter.address) {
-      Alert.alert('Validation Error', 'Please fill all required fields');
+    if (!newVoter.voterId || !newVoter.nameEnglish || !newVoter.age || !newVoter.gender || !newVoter.address) {
+      Alert.alert('Validation Error', 'Please fill all required fields (Voter ID, Name, Age, Gender, Address)');
       return;
     }
 
     try {
-      // Get booth ID from userData
+      // Get booth details from userData
       const boothId = userData?.booth_id || '';
+      const aciId = userData?.aci_id || '';
+      const aciName = userData?.aci_name || '';
+      const boothName = userData?.boothAllocation || '';
       
-      if (!boothId) {
+      if (!boothId || !aciId) {
         Alert.alert('Error', 'Booth allocation not found. Please contact administrator.');
         return;
       }
 
-      // Call API to create voter
+      // Call API to create voter with all fields
       const response = await voterAPI.createVoter({
         voterId: newVoter.voterId,
-        fullName: newVoter.fullName,
+        nameEnglish: newVoter.nameEnglish,
+        nameTamil: newVoter.nameTamil,
+        dob: newVoter.dob,
+        address: newVoter.address,
+        fatherName: newVoter.fatherName,
+        doorNumber: newVoter.doorNumber,
+        fatherless: newVoter.fatherless,
+        guardian: newVoter.guardian,
         age: newVoter.age,
         gender: newVoter.gender,
-        phoneNumber: newVoter.phoneNumber,
-        address: newVoter.address,
-        familyId: newVoter.familyId,
-        specialCategories: newVoter.specialCategory ? [newVoter.specialCategory] : [],
-        boothId: boothId,
+        mobile: newVoter.mobile,
+        email: newVoter.email,
+        aadhar: newVoter.aadhar,
+        pan: newVoter.pan,
+        religion: newVoter.religion,
+        caste: newVoter.caste,
+        subcaste: newVoter.subcaste,
+        booth_id: boothId,
+        boothname: boothName,
+        boothno: parseInt(boothId) || 0,
+        aci_id: String(aciId),
+        aci_name: aciName,
       });
 
       if (response.success) {
@@ -182,13 +223,23 @@ export default function VotersScreen() {
         // Reset form
         setNewVoter({
           voterId: '',
-          fullName: '',
+          nameEnglish: '',
+          nameTamil: '',
+          dob: '',
+          address: '',
+          fatherName: '',
+          doorNumber: '',
+          fatherless: false,
+          guardian: '',
           age: '',
           gender: '',
-          phoneNumber: '',
-          address: '',
-          familyId: '',
-          specialCategory: '',
+          mobile: '',
+          email: '',
+          aadhar: '',
+          pan: '',
+          religion: '',
+          caste: '',
+          subcaste: '',
         });
         
         // Reload voters
@@ -202,10 +253,27 @@ export default function VotersScreen() {
     }
   };
 
-  const toggleSpecialCategory = (category: string) => {
+  // Simple English to Tamil transliteration (basic conversion)
+  const transliterateToTamil = (englishText: string): string => {
+    // This is a basic transliteration map - in production, you'd want to use a proper API
+    const transliterationMap: { [key: string]: string } = {
+      'a': 'அ', 'A': 'ஆ', 'i': 'இ', 'I': 'ஈ', 'u': 'உ', 'U': 'ஊ',
+      'e': 'எ', 'E': 'ஏ', 'o': 'ஒ', 'O': 'ஓ',
+      'k': 'க', 'g': 'க', 'ch': 'ச', 's': 'ச', 't': 'த', 'd': 'த',
+      'n': 'ந', 'p': 'ப', 'b': 'ப', 'm': 'ம', 'y': 'ய',
+      'r': 'ர', 'l': 'ல', 'v': 'வ', 'w': 'வ', 'z': 'ழ', 'h': 'ஹ'
+    };
+    
+    // For now, return a placeholder indicating Tamil should be entered
+    // In production, integrate with Google Translate API or similar service
+    return englishText ? `[தமிழில்: ${englishText}]` : '';
+  };
+
+  const handleEnglishNameChange = (text: string) => {
     setNewVoter(prev => ({
       ...prev,
-      specialCategory: prev.specialCategory === category ? '' : category
+      nameEnglish: text,
+      nameTamil: transliterateToTamil(text)
     }));
   };
 
@@ -544,24 +612,49 @@ export default function VotersScreen() {
                   </Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g., TND119 0007"
+                    placeholder="e.g., TND1190007"
                     placeholderTextColor="#999"
                     value={newVoter.voterId}
                     onChangeText={(text) => setNewVoter({ ...newVoter, voterId: text })}
                   />
                 </View>
 
-                {/* Full Name */}
+                {/* Name English */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>
-                    Full Name <Text style={styles.required}>*</Text>
+                    Name (English) <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Enter full name"
+                    placeholder="Enter name in English"
                     placeholderTextColor="#999"
-                    value={newVoter.fullName}
-                    onChangeText={(text) => setNewVoter({ ...newVoter, fullName: text })}
+                    value={newVoter.nameEnglish}
+                    onChangeText={handleEnglishNameChange}
+                  />
+                </View>
+
+                {/* Name Tamil - Auto-generated */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Name (Tamil)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Auto-generated from English name"
+                    placeholderTextColor="#999"
+                    value={newVoter.nameTamil}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, nameTamil: text })}
+                  />
+                  <Text style={styles.helperText}>Edit if needed</Text>
+                </View>
+
+                {/* Date of Birth */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Date of Birth</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="DD/MM/YYYY"
+                    placeholderTextColor="#999"
+                    value={newVoter.dob}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, dob: text })}
                   />
                 </View>
 
@@ -594,7 +687,7 @@ export default function VotersScreen() {
                         [
                           { text: 'Male', onPress: () => setNewVoter({ ...newVoter, gender: 'Male' }) },
                           { text: 'Female', onPress: () => setNewVoter({ ...newVoter, gender: 'Female' }) },
-                          { text: 'Other', onPress: () => setNewVoter({ ...newVoter, gender: 'Other' }) },
+                          { text: 'Transgender', onPress: () => setNewVoter({ ...newVoter, gender: 'Transgender' }) },
                           { text: 'Cancel', style: 'cancel' }
                         ]
                       );
@@ -607,16 +700,62 @@ export default function VotersScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Phone Number */}
+                {/* Father Name */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Phone Number</Text>
+                  <Text style={styles.inputLabel}>Father Name</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="+91 98765 43210"
+                    placeholder="Enter father's name"
                     placeholderTextColor="#999"
-                    keyboardType="phone-pad"
-                    value={newVoter.phoneNumber}
-                    onChangeText={(text) => setNewVoter({ ...newVoter, phoneNumber: text })}
+                    value={newVoter.fatherName}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, fatherName: text })}
+                    editable={!newVoter.fatherless}
+                  />
+                </View>
+
+                {/* Fatherless Checkbox */}
+                <TouchableOpacity 
+                  style={styles.checkboxItem}
+                  onPress={() => setNewVoter(prev => ({ 
+                    ...prev, 
+                    fatherless: !prev.fatherless,
+                    fatherName: !prev.fatherless ? '' : prev.fatherName 
+                  }))}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    newVoter.fatherless && styles.checkboxChecked
+                  ]}>
+                    {newVoter.fatherless && (
+                      <Icon name="check" size={16} color="#2196F3" />
+                    )}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Fatherless</Text>
+                </TouchableOpacity>
+
+                {/* Guardian (if fatherless) */}
+                {newVoter.fatherless && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Guardian Name</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter guardian's name"
+                      placeholderTextColor="#999"
+                      value={newVoter.guardian}
+                      onChangeText={(text) => setNewVoter({ ...newVoter, guardian: text })}
+                    />
+                  </View>
+                )}
+
+                {/* Door Number */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Door Number</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter door number"
+                    placeholderTextColor="#999"
+                    value={newVoter.doorNumber}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, doorNumber: text })}
                   />
                 </View>
 
@@ -636,112 +775,114 @@ export default function VotersScreen() {
                   />
                 </View>
 
-                {/* Family ID */}
+                {/* Mobile Number */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Family ID</Text>
+                  <Text style={styles.inputLabel}>Mobile Number</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g., F001"
+                    placeholder="+91 9876543210"
                     placeholderTextColor="#999"
-                    value={newVoter.familyId}
-                    onChangeText={(text) => setNewVoter({ ...newVoter, familyId: text })}
+                    keyboardType="phone-pad"
+                    value={newVoter.mobile}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, mobile: text })}
                   />
-                  <Text style={styles.helperText}>Leave empty to create a new family</Text>
                 </View>
 
-                {/* Special Categories */}
+                {/* Email ID */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Special Categories</Text>
-                  
-                  <TouchableOpacity 
-                    style={styles.checkboxItem}
-                    onPress={() => toggleSpecialCategory('Age 60+')}
-                  >
-                    <View style={[
-                      styles.checkbox,
-                      newVoter.specialCategory === 'Age 60+' && styles.checkboxChecked
-                    ]}>
-                      {newVoter.specialCategory === 'Age 60+' && (
-                        <Icon name="check" size={16} color="#2196F3" />
-                      )}
-                    </View>
-                    <Text style={styles.checkboxLabel}>Age 60+</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.inputLabel}>Email ID</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="example@email.com"
+                    placeholderTextColor="#999"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={newVoter.email}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, email: text })}
+                  />
+                </View>
 
-                  <TouchableOpacity 
-                    style={styles.checkboxItem}
-                    onPress={() => toggleSpecialCategory('Age 80+')}
-                  >
-                    <View style={[
-                      styles.checkbox,
-                      newVoter.specialCategory === 'Age 80+' && styles.checkboxChecked
-                    ]}>
-                      {newVoter.specialCategory === 'Age 80+' && (
-                        <Icon name="check" size={16} color="#2196F3" />
-                      )}
-                    </View>
-                    <Text style={styles.checkboxLabel}>Age 80+</Text>
-                  </TouchableOpacity>
+                {/* Aadhar Number */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Aadhar Number</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="1234 5678 9012"
+                    placeholderTextColor="#999"
+                    keyboardType="numeric"
+                    maxLength={12}
+                    value={newVoter.aadhar}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, aadhar: text })}
+                  />
+                </View>
 
-                  <TouchableOpacity 
-                    style={styles.checkboxItem}
-                    onPress={() => toggleSpecialCategory('Transgender')}
-                  >
-                    <View style={[
-                      styles.checkbox,
-                      newVoter.specialCategory === 'Transgender' && styles.checkboxChecked
-                    ]}>
-                      {newVoter.specialCategory === 'Transgender' && (
-                        <Icon name="check" size={16} color="#2196F3" />
-                      )}
-                    </View>
-                    <Text style={styles.checkboxLabel}>Transgender</Text>
-                  </TouchableOpacity>
+                {/* PAN Number */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>PAN Number</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="ABCDE1234F"
+                    placeholderTextColor="#999"
+                    autoCapitalize="characters"
+                    maxLength={10}
+                    value={newVoter.pan}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, pan: text.toUpperCase() })}
+                  />
+                </View>
 
-                  <TouchableOpacity 
-                    style={styles.checkboxItem}
-                    onPress={() => toggleSpecialCategory('Fatherless')}
-                  >
-                    <View style={[
-                      styles.checkbox,
-                      newVoter.specialCategory === 'Fatherless' && styles.checkboxChecked
-                    ]}>
-                      {newVoter.specialCategory === 'Fatherless' && (
-                        <Icon name="check" size={16} color="#2196F3" />
-                      )}
-                    </View>
-                    <Text style={styles.checkboxLabel}>Fatherless</Text>
-                  </TouchableOpacity>
+                {/* Religion */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Religion</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter religion"
+                    placeholderTextColor="#999"
+                    value={newVoter.religion}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, religion: text })}
+                  />
+                </View>
 
-                  <TouchableOpacity 
-                    style={styles.checkboxItem}
-                    onPress={() => toggleSpecialCategory('Overseas')}
-                  >
-                    <View style={[
-                      styles.checkbox,
-                      newVoter.specialCategory === 'Overseas' && styles.checkboxChecked
-                    ]}>
-                      {newVoter.specialCategory === 'Overseas' && (
-                        <Icon name="check" size={16} color="#2196F3" />
-                      )}
-                    </View>
-                    <Text style={styles.checkboxLabel}>Overseas</Text>
-                  </TouchableOpacity>
+                {/* Caste */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Caste</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter caste"
+                    placeholderTextColor="#999"
+                    value={newVoter.caste}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, caste: text })}
+                  />
+                </View>
 
-                  <TouchableOpacity 
-                    style={styles.checkboxItem}
-                    onPress={() => toggleSpecialCategory('Other')}
-                  >
-                    <View style={[
-                      styles.checkbox,
-                      newVoter.specialCategory === 'Other' && styles.checkboxChecked
-                    ]}>
-                      {newVoter.specialCategory === 'Other' && (
-                        <Icon name="check" size={16} color="#2196F3" />
-                      )}
-                    </View>
-                    <Text style={styles.checkboxLabel}>Other</Text>
-                  </TouchableOpacity>
+                {/* Sub Caste */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Sub Caste</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter sub caste"
+                    placeholderTextColor="#999"
+                    value={newVoter.subcaste}
+                    onChangeText={(text) => setNewVoter({ ...newVoter, subcaste: text })}
+                  />
+                </View>
+
+                {/* Auto-populated Booth Information - Display Only */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Booth Information (Auto-filled)</Text>
+                  <View style={styles.infoBox}>
+                    <Text style={styles.infoBoxText}>
+                      Booth ID: {userData?.booth_id || 'N/A'}
+                    </Text>
+                    <Text style={styles.infoBoxText}>
+                      Booth Name: {userData?.boothAllocation || 'N/A'}
+                    </Text>
+                    <Text style={styles.infoBoxText}>
+                      ACI ID: {userData?.aci_id || 'N/A'}
+                    </Text>
+                    <Text style={styles.infoBoxText}>
+                      ACI Name: {userData?.aci_name || 'N/A'}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={{ height: 20 }} />
@@ -1305,5 +1446,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
     marginTop: 2,
+  },
+  // Info box styles for booth information
+  infoBox: {
+    backgroundColor: '#F0F4F8',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D0D7DE',
+  },
+  infoBoxText: {
+    fontSize: 13,
+    color: '#333',
+    marginBottom: 4,
   },
 });

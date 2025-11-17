@@ -8,7 +8,7 @@ export const voterAPI = {
     mobileNo?: string;
     Number?: string;
     age?: string;
-    partNo?: string;
+    boothno?: string;
     serialNo?: string;
     Name?: string;
     'Father Name'?: string;
@@ -18,11 +18,12 @@ export const voterAPI = {
     page?: number;
     limit?: number;
   }) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(searchParams),
     });
@@ -49,6 +50,7 @@ export const voterAPI = {
 
   // Transgender voters list
   getTransgenderVoters: async (params?: { q?: string; page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     if (params?.q) query.append('q', params.q);
     if (params?.page) query.append('page', String(params.page));
@@ -58,7 +60,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
     if (!response.ok) {
@@ -71,11 +73,12 @@ export const voterAPI = {
 
   // Get voter by ID
   getVoterById: async (voterId: string) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/${voterId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -90,11 +93,12 @@ export const voterAPI = {
 
   // Get voter by EPIC number
   getVoterByEpic: async (epicNumber: string) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/by-epic/${epicNumber}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -107,13 +111,14 @@ export const voterAPI = {
     return data;
   },
 
-  // Get unique part names from votersdata collection
-  getPartNames: async () => {
-    const response = await fetch(`${BASE_URL}/part-names`, {
+  // Get unique booth names from votersdata collection
+  getBoothNames: async () => {
+    const token = await API_CONFIG.getToken();
+    const response = await fetch(`${BASE_URL}/booth-names`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -126,19 +131,20 @@ export const voterAPI = {
     return data;
   },
 
-  // Get voters by part number
-  getVotersByPart: async (partNumber: string, options?: { page?: number; limit?: number }) => {
+  // Get voters by booth number
+  getVotersByBooth: async (boothNumber: string, options?: { page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const ts = Date.now();
     const qp = new URLSearchParams();
     if (options?.page) qp.append('page', String(options.page));
     if (options?.limit) qp.append('limit', String(options.limit));
     qp.append('_', String(ts));
     const qs = qp.toString();
-    const response = await fetch(`${BASE_URL}/by-part/${partNumber}?${qs}`, {
+    const response = await fetch(`${BASE_URL}/by-booth/${boothNumber}?${qs}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -151,19 +157,20 @@ export const voterAPI = {
     return data;
   },
 
-  // Get voters by booth ID
-  getVotersByBoothId: async (boothId: string, options?: { page?: number; limit?: number }) => {
+  // Get voters by booth ID and ACI ID
+  getVotersByBoothId: async (aciId: string, boothId: string, options?: { page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const ts = Date.now();
     const qp = new URLSearchParams();
     if (options?.page) qp.append('page', String(options.page));
     if (options?.limit) qp.append('limit', String(options.limit));
     qp.append('_', String(ts));
     const qs = qp.toString();
-    const response = await fetch(`${BASE_URL}/by-booth/${boothId}?${qs}`, {
+    const response = await fetch(`${BASE_URL}/by-booth/${aciId}/${boothId}?${qs}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -176,14 +183,15 @@ export const voterAPI = {
     return data;
   },
 
-  // Get voter statistics by part number
-  getVoterStats: async (partNumber: string) => {
+  // Get voter statistics by booth number
+  getVoterStats: async (boothNumber: string) => {
+    const token = await API_CONFIG.getToken();
     const ts = Date.now();
-    const response = await fetch(`${BASE_URL}/stats/${partNumber}?_=${ts}`, {
+    const response = await fetch(`${BASE_URL}/stats/${boothNumber}?_=${ts}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -196,13 +204,14 @@ export const voterAPI = {
     return data;
   },
 
-  // Get Part & Section Info by Part Name
-  getPartSectionInfo: async (partName: string) => {
-    const response = await fetch(`${BASE_URL}/part-section-info/${encodeURIComponent(partName)}`, {
+  // Get Booth & Section Info by Booth Name
+  getBoothSectionInfo: async (boothName: string) => {
+    const token = await API_CONFIG.getToken();
+    const response = await fetch(`${BASE_URL}/booth-section-info/${encodeURIComponent(boothName)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -217,6 +226,7 @@ export const voterAPI = {
 
   // Get fatherless voters
   getFatherlessVoters: async (params: { q?: string; page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     if (params.q) query.append('q', params.q);
     if (params.page) query.append('page', String(params.page));
@@ -226,7 +236,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -241,6 +251,7 @@ export const voterAPI = {
 
   // Get guardian voters
   getGuardianVoters: async (params: { q?: string; page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     if (params.q) query.append('q', params.q);
     if (params.page) query.append('page', String(params.page));
@@ -250,7 +261,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -265,6 +276,7 @@ export const voterAPI = {
 
   // Get mobile voters
   getMobileVoters: async (params: { q?: string; page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     if (params.q) query.append('q', params.q);
     if (params.page) query.append('page', String(params.page));
@@ -274,7 +286,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -289,6 +301,7 @@ export const voterAPI = {
 
   // Get age 80+ voters
   getAge80AboveVoters: async (params: { q?: string; page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     if (params.q) query.append('q', params.q);
     if (params.page) query.append('page', String(params.page));
@@ -298,7 +311,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -313,6 +326,7 @@ export const voterAPI = {
 
   // Get age 60+ voters (collection: '60 and above')
   getAge60AboveVoters: async (params: { q?: string; page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     if (params.q) query.append('q', params.q);
     if (params.page) query.append('page', String(params.page));
@@ -322,7 +336,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -337,6 +351,7 @@ export const voterAPI = {
 
   // Get catalogue items
   getCatalogueItems: async (params: { q?: string; page?: number; limit?: number; category?: string }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     if (params.q) query.append('q', params.q);
     if (params.page) query.append('page', String(params.page));
@@ -347,7 +362,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -362,11 +377,12 @@ export const voterAPI = {
 
   // Get single catalogue item
   getCatalogueItem: async (id: string) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${API_CONFIG.BASE_URL}/catalogue/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -381,6 +397,7 @@ export const voterAPI = {
 
   // Get voters by age range (for Age 60+ screen)
   getVotersByAgeRange: async ({ minAge, maxAge, page = 1, limit = 1000 }: { minAge: number; maxAge: number; page?: number; limit?: number }) => {
+    const token = await API_CONFIG.getToken();
     const query = new URLSearchParams();
     query.append('minAge', String(minAge));
     query.append('maxAge', String(maxAge));
@@ -391,7 +408,7 @@ export const voterAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
     if (!response.ok) {
@@ -404,11 +421,12 @@ export const voterAPI = {
 
   // Mark voter as verified
   markAsVerified: async (voterId: string) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/${voterId}/verify`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -423,11 +441,12 @@ export const voterAPI = {
 
   // Update voter information
   updateVoterInfo: async (voterId: string, updateData: any) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/${voterId}/info`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(updateData),
     });
@@ -444,20 +463,35 @@ export const voterAPI = {
   // Create new voter
   createVoter: async (voterData: {
     voterId: string;
-    fullName: string;
+    nameEnglish: string;
+    nameTamil?: string;
+    dob?: string;
+    address: string;
+    fatherName?: string;
+    doorNumber?: string;
+    fatherless?: boolean;
+    guardian?: string;
     age: string;
     gender: string;
-    phoneNumber?: string;
-    address: string;
-    familyId?: string;
-    specialCategories?: string[];
-    boothId: string;
+    mobile?: string;
+    email?: string;
+    aadhar?: string;
+    pan?: string;
+    religion?: string;
+    caste?: string;
+    subcaste?: string;
+    booth_id: string;
+    boothname?: string;
+    boothno?: number;
+    aci_id?: string;
+    aci_name?: string;
   }) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(voterData),
     });

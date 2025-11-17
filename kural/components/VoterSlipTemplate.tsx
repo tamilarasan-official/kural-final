@@ -63,19 +63,17 @@ export const VoterSlipTemplate: React.FC<VoterSlipTemplateProps> = ({
 
   return (
     <View style={styles.slipContainer}>
+      {/* Header Image - Election Banner with Photos */}
+      <Image 
+        source={require('../assets/images/slipimg.png')}
+        style={styles.headerImage}
+        resizeMode="contain"
+      />
+
       {/* Tamil Header */}
       <Text style={styles.headerTamil}>
         {data.electionTitle || 'தமிழ்நாடு சட்டமன்ற தேர்தல் 2026'}
       </Text>
-
-      {/* Slip Numbers */}
-      {data.slipNumbers && data.slipNumbers.length > 0 && (
-        <View style={styles.slipNumbersContainer}>
-          {data.slipNumbers.map((num, idx) => (
-            <Text key={idx} style={styles.slipNumber}>{num}</Text>
-          ))}
-        </View>
-      )}
 
       {/* Party Information (Optional) */}
       {showPartyInfo && (
@@ -195,6 +193,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 12,
     alignItems: 'center',
+  },
+  headerImage: {
+    width: 360, // Slightly less than container width for padding
+    height: 120, // Adjust based on actual image aspect ratio
+    marginBottom: 8,
   },
   headerTamil: {
     fontSize: 14,

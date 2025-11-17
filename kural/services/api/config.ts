@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 // Determine the correct base URL based on environment
 // For Android Emulator: use 10.0.2.2
 // For Physical Device: use your computer's local IP (check ipconfig)
@@ -5,7 +7,7 @@
 
 const getBaseURL = () => {
   // Default to Physical Device on WiFi (Expo Go)
-  const LOCAL_NETWORK_URL = "http://10.19.146.109:5000/api/v1"; // Your WiFi IP for physical device
+  const LOCAL_NETWORK_URL = "http://192.168.31.31:5000/api/v1"; // Your WiFi IP for physical device
   // const EMULATOR_URL = "http://10.0.2.2:5000/api/v1"; // Uncomment for Android Emulator
   
   // You can manually switch between these based on your testing device
@@ -42,9 +44,13 @@ export const API_CONFIG = {
   },
 
   // Get authentication token from storage
-  getToken: () => {
-    // For now, return a placeholder token
-    // In a real app, you would get this from AsyncStorage or secure storage
-    return "placeholder-token";
+  getToken: async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      return token;
+    } catch (e) {
+      console.error("Failed to fetch the token from storage", e);
+      return null;
+    }
   },
 };

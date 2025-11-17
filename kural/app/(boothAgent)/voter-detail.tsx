@@ -4,7 +4,10 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { voterAPI } from '../../services/api/voter';
-import VoterSlipTemplate from '../../components/VoterSlipTemplate';
+import { VoterSlipTemplate } from '../../components/VoterSlipTemplate';
+import { TamilHeaderForPrint } from '../../components/TamilHeaderForPrint';
+import { PrintService } from '../../services/PrintService';
+
 export default function VoterDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -14,6 +17,7 @@ export default function VoterDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [printing, setPrinting] = useState(false);
   const slipRef = useRef<View>(null);
+  const headerRef = useRef<View>(null); // Separate ref for Tamil header
   
   // Editable fields
   const [mobileNumber, setMobileNumber] = useState('');
@@ -102,6 +106,8 @@ export default function VoterDetailScreen() {
     } finally {
       setVerifying(false);
     }
+  };
+
   const handleSave = async () => {
     try {
       const voterId = voter._id || voter.Number;
@@ -172,6 +178,7 @@ export default function VoterDetailScreen() {
             }
           ]
         );
+        setPrinting(false);
         return;
       }
 
@@ -187,24 +194,40 @@ export default function VoterDetailScreen() {
             }
           ]
         );
+        setPrinting(false);
         return;
       }
 
-      // Print the voter slip
-      const result = await PrintService.printVoterSlip(slipRef);
+      // Prepare voter data for printing
+      const voterData = {
+        voterID: voter.voterID || voter['EPIC No'] || voter.Number || 'N/A',
+        name: voter.name?.english || voter.Name || 'Unknown',
+        nameTamil: voter.name?.tamil || '',
+        fathername: voter.fathername || voter.fatherName || voter['Father Name'] || '',
+        fatherNameTamil: voter.fatherNameTamil || '',
+        gender: voter.gender || voter.sex || voter.Sex || voter.Gender || 'M',
+        age: parseInt(voter.age || voter.Age) || 18,
+        address: voter.address || voter.doorNo || '',
+        boothno: voter.boothno || parseInt(voter.boothNumber || voter.PS_NO) || 1,
+        serialNo: parseInt(voter.slipNo || voter['Sl.No.'] || voter.Number) || 1,
+        partname: voter.partname || voter.boothName || 'N/A',
+        boothNameTamil: voter.boothNameTamil || '',
+      };
+
+      // Print the voter slip with Tamil header image + text details
+      // This prints: Tamil header (as image) + Voter details (as text, no duplicate)
+      const success = await PrintService.printVoterSlipComplete(headerRef, voterData);
       
-      if (result.success) {
-        Alert.alert('Success', 'Voter slip printed successfully!');
+      if (success) {
+        Alert.alert('Success', 'Voter slip printed!\n\n✓ Tamil header (image)\n✓ Voter details (text)');
       } else {
-        Alert.alert('Print Failed', result.error || 'Failed to print voter slip');
+        Alert.alert('Print Failed', 'Failed to print voter slip');
       }
     } catch (error) {
       console.error('Print error:', error);
       Alert.alert('Error', 'Failed to print voter slip');
     } finally {
       setPrinting(false);
-    }
-  };  Alert.alert('Error', 'Failed to update voter information');
     }
   };
 
@@ -238,6 +261,11 @@ export default function VoterDetailScreen() {
   return (
     <ScreenWrapper userRole="booth_agent">
       <View style={styles.container}>
+        {/* Hidden Tamil Header for printing (captured as image) */}
+        <View style={{ position: 'absolute', left: 0, top: 0, opacity: 0, zIndex: -1 }}>
+          <TamilHeaderForPrint ref={headerRef} />
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -496,69 +524,28 @@ export default function VoterDetailScreen() {
                 {isEditing ? (
                   <TextInput
                     style={[styles.infoValue, styles.editableInput]}
-          {/* Hidden Voter Slip Template for Printing */}
-          <View style={{ position: 'absolute', left: -9999, top: 0 }}>
-            <VoterSlipTemplate
-              ref={slipRef}
-              data={{
-                slipNumber: voter.slipNo || voter['Sl.No.'] || 'N/A',
-                serialNumber: voter.Number || voter.voterID || 'N/A',
-                voterName: voter.name?.english || voter.Name || 'Unknown',
-                voterNameTamil: voter.name?.tamil || '',
-                age: voter.age || voter.Age || 'N/A',
-                gender: voter.gender || voter.sex || voter.Sex || voter.Gender || 'N/A',
-                address: voter.address || voter.Address || '',
-                voterID: voter.voterID || voter['EPIC No'] || voter.Number || 'N/A',
-                boothName: voter.boothName || 'Booth',
-                boothNumber: voter.boothNumber || voter.PS_NO || 'N/A',
-                partyName: voter.partyName || '',
-                partySymbol: voter.partySymbol || '',
-                candidateName: voter.candidateName || '',
-              }}
-            />
-          </View>
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-
-        {/* Action Buttons Footer */}
-        <View style={styles.footer}>
-          <View style={styles.buttonRow}>
-            {/* Print Button - Always visible */}
-            <TouchableOpacity 
-              style={[styles.printButton, printing && styles.printButtonDisabled]}
-              onPress={handlePrintSlip}
-              disabled={printing}
-            >
-              {printing ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Icon name="print" size={20} color="#fff" />
-                  <Text style={styles.printButtonText}>Print Slip</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Mark as Verified Button - Only show if not verified */}
-            {!isVerified && (
-              <TouchableOpacity 
-                style={[styles.verifyButton, verifying && styles.verifyButtonDisabled]}
-                onPress={handleMarkAsVerified}
-                disabled={verifying}
-              >
-                {verifying ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                    value={subCaste}
+                    onChangeText={setSubCaste}
+                    placeholder="Enter sub-caste"
+                    placeholderTextColor="#999"
+                  />
                 ) : (
-                  <>
-                    <Icon name="check-circle" size={20} color="#fff" />
-                    <Text style={styles.verifyButtonText}>Verify</Text>
-                  </>
+                  <Text style={styles.infoValue}>{subCaste || 'N/A'}</Text>
                 )}
-              </TouchableOpacity>
-            )}
+              </View>
+            </>
           </View>
-        </View>        <View style={styles.tag}>
+
+          {/* Special Categories */}
+          {(isSenior60 || isSenior80 || (voter.specialCategories && voter.specialCategories.length > 0)) && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Special Categories</Text>
+              
+              <View style={styles.divider} />
+
+              <View style={styles.tagsContainer}>
+                {isSenior60 && (
+                  <View style={styles.tag}>
                     <Text style={styles.tagText}>Age 60+</Text>
                   </View>
                 )}
@@ -590,28 +577,88 @@ export default function VoterDetailScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Hidden Voter Slip Template for Printing */}
+          <View 
+            style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0,
+              opacity: 0, 
+              zIndex: -1 
+            }} 
+            ref={slipRef}
+            collapsable={false}
+          >
+            <VoterSlipTemplate
+              data={{
+                voterID: voter.voterID || voter['EPIC No'] || voter.Number || 'N/A',
+                name: voter.name?.english || voter.Name || 'Unknown',
+                nameTamil: voter.name?.tamil || '',
+                fatherName: voter.fatherName || voter['Father Name'] || '',
+                fatherNameTamil: voter.fatherNameTamil || '',
+                gender: voter.gender || voter.sex || voter.Sex || voter.Gender || 'M',
+                age: parseInt(voter.age || voter.Age) || 18,
+                doorNo: voter.doorNo || voter.address || '',
+                boothNo: parseInt(voter.boothNumber || voter.PS_NO) || 1,
+                serialNo: parseInt(voter.slipNo || voter['Sl.No.'] || voter.Number) || 1,
+                boothName: voter.boothName || 'Booth',
+                boothNameTamil: voter.boothNameTamil || '',
+                partyName: voter.partyName || '',
+                partyNameTamil: voter.partyNameTamil || '',
+                partySymbol: voter.partySymbol || '',
+                candidateName: voter.candidateName || '',
+                candidateNameTamil: voter.candidateNameTamil || '',
+              }}
+            />
+          </View>
+
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        {/* Mark as Verified Button */}
-        {!isVerified && (
-          <View style={styles.footer}>
+        {/* Action Buttons Footer */}
+        <View style={styles.footer}>
+          <View style={styles.buttonRow}>
+            {/* Print Button - Green when verified, Gray when pending */}
             <TouchableOpacity 
-              style={[styles.verifyButton, verifying && styles.verifyButtonDisabled]}
-              onPress={handleMarkAsVerified}
-              disabled={verifying}
+              style={[
+                styles.printButton, 
+                !isVerified && styles.printButtonDisabledGray,
+                printing && styles.printButtonDisabled
+              ]}
+              onPress={handlePrintSlip}
+              disabled={printing || !isVerified}
             >
-              {verifying ? (
+              {printing ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Icon name="check-circle" size={20} color="#fff" />
-                  <Text style={styles.verifyButtonText}>Mark as Verified</Text>
+                  <Icon name="print" size={20} color="#fff" />
+                  <Text style={styles.printButtonText}>
+                    {isVerified ? 'Print Slip' : 'Verify to Print'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
+
+            {/* Mark as Verified Button - Only show if not verified */}
+            {!isVerified && (
+              <TouchableOpacity 
+                style={[styles.verifyButton, verifying && styles.verifyButtonDisabled]}
+                onPress={handleMarkAsVerified}
+                disabled={verifying}
+              >
+                {verifying ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Icon name="check-circle" size={20} color="#fff" />
+                    <Text style={styles.verifyButtonText}>Verify</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
-        )}
+        </View>
       </View>
     </ScreenWrapper>
   );
@@ -695,53 +742,30 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-  footer: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    textAlign: 'center',
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
+  voterNameTamil: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
   },
-  printButton: {
-    flex: 1,
-    backgroundColor: '#4CAF50',
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
     gap: 8,
+    marginBottom: 4,
   },
-  printButtonDisabled: {
-    backgroundColor: '#A5D6A7',
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
   },
-  printButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  verifyButton: {
-    flex: 1,
-    backgroundColor: '#2196F3',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  verifyButtonDisabled: {
-    backgroundColor: '#90CAF9',
-  },
-  verifyButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },marginVertical: 12,
+  divider: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 12,
   },
   infoRow: {
     flexDirection: 'row',
@@ -811,30 +835,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1976D2',
     fontWeight: '600',
-  },
-  footer: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  verifyButton: {
-    backgroundColor: '#2196F3',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  verifyButtonDisabled: {
-    backgroundColor: '#90CAF9',
-  },
-  verifyButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
   },
   loadingContainer: {
     flex: 1,
@@ -911,6 +911,56 @@ const styles = StyleSheet.create({
     backgroundColor: '#90CAF9',
   },
   saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  footer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  printButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  printButtonDisabled: {
+    backgroundColor: '#A5D6A7',
+  },
+  printButtonDisabledGray: {
+    backgroundColor: '#9E9E9E',
+  },
+  printButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  verifyButton: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  verifyButtonDisabled: {
+    backgroundColor: '#90CAF9',
+  },
+  verifyButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Cadre = require('../src/models/Cadre');
+const Booth = require('../src/models/Booth');
 const config = require('../config/config');
 
 // Connect to MongoDB
@@ -17,9 +17,9 @@ const connectDB = async() => {
 const createAssemblyIncharge = async() => {
     try {
         // Check if AssemblyIncharge already exists
-        const existingUser = await Cadre.findOne({ mobileNumber: '9500000001' });
+        const existingUser = await Booth.findOne({ mobileNumber: '9500000001' });
         if (existingUser) {
-            console.log('✅ AssemblyIncharge user already exists:', existingUser.mobileNumber);
+            console.log('✅ Assembly Incharge already exists:', existingUser.mobileNumber);
             return existingUser;
         }
 
@@ -49,7 +49,7 @@ const createAssemblyIncharge = async() => {
             createdBy: dummyUserId
         };
 
-        const assemblyIncharge = await Cadre.create(assemblyInchargeData);
+        const assemblyIncharge = await Booth.create(assemblyInchargeData);
         console.log('✅ AssemblyIncharge user created successfully:');
         console.log('📱 Mobile Number:', assemblyIncharge.mobileNumber);
         console.log('🔑 Password: password123');
@@ -63,31 +63,31 @@ const createAssemblyIncharge = async() => {
     }
 };
 
-// Create additional test Cadre user (booth agent)
-const createTestCadre = async() => {
+// Create additional test Booth user (booth agent)
+const createTestBooth = async() => {
     try {
-        // Check if test cadre already exists
-        const existingCadre = await Cadre.findOne({ mobileNumber: '9500000002' });
-        if (existingCadre) {
-            console.log('✅ Test Cadre user already exists:', existingCadre.mobileNumber);
-            return existingCadre;
+        // Check if test booth already exists
+        const existingBooth = await Booth.findOne({ mobileNumber: '9500000002' });
+        if (existingBooth) {
+            console.log('✅ Test Booth user already exists:', existingBooth.mobileNumber);
+            return existingBooth;
         }
 
         // Get a user ID for createdBy (or create a dummy ObjectId)
         const mongoose = require('mongoose');
         const dummyUserId = new mongoose.Types.ObjectId();
 
-        // Create test cadre user
-        const cadreData = {
+        // Create test booth user
+        const boothData = {
             firstName: 'Test',
-            lastName: 'Cadre',
+            lastName: 'Booth',
             mobileNumber: '9500000002',
             gender: 'Female',
             password: 'password123',
             role: 'Booth Agent', // This role contains 'booth'
             boothAllocation: '119 -001',
             status: 'Active',
-            email: 'test.cadre@test.com',
+            email: 'test.booth@test.com',
             address: {
                 street: 'Booth Street',
                 city: 'Coimbatore',
@@ -95,20 +95,20 @@ const createTestCadre = async() => {
                 country: 'India',
                 postalCode: '641045'
             },
-            remarks: 'Test Cadre user for role-based navigation testing',
+            remarks: 'Test Booth user for role-based navigation testing',
             createdBy: dummyUserId
         };
 
-        const cadre = await Cadre.create(cadreData);
-        console.log('✅ Test Cadre user created successfully:');
-        console.log('📱 Mobile Number:', cadre.mobileNumber);
+        const booth = await Booth.create(boothData);
+        console.log('✅ Test Booth user created successfully:');
+        console.log('📱 Mobile Number:', booth.mobileNumber);
         console.log('🔑 Password: password123');
-        console.log('👤 Role:', cadre.role);
-        console.log('📍 Booth Allocation:', cadre.boothAllocation);
+        console.log('👤 Role:', booth.role);
+        console.log('📍 Booth Allocation:', booth.boothAllocation);
 
-        return cadre;
+        return booth;
     } catch (error) {
-        console.error('❌ Error creating test Cadre user:', error.message);
+        console.error('❌ Error creating test Booth user:', error.message);
         throw error;
     }
 };
@@ -122,7 +122,7 @@ const main = async() => {
 
         await createAssemblyIncharge();
         console.log('');
-        await createTestCadre();
+        await createTestBooth();
 
         console.log('\n✅ Test users created successfully!');
         console.log('\n📋 Login Credentials:');
@@ -144,4 +144,4 @@ if (require.main === module) {
     main();
 }
 
-module.exports = { createAssemblyIncharge, createTestCadre };
+module.exports = { createAssemblyIncharge, createTestBooth };

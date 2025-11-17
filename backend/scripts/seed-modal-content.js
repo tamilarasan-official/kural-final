@@ -31,7 +31,7 @@ KuralApp is India's first comprehensive ElectionTech SaaS platform designed to s
 
 Key Highlights:
 1. Booth-level voter visualization with geo-tagging
-2. Cadre and volunteer management tools
+2. Booth and volunteer management tools
 3. Real-time voter data verification and analytics
 4. Customizable campaign dashboards
 5. Mobile-first and cloud-based accessibility
@@ -59,7 +59,7 @@ Email: contact@thedal.co.in
 Mobile: 861-862-7199
 Linkedin: https://www.linkedin.com/company/thedalappindia/
 
-KuralElection Analytics Manager (KURAL App) is India's first ElectionTech SaaS platform designed to revolutionize election campaign management through data-driven strategies and advanced digital tools. Whether you're a political candidate, party worker, strategist, or grassroots organizer, KURAL App provides a seamless solution to manage voter outreach, coordinate campaign teams, and optimize booth-level activities. With features like digital voter lists, cadre tracking, geo-spatial insights, and real-time data analytics, the app ensures that every decision is backed by accurate information, making your campaign smarter and more effective.
+KuralElection Analytics Manager (KURAL App) is India's first ElectionTech SaaS platform designed to revolutionize election campaign management through data-driven strategies and advanced digital tools. Whether you're a political candidate, party worker, strategist, or grassroots organizer, KURAL App provides a seamless solution to manage voter outreach, coordinate campaign teams, and optimize booth-level activities. With features like digital voter lists, booth tracking, geo-spatial insights, and real-time data analytics, the app ensures that every decision is backed by accurate information, making your campaign smarter and more effective.
 
 Built for efficiency, KURAL App enables streamlined volunteer management, task assignment, and campaign monitoring, all in one place. The platform supports multiple languages, ensuring accessibility across diverse user bases. By integrating AI-powered insights and election-specific features, KURAL App transforms traditional political campaigns into high-impact, technology-driven movements. Download now and take your election campaign to the next level!`
             },

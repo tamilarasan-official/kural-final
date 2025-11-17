@@ -1,13 +1,15 @@
 const express = require('express');
 const {
-  getAllSurveys,
-  getSurveyById,
-  createSurvey,
-  updateSurvey,
-  updateSurveyStatus,
-  deleteSurvey,
-  getSurveyStats,
-  submitSurveyResponse
+    getAllSurveys,
+    getSurveyById,
+    createSurvey,
+    updateSurvey,
+    updateSurveyStatus,
+    deleteSurvey,
+    getSurveyStats,
+    submitSurveyResponse,
+    getSurveyProgress,
+    getCompletedVoters
 } = require('../controllers/surveyController');
 const { protect } = require('../middleware/auth');
 
@@ -18,21 +20,27 @@ const router = express.Router();
 
 // Survey routes
 router.route('/')
-  .get(getAllSurveys)
-  .post(createSurvey);
+    .get(getAllSurveys)
+    .post(createSurvey);
 
 router.route('/stats')
-  .get(getSurveyStats);
+    .get(getSurveyStats);
+
+router.route('/progress')
+    .get(getSurveyProgress);
 
 router.route('/:id')
-  .get(getSurveyById)
-  .put(updateSurvey)
-  .delete(deleteSurvey);
+    .get(getSurveyById)
+    .put(updateSurvey)
+    .delete(deleteSurvey);
 
 router.route('/:id/status')
-  .put(updateSurveyStatus);
+    .put(updateSurveyStatus);
+
+router.route('/:id/completed-voters')
+    .get(getCompletedVoters);
 
 router.route('/:id/responses')
-  .post(submitSurveyResponse);
+    .post(submitSurveyResponse);
 
 module.exports = router;

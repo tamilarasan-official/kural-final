@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useRole } from '../contexts/RoleContext';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -15,6 +16,7 @@ export default function SurveysScreen() {
   const [loading, setLoading] = useState(true);
   const [surveys, setSurveys] = useState<any[]>([]);
   const [totalVoters, setTotalVoters] = useState(0);
+  const [surveyedVotersCount, setSurveyedVotersCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,35 +30,62 @@ export default function SurveysScreen() {
       
       // Fetch total voters count for the booth
       console.log('Surveys - Full userData:', JSON.stringify(userData, null, 2));
-      const boothId = userData?.booth_id || '';
-      console.log('Surveys - Loading for booth_id:', boothId);
-      console.log('Surveys - booth_id type:', typeof boothId);
+      let booth_id = userData?.booth_id || '';
+      let aci_id = userData?.aci_id || '';
       
-      if (!boothId) {
-        console.error('❌ Surveys - No booth_id found! userData keys:', Object.keys(userData || {}));
-        Alert.alert('Error', 'No booth assigned to your account. Please contact admin.');
+      // Fallback: Load from AsyncStorage if userData not available
+      if (!booth_id || !aci_id) {
+        const savedUserData = await AsyncStorage.getItem('userData');
+        if (savedUserData) {
+          const parsed = JSON.parse(savedUserData);
+          booth_id = parsed.booth_id || '';
+          aci_id = parsed.aci_id || '';
+        }
+      }
+      
+      console.log('Surveys - Loading for:', { aci_id, booth_id });
+      
+      if (!booth_id || !aci_id) {
+        console.error('❌ Surveys - No aci_id or booth_id found! userData keys:', Object.keys(userData || {}));
+        Alert.alert('Error', 'No booth or assembly assigned to your account. Please contact admin.');
         setLoading(false);
         return;
       }
       
-      if (boothId) {
+      if (aci_id && booth_id) {
         try {
-          const votersResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 1 });
+          const aciIdStr = String(aci_id);
+          const boothIdStr = String(booth_id);
+          
+          // First get total count
+          const votersResponse = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { page: 1, limit: 1 });
           console.log('Surveys - Voters response:', votersResponse);
           
           if (votersResponse?.success && votersResponse.pagination) {
             const total = votersResponse.pagination.totalVoters || votersResponse.pagination.total || 0;
             setTotalVoters(total);
             console.log('Surveys - Total voters in booth:', total);
+            
+            // Fetch all voters to count surveyed ones for this booth
+            const allVotersResponse = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { 
+              page: 1, 
+              limit: total || 5000 
+            });
+            
+            if (allVotersResponse?.success && Array.isArray(allVotersResponse.voters)) {
+              const surveyedCount = allVotersResponse.voters.filter((v: any) => v.surveyed === true).length;
+              setSurveyedVotersCount(surveyedCount);
+              console.log('Surveys - Surveyed voters in booth:', surveyedCount, 'out of', total);
+            }
           }
         } catch (error) {
           console.warn('Failed to fetch voter count:', error);
         }
       }
       
-      // Fetch surveys
-      console.log('Surveys - Fetching surveys...');
-      const response = await surveyAPI.getAll({ limit: 100 });
+      // Fetch surveys filtered by aci_id
+      console.log('Surveys - Fetching surveys for aci_id:', aci_id);
+      const response = await surveyAPI.getAll({ limit: 100, aci_id: String(aci_id) });
       console.log('Surveys - API response:', response);
       
       if (response?.success && Array.isArray(response.data)) {
@@ -68,39 +97,15 @@ export default function SurveysScreen() {
           titleTamil: s.title?.tamil,
           status: s.status,
           responseCount: s.responseCount,
-          questionALength: s.questionA?.length,
-          questionsLength: s.questions?.length,
-          formId: s.formId,
-          boothid: s.boothid,
-          acid: s.acid
+          assignedACs: s.assignedACs,
+          formId: s.formId
         })));
         
-        // Filter surveys by booth_id
-        let filteredSurveys = response.data;
-        if (boothId) {
-          console.log(`\n🔍 FILTERING SURVEYS FOR BOOTH: "${boothId}" (type: ${typeof boothId})\n`);
-          
-          filteredSurveys = response.data.filter((s: any) => {
-            // Check if survey is assigned to this booth
-            const surveyBoothId = s.boothid || s.boothId || s.booth_id || s.booth;
-            const matches = surveyBoothId === boothId;
-            
-            console.log(`  📋 Survey: "${s.title}"`);
-            console.log(`     - Survey boothid: "${surveyBoothId}" (type: ${typeof surveyBoothId})`);
-            console.log(`     - User booth_id:  "${boothId}" (type: ${typeof boothId})`);
-            console.log(`     - Matches: ${matches ? '✅ YES' : '❌ NO'}`);
-            console.log(`     - Strict equal: ${surveyBoothId === boothId}`);
-            console.log(`     - Loose equal: ${surveyBoothId == boothId}`);
-            console.log('');
-            
-            return matches;
-          });
-          
-          console.log(`\n✅ FILTER RESULT: ${filteredSurveys.length} of ${response.data.length} surveys match\n`);
-        }
+        // Filter only Active surveys
+        const activeSurveys = response.data.filter((s: any) => s.status === 'Active');
         
-        console.log('Surveys - Setting surveys:', filteredSurveys.length);
-        setSurveys(filteredSurveys);
+        console.log(`\n✅ Active surveys for ACI ${aci_id}: ${activeSurveys.length} of ${response.data.length} total surveys\n`);
+        setSurveys(activeSurveys);
       } else {
         console.log('Surveys - No surveys found');
         setSurveys([]);
@@ -156,7 +161,8 @@ export default function SurveysScreen() {
             </View>
           ) : (
             surveys.map((survey) => {
-              const progress = survey.responseCount || survey.responsesCount || survey.progress || 0;
+              // Use booth-specific surveyed count instead of global responseCount
+              const progress = surveyedVotersCount;
               // Use actual booth voters count instead of hardcoded value
               const total = totalVoters || survey.targetCount || survey.total || 0;
               const percentage = getProgressPercentage(progress, total);

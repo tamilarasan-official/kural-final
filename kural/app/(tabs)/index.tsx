@@ -8,6 +8,7 @@ import { DEFAULT_ELECTION_KEY, ELECTION_LOCATIONS } from '../_config/electionLoc
 import { useBanner } from '../../contexts/BannerContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { voterAPI } from '../../services/api/voter';
+import { boothAPI } from '../../services/api/booth';
 
 export const options = {
   headerShown: false,
@@ -20,6 +21,13 @@ export default function DashboardScreen() {
   const { t } = useLanguage();
   const [constituency, setConstituency] = useState('118 - Thondamuthur');
   const [totalBooths, setTotalBooths] = useState(0);
+  const [boothStats, setBoothStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    loggedIn: 0,
+    notLogged: 0
+  });
   const { width } = Dimensions.get('window');
   // Responsive layout measurements for "Booth Overview"
   const contentHorizontalPadding = 16;
@@ -75,7 +83,7 @@ export default function DashboardScreen() {
     mobileNo: '',
     Number: '',
     age: '',
-    partNo: '',
+    boothno: '',
     serialNo: '',
     Name: '',
     'Father Name': '',
@@ -86,6 +94,30 @@ export default function DashboardScreen() {
   const [voterSearchPagination, setVoterSearchPagination] = useState(null); // State for voter search pagination
   const [showVoterSearchModal, setShowVoterSearchModal] = useState(false); // State for voter search results modal
   const [voterSearchLoading, setVoterSearchLoading] = useState(false); // State for voter search loading
+
+  // Load booth statistics
+  useEffect(() => {
+    loadBoothStats();
+  }, []);
+
+  const loadBoothStats = async () => {
+    try {
+      const response = await boothAPI.getStats();
+      if (response.success && response.data) {
+        const stats = response.data;
+        setBoothStats({
+          total: stats.total || 0,
+          active: stats.active || 0,
+          inactive: stats.inactive || 0,
+          loggedIn: stats.loggedIn || 0,
+          notLogged: (stats.total || 0) - (stats.loggedIn || 0)
+        });
+        setTotalBooths(stats.total || 0);
+      }
+    } catch (error) {
+      console.error('Error loading booth stats:', error);
+    }
+  };
 
   // Auto-swipe banners every 3s
   useEffect(() => {
@@ -114,7 +146,7 @@ export default function DashboardScreen() {
           mobileNo: '',
           Number: '',
           age: '',
-          partNo: '',
+          boothno: '',
           serialNo: '',
           Name: '',
           'Father Name': '',
@@ -177,7 +209,7 @@ export default function DashboardScreen() {
       mobileNo: '',
       Number: '',
       age: '',
-      partNo: '',
+      boothno: '',
       serialNo: '',
       Name: '',
       'Father Name': '',
@@ -640,20 +672,20 @@ export default function DashboardScreen() {
         {/* First row - Booth Active & Inactive */}
         <View style={styles.boothOverviewRow}>
           <View style={styles.boothOverviewItem}>
-            <OverviewCard title={t('dashboard.boothActive')} value={'0'} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_booth?tab=active')} />
+            <OverviewCard title={t('dashboard.boothActive')} value={boothStats.active.toString()} accent="#2E7D32" onPress={() => router.push('/(tabs)/dashboard/my_booth?tab=active')} />
           </View>
           <View style={styles.boothOverviewItem}>
-            <OverviewCard title={t('dashboard.boothInActive')} value={'0'} accent="#D32F2F" onPress={() => router.push('/(tabs)/dashboard/my_booth?tab=inactive')} />
+            <OverviewCard title={t('dashboard.boothInActive')} value={boothStats.inactive.toString()} accent="#D32F2F" onPress={() => router.push('/(tabs)/dashboard/my_booth?tab=inactive')} />
           </View>
         </View>
 
         {/* Second row - Logged In & Not Logged */}
         <View style={styles.boothOverviewRow}>
           <View style={styles.boothOverviewItem}>
-            <OverviewCard title={t('dashboard.loggedIn')} value={'0'} accent="#2E7D32" />
+            <OverviewCard title={t('dashboard.loggedIn')} value={boothStats.loggedIn.toString()} accent="#2E7D32" />
           </View>
           <View style={styles.boothOverviewItem}>
-            <OverviewCard title={t('dashboard.notLogged')} value={'0'} accent="#D32F2F" />
+            <OverviewCard title={t('dashboard.notLogged')} value={boothStats.notLogged.toString()} accent="#D32F2F" />
           </View>
         </View>
       </View>
@@ -896,10 +928,10 @@ export default function DashboardScreen() {
                 <View style={styles.advanceSearchRow}>
                   <TextInput
                     style={styles.advanceSearchInputHalf}
-                    placeholder={t('dashboard.partNo')}
+                    placeholder={t('dashboard.boothno')}
                     placeholderTextColor="#999999"
-                    value={advanceSearchData.partNo}
-                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, partNo: text }))}
+                    value={advanceSearchData.boothno}
+                    onChangeText={(text) => setAdvanceSearchData(prev => ({ ...prev, boothno: text }))}
                     keyboardType="numeric"
                   />
                   <TextInput
@@ -1161,7 +1193,7 @@ export default function DashboardScreen() {
                 </View>
               ) : surveyProgress?.booths && surveyProgress.booths.length > 0 ? (
                 surveyProgress.booths.map((booth: any, index: number) => (
-                  <View key={booth.boothId || index} style={styles.boothSurveyCard}>
+                  <View key={booth._id || index} style={styles.boothSurveyCard}>
                     <View style={styles.boothSurveyHeader}>
                       <View style={styles.boothInfoSection}>
                         <Text style={styles.boothNumberText}>{booth.boothNumber}</Text>

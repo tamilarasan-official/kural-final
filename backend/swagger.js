@@ -16,9 +16,8 @@ Complete API documentation for the Kural voter management system.
 - 🔐 JWT Authentication
 - 👥 Voter Management
 - 📊 Survey System
-- 👔 Cadre Management
-- 🗳️ Election Management
-- 📱 Mobile & Special Categories
+- 👔 Booth Management
+-  Mobile & Special Categories
 - 🎨 Customization (Part Colors, Vulnerabilities)
 
 ### Authentication:
@@ -91,8 +90,7 @@ Most endpoints require a Bearer token. Obtain a token by logging in via POST /ap
             { name: 'Authentication', description: 'Login and authentication endpoints' },
             { name: 'Voters', description: 'Voter management operations' },
             { name: 'Surveys', description: 'Survey and survey form management' },
-            { name: 'Cadres', description: 'Cadre (staff) management' },
-            { name: 'Elections', description: 'Election configuration' },
+            { name: 'Booths', description: 'Booth (staff) management' },
             { name: 'Settings', description: 'Application settings and configurations' },
             { name: 'Special Categories', description: 'Transgender, Fatherless, Guardian, Age 60+, Age 80+ voters' },
             { name: 'Mobile Voters', description: 'Voters with mobile numbers' },

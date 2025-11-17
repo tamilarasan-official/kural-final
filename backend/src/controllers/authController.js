@@ -6,11 +6,16 @@ const logger = require('../utils/logger');
 // @desc    Register user
 // @route   POST /api/v1/auth/register
 // @access  Public
-exports.register = asyncHandler(async (req, res, next) => {
-    const { name, email, password, role } = req.body;
+exports.register = asyncHandler(async(req, res, next) => {
+    const { name, email, phone, password, role, aci_id, aci_name } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    // Check if user already exists (by phone or email)
+    const existingUser = await User.findOne({
+        $or: [
+            { phone: phone },
+            { email: email }
+        ]
+    });
     if (existingUser) {
         return res.status(400).json({
             success: false,
@@ -22,16 +27,21 @@ exports.register = asyncHandler(async (req, res, next) => {
     const user = await User.create({
         name,
         email,
+        phone,
         password,
-        role
+        role,
+        aci_id,
+        aci_name
     });
 
-    // Generate email verification token
-    const verificationToken = user.generateEmailVerificationToken();
-    await user.save({ validateBeforeSave: false });
+    // Generate email verification token if email provided
+    if (email) {
+        const verificationToken = user.generateEmailVerificationToken();
+        await user.save({ validateBeforeSave: false });
+    }
 
     // TODO: Send verification email
-    logger.info(`User registered: ${user.email}`);
+    logger.info(`User registered: ${user.phone || user.email}`);
 
     sendTokenResponse(user, 201, res);
 });
@@ -39,24 +49,61 @@ exports.register = asyncHandler(async (req, res, next) => {
 // @desc    Login user
 // @route   POST /api/v1/auth/login
 // @access  Public
-exports.login = asyncHandler(async (req, res, next) => {
-    const { email, password } = req.body;
+exports.login = asyncHandler(async(req, res, next) => {
+    const { email, phone, password } = req.body;
 
-    // Validate email & password
-    if (!email || !password) {
+    // Support both phone and email login
+    const loginField = phone || email;
+
+    console.log('🔐 Login attempt:', { phone, email, loginField, passwordLength: password && password.length });
+
+    // Validate credentials
+    if (!loginField || !password) {
         return res.status(400).json({
             success: false,
-            error: 'Please provide an email and password'
+            error: 'Please provide phone/email and password'
         });
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    // Convert phone to number if it's a string of digits
+    const phoneAsNumber = loginField && /^\d+$/.test(loginField) ? Number(loginField) : loginField;
+
+    console.log('🔍 Searching for user:', { loginField, phoneAsNumber, type: typeof phoneAsNumber });
+
+    // Build query
+    const query = {
+        $or: [
+            { phone: loginField },
+            { phone: phoneAsNumber },
+            { email: loginField }
+        ]
+    };
+    console.log('📝 Query object:', JSON.stringify(query, null, 2));
+
+    // DEBUGGING: Try direct collection query first
+    const mongoose = require('mongoose');
+    const directUser = await mongoose.connection.db.collection('users').findOne({ phone: phoneAsNumber });
+    console.log('🔍 Direct collection query result:', directUser ? { phone: directUser.phone, role: directUser.role } : 'NOT FOUND');
+
+    // Check for user (support both phone and email, and phone as both string and number)
+    const user = await User.findOne(query).select('+password');
+
+    console.log('👤 User found:', user ? { id: user._id, phone: user.phone, role: user.role, passwordHash: user.password && user.password.substring(0, 20) + '...' } : 'NO USER FOUND');
 
     if (!user) {
         return res.status(401).json({
             success: false,
             error: 'Invalid credentials'
+        });
+    }
+
+    // IMPORTANT: Auth endpoint is ONLY for Assembly CI and Admin users
+    // Booth Agents should use /api/v1/booths/login endpoint
+    if (user.role !== 'Assembly CI' && user.role !== 'AssemblyIncharge' && user.role !== 'admin') {
+        console.log('❌ User role not authorized for this endpoint:', user.role);
+        return res.status(401).json({
+            success: false,
+            error: 'Invalid credentials' // Don't reveal the reason
         });
     }
 
@@ -68,8 +115,10 @@ exports.login = asyncHandler(async (req, res, next) => {
         });
     }
 
+    console.log('🔑 Checking password match...');
     // Check if password matches
     const isMatch = await user.matchPassword(password);
+    console.log('✅ Password match result:', isMatch);
 
     if (!isMatch) {
         // Increment login attempts
@@ -92,14 +141,14 @@ exports.login = asyncHandler(async (req, res, next) => {
     user.lastLogin = new Date();
     await user.save();
 
-    logger.info(`User logged in: ${user.email}`);
+    logger.info(`User logged in: ${user.phone || user.email}`);
     sendTokenResponse(user, 200, res);
 });
 
 // @desc    Log user out / clear cookie
 // @route   GET /api/v1/auth/logout
 // @access  Private
-exports.logout = asyncHandler(async (req, res, next) => {
+exports.logout = asyncHandler(async(req, res, next) => {
     res.cookie('token', 'none', {
         expires: new Date(Date.now() + 10 * 1000),
         httpOnly: true
@@ -114,7 +163,7 @@ exports.logout = asyncHandler(async (req, res, next) => {
 // @desc    Get current logged in user
 // @route   GET /api/v1/auth/me
 // @access  Private
-exports.getMe = asyncHandler(async (req, res, next) => {
+exports.getMe = asyncHandler(async(req, res, next) => {
     const user = await User.findById(req.user.id);
 
     res.status(200).json({
@@ -126,7 +175,7 @@ exports.getMe = asyncHandler(async (req, res, next) => {
 // @desc    Update user details
 // @route   PUT /api/v1/auth/updatedetails
 // @access  Private
-exports.updateDetails = asyncHandler(async (req, res, next) => {
+exports.updateDetails = asyncHandler(async(req, res, next) => {
     const fieldsToUpdate = {
         name: req.body.name,
         email: req.body.email
@@ -146,7 +195,7 @@ exports.updateDetails = asyncHandler(async (req, res, next) => {
 // @desc    Update password
 // @route   PUT /api/v1/auth/updatepassword
 // @access  Private
-exports.updatePassword = asyncHandler(async (req, res, next) => {
+exports.updatePassword = asyncHandler(async(req, res, next) => {
     const user = await User.findById(req.user.id).select('+password');
 
     // Check current password
@@ -166,7 +215,7 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 // @desc    Forgot password
 // @route   POST /api/v1/auth/forgotpassword
 // @access  Public
-exports.forgotPassword = asyncHandler(async (req, res, next) => {
+exports.forgotPassword = asyncHandler(async(req, res, next) => {
     const user = await User.findOne({ email: req.body.email });
 
     if (!user) {
@@ -193,7 +242,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 // @desc    Reset password
 // @route   PUT /api/v1/auth/resetpassword/:resettoken
 // @access  Public
-exports.resetPassword = asyncHandler(async (req, res, next) => {
+exports.resetPassword = asyncHandler(async(req, res, next) => {
     // Get hashed token
     const resetPasswordToken = crypto
         .createHash('sha256')
@@ -241,10 +290,15 @@ const sendTokenResponse = (user, statusCode, res) => {
         success: true,
         token,
         data: {
+            _id: user._id,
             id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role
+            phone: user.phone,
+            role: user.role,
+            aci_id: user.aci_id,
+            aci_name: user.aci_name,
+            booth_id: user.booth_id
         }
     });
 };

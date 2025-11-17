@@ -65,7 +65,7 @@ export default function VoterPartsScreen() {
 
   const loadPartNames = async () => {
     try {
-      const response = await voterAPI.getPartNames();
+      const response = await voterAPI.getBoothNames();
       if (response.success) setPartNames(response.data);
     } catch (e) {
       // silent

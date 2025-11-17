@@ -33,7 +33,7 @@ export default function PollScreen() {
       try {
         setLoading(true);
         setHydrated(false);
-        const res = await voterAPI.getVotersByPart(String(selectedPart));
+        const res = await voterAPI.getVotersByBooth(String(selectedPart));
         const items = Array.isArray(res?.voters)
           ? res.voters
           : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));

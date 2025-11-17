@@ -29,6 +29,7 @@ export const boothAPI = {
     search?: string;
     booth?: string;
   }) => {
+    const token = await API_CONFIG.getToken();
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -41,7 +42,7 @@ export const boothAPI = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -54,11 +55,12 @@ export const boothAPI = {
 
   // Get booth by ID
   getById: async (id: string) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -71,11 +73,12 @@ export const boothAPI = {
 
   // Create new booth
   create: async (boothData: any) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(boothData),
     });
@@ -90,11 +93,12 @@ export const boothAPI = {
 
   // Update booth
   update: async (id: string, boothData: any) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(boothData),
     });
@@ -109,11 +113,12 @@ export const boothAPI = {
 
   // Delete booth
   delete: async (id: string) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -127,11 +132,12 @@ export const boothAPI = {
 
   // Get booth statistics
   getStats: async () => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/stats`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 
@@ -144,11 +150,12 @@ export const boothAPI = {
 
   // Update login status
   updateLoginStatus: async (id: string, isLoggedIn: boolean) => {
+    const token = await API_CONFIG.getToken();
     const response = await fetch(`${BASE_URL}/${id}/login-status`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ isLoggedIn }),
     });

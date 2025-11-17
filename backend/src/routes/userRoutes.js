@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUsers, getUser, updateUser, deleteUser } = require('../controllers/userController');
+const { getUsers, getUser, updateUser, deleteUser, getBoothCount } = require('../controllers/userController');
 const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
@@ -8,7 +8,10 @@ const router = express.Router();
 router.use(protect);
 
 router.route('/')
-    .get(authorize('admin'), getUsers);
+    .get(authorize('admin', 'Assembly Incharge'), getUsers);
+
+router.route('/booth-count')
+    .get(getBoothCount);
 
 router.route('/:id')
     .get(getUser)

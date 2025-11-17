@@ -26,19 +26,44 @@ export default function PollScreen() {
 
   useEffect(() => {
     const boothId = userData?.booth_id;
-    if (!boothId) return;
+    const aciId = userData?.aci_id;
+    
+    console.log('[Poll Screen] userData:', userData);
+    console.log('[Poll Screen] boothId:', boothId, 'aciId:', aciId);
+    
+    if (!boothId || !aciId) {
+      console.log('[Poll Screen] Missing booth_id or aci_id, not loading voters');
+      return;
+    }
     
     (async () => {
       try {
         setLoading(true);
         setHydrated(false);
         
-        // Load voters by booth ID instead of part number
-        const res = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 5000 });
+        const aciIdStr = String(aciId);
+        const boothIdStr = String(boothId);
+        
+        console.log('[Poll Screen] Fetching voters for ACI:', aciIdStr, 'Booth:', boothIdStr);
+        
+        // Load voters by booth ID and ACI ID
+        const res = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { page: 1, limit: 5000 });
+        
+        console.log('[Poll Screen] API Response:', res);
+        console.log('[Poll Screen] Voters array length:', res?.voters?.length || 0);
+        
         const items = Array.isArray(res?.voters) ? res.voters : [];
+        
+        console.log('[Poll Screen] Items count:', items.length);
+        if (items.length > 0) {
+          console.log('[Poll Screen] First voter fields:', Object.keys(items[0]));
+          console.log('[Poll Screen] First voter sample:', items[0]);
+        }
         
         const srs = items.map((it: any) => Number(it.sr || it.serial || it.Serial || it.serialNo)).filter((n: any) => Number.isFinite(n));
         const sorted = [...srs].sort((a: number, b: number) => a - b);
+        
+        console.log('[Poll Screen] Serial numbers found:', sorted.length);
         
         setSerials(sorted);
         
@@ -52,6 +77,7 @@ export default function PollScreen() {
         
         // Set total stats
         const total = res.pagination?.totalVoters || items.length;
+        console.log('[Poll Screen] Total voters:', total);
         setStats({ total, voted: 0, notVoted: total });
         
         if (total > 0 && sorted.length === 0) {
@@ -88,7 +114,8 @@ export default function PollScreen() {
         
         setHydrated(true);
       } catch (error) {
-        console.error('Error loading booth voters:', error);
+        console.error('[Poll Screen] Error loading booth voters:', error);
+        console.error('[Poll Screen] Error details:', JSON.stringify(error, null, 2));
         const t = voters?.length || 0;
         setStats({ total: t, voted: 0, notVoted: t });
         if (t > 0) setSerials(Array.from({ length: t }, (_, i) => i + 1));
@@ -99,7 +126,7 @@ export default function PollScreen() {
         setLoading(false); 
       }
     })();
-  }, [userData?.booth_id]);
+  }, [userData?.booth_id, userData?.aci_id]);
 
   // persist voted changes
   useEffect(() => {
@@ -122,11 +149,20 @@ export default function PollScreen() {
       } catch {}
     })();
   }, [favorites, userData?.booth_id, hydrated]);
+
+  // Update stats when voted changes
+  useEffect(() => {
+    if (!hydrated) return;
+    const total = stats.total || serials.length;
+    const votedCount = voted.size;
+    const notVoted = Math.max(0, total - votedCount);
+    setStats({ total, voted: votedCount, notVoted });
+  }, [voted, hydrated, serials.length]);
   
   // Booth agents always see their voters - no part selection needed
-  const total = stats.total || serials.length;
-  const votedCount = voted.size;
-  const notVoted = Math.max(0, total - votedCount);
+  const total = stats.total;
+  const votedCount = stats.voted;
+  const notVoted = stats.notVoted;
   
   return (
     <ScreenWrapper userRole="booth_agent">
@@ -201,7 +237,10 @@ export default function PollScreen() {
               {voters
                 .filter((it: any) => {
                   const s = Number(it.sr || it.serial || it.Serial || it.serialNo || 0);
-                  const name = String(it.Name || it.name || '').toLowerCase();
+                  // Handle name as object or string
+                  const nameObj = it.name || {};
+                  const nameStr = typeof nameObj === 'object' ? (nameObj.english || nameObj.tamil || '') : String(nameObj || it.Name || '');
+                  const name = nameStr.toLowerCase();
                   const q = query.trim().toLowerCase();
                   const showByMode = mode==='all' ? true : (mode==='voted' ? voted.has(s) : !voted.has(s));
                   if (!showByMode) return false;
@@ -211,33 +250,18 @@ export default function PollScreen() {
                 .map((it: any, idx: number) => {
                   const s = Number(it.sr || it.serial || it.Serial || it.serialNo || 0);
                   const isVoted = voted.has(s);
-                  const door = it.Door_No || it.DoorNo || it.Door || '';
-                  const gender = it.Gender || it.gender || '';
+                  const door = it.Door_No || it.DoorNo || it.Door || it.doornumber || '';
+                  const gender = it.Gender || it.gender || it.sex || '';
                   const age = it.Age || it.age || '';
-                  const tamil = it.Name_Tamil || it.nameTamil || '';
-                  const relation = it.Relation || it.RelationShip || it.relation || it.Relation_type || '';
-                  const epic = it.EPIC_NO || it.Epic || it.EPIC || it.Voter_ID || it.voterId || it.EPIC_NO_NEW || it.RIV || it.RIVNo || it.riv || '';
+                  // Handle name as object
+                  const nameObj = it.name || {};
+                  const nameEnglish = typeof nameObj === 'object' ? nameObj.english : (it.Name || String(nameObj || ''));
+                  const nameTamil = typeof nameObj === 'object' ? nameObj.tamil : (it.Name_Tamil || it.nameTamil || '');
+                  const relation = it.Relation || it.RelationShip || it.relation || it.Relation_type || it.fathername || '';
+                  const epic = it.EPIC_NO || it.Epic || it.EPIC || it.Voter_ID || it.voterId || it.voterID || it.EPIC_NO_NEW || it.RIV || it.RIVNo || it.riv || it.Number || '';
                   const img = it.photoUrl || it.image || null;
                   return (
                     <View key={`${s}-${idx}`} style={styles.voterCard}>
-                      <View style={styles.serialRow}>
-                        <TouchableOpacity
-                          onPress={() => {
-                            const next = new Set(favorites);
-                            if (next.has(s)) {
-                              next.delete(s);
-                            } else {
-                              next.add(s);
-                            }
-                            setFavorites(next);
-                          }}
-                          style={styles.starBtn}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Icon name={favorites.has(s) ? 'star' : 'star-border'} size={18} color="#FF4081" />
-                        </TouchableOpacity>
-                        <Text style={styles.serialLabel}>{`${t('poll.serialNo')}: ${s}`}</Text>
-                      </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <View style={styles.voterAvatar}>
                           {img ? <Image source={{ uri: img }} style={{ width: '100%', height: '100%', borderRadius: 8 }} /> : (
@@ -250,8 +274,8 @@ export default function PollScreen() {
                           )}
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
-                          <Text style={styles.voterName} numberOfLines={1}>{String(it.Name || it.name || '')}</Text>
-                          {tamil ? <Text style={styles.voterNameTamil} numberOfLines={2}>{tamil}</Text> : null}
+                          <Text style={styles.voterName} numberOfLines={1}>{nameEnglish || 'No Name'}</Text>
+                          {nameTamil ? <Text style={styles.voterNameTamil} numberOfLines={2}>{nameTamil}</Text> : null}
                           <Text style={styles.voterMeta}>{`${t('poll.doorNo')} ${door}`}</Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                             <Icon name={gender?.toLowerCase() === 'female' ? 'female' : (gender?.toLowerCase() === 'male' ? 'male' : 'person')} size={14} color="#F06292" />

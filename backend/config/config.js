@@ -10,7 +10,7 @@ module.exports = {
     HOST: process.env.HOST || '0.0.0.0',
 
     // Database
-    DATABASE_URI: process.env.DATABASE_URI || 'mongodb+srv://kural_db:kural_2025@cluster0.tcoecok.mongodb.net/kural?retryWrites=true&w=majority&appName=Cluster0',
+    DATABASE_URI: process.env.DATABASE_URI || 'mongodb://kuraladmin:Kuraldb%40app%23dev2025@178.16.137.247:27017/kuraldb?authSource=kuraldb',
     DATABASE_URI_TEST: process.env.MANGODB_URI_TEST || 'mongodb://localhost:27017/backend_db_test',
 
     // JWT

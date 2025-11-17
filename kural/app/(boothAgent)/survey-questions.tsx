@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StatusBar, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -52,9 +52,41 @@ export default function SurveyQuestionsScreen() {
         console.log('Questions loaded:', questionsList.length);
         console.log('Full questions array:', JSON.stringify(questionsList, null, 2));
         
-        // Transform questionA format to expected format
+        // Transform questions to expected format
         let transformedQuestions = questionsList;
-        if (questionsList.length > 0 && questionsList[0].qid) {
+        
+        // Check if this is the new format (has 'id', 'text', 'type')
+        if (questionsList.length > 0 && questionsList[0].id && questionsList[0].text) {
+          console.log('🔄 Transforming new format (id/text/type) to standard format...');
+          transformedQuestions = questionsList.map((q: any, index: number) => {
+            const qType = (q.type || '').toLowerCase();
+            
+            // Handle different question types and generate appropriate options
+            let options = [];
+            if (qType === 'yes-no' || qType === 'yes_no' || qType === 'yesno') {
+              options = [
+                { optionId: 'yes', optionText: 'Yes', optionValue: 'yes' },
+                { optionId: 'no', optionText: 'No', optionValue: 'no' }
+              ];
+            } else if (qType === 'multiple-choice' || qType === 'multiple_choice' || qType === 'checkboxes' || qType === 'dropdown') {
+              // For choice-based questions, use provided options or empty array
+              options = q.options || [];
+            }
+            // For text-based types (short-text, paragraph, date, number), options array will be empty
+            
+            return {
+              questionId: q.id || q.questionId || `Q${index + 1}`,
+              questionText: q.text || q.questionText || 'Question',
+              questionTextTamil: q.textTamil || q.questionTextTamil || null,
+              questionType: qType.replace('-', '_'), // Normalize type (short-text -> short_text)
+              options: options,
+              required: q.required !== undefined ? q.required : false,
+              order: q.order || index
+            };
+          });
+        }
+        // Check if this is questionA format (old format with qid)
+        else if (questionsList.length > 0 && questionsList[0].qid) {
           // This is questionA format - transform it
           console.log('🔄 Transforming questionA format to standard format...');
           transformedQuestions = questionsList.map((q: any, index: number) => {
@@ -75,7 +107,7 @@ export default function SurveyQuestionsScreen() {
               options = q.options;
             }
             
-            const transformed = {
+            return {
               questionId: q.qid || `Q${index + 1}`,
               questionText: questionText,
               questionTextTamil: typeof q.question === 'object' ? q.question.tamil : null,
@@ -84,10 +116,12 @@ export default function SurveyQuestionsScreen() {
               required: q.required !== undefined ? q.required : true,
               order: q.order || index
             };
-            
-            console.log(`✅ Transformed Q${index + 1}:`, JSON.stringify(transformed, null, 2));
-            return transformed;
           });
+        }
+        // Check if it's already in the expected format (has questionId, questionText)
+        else if (questionsList.length > 0 && (questionsList[0].questionId || questionsList[0].questionText)) {
+          console.log('✅ Questions already in expected format');
+          transformedQuestions = questionsList;
         }
         
         if (transformedQuestions.length > 0) {
@@ -317,17 +351,50 @@ export default function SurveyQuestionsScreen() {
           </Text>
         )}
 
-        {/* Options */}
+        {/* Input Fields or Options based on question type */}
         <View style={styles.optionsContainer}>
-          {(!currentQuestion.options || currentQuestion.options.length === 0) ? (
+          {currentQuestion.questionType === 'short_text' || currentQuestion.questionType === 'short-text' ? (
+            <TextInput
+              style={styles.textInput}
+              placeholder="Type your answer here..."
+              value={answers[currentQuestion.questionId] || ''}
+              onChangeText={(text) => setAnswers({ ...answers, [currentQuestion.questionId]: text })}
+              multiline={false}
+            />
+          ) : currentQuestion.questionType === 'paragraph' ? (
+            <TextInput
+              style={[styles.textInput, styles.textInputMultiline]}
+              placeholder="Type your answer here..."
+              value={answers[currentQuestion.questionId] || ''}
+              onChangeText={(text) => setAnswers({ ...answers, [currentQuestion.questionId]: text })}
+              multiline={true}
+              numberOfLines={6}
+              textAlignVertical="top"
+            />
+          ) : currentQuestion.questionType === 'number' ? (
+            <TextInput
+              style={styles.textInput}
+              placeholder="Enter a number..."
+              value={answers[currentQuestion.questionId] || ''}
+              onChangeText={(text) => setAnswers({ ...answers, [currentQuestion.questionId]: text })}
+              keyboardType="numeric"
+            />
+          ) : currentQuestion.questionType === 'date' ? (
+            <TextInput
+              style={styles.textInput}
+              placeholder="Enter date (DD/MM/YYYY)..."
+              value={answers[currentQuestion.questionId] || ''}
+              onChangeText={(text) => setAnswers({ ...answers, [currentQuestion.questionId]: text })}
+            />
+          ) : (!currentQuestion.options || currentQuestion.options.length === 0) ? (
             <View style={styles.noOptionsContainer}>
               <Icon name="error-outline" size={48} color="#FF9800" />
               <Text style={styles.noOptionsText}>No options available for this question</Text>
-              <Text style={styles.noOptionsSubtext}>Please contact the administrator</Text>
+              <Text style={styles.noOptionsSubtext}>Question type: {currentQuestion.questionType}</Text>
             </View>
           ) : (
             currentQuestion.options.map((option: any, index: number) => {
-              const isSelected = currentQuestion.questionType === 'multiple_choice'
+              const isSelected = currentQuestion.questionType === 'multiple_choice' || currentQuestion.questionType === 'checkboxes'
                 ? (answers[currentQuestion.questionId] || []).includes(option.optionValue)
                 : answers[currentQuestion.questionId] === option.optionValue;
 
@@ -515,6 +582,21 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     gap: 12,
+  },
+  textInput: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#000',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    minHeight: 56,
+  },
+  textInputMultiline: {
+    minHeight: 120,
+    paddingTop: 16,
+    textAlignVertical: 'top',
   },
   noOptionsContainer: {
     padding: 40,

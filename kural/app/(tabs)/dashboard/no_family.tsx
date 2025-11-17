@@ -94,7 +94,7 @@ export default function NoFamilyScreen() {
         // Try primary endpoint
         let list: any[] | null = null;
         try {
-          const res = await voterAPI.getVotersByPart(partNumber as string, { page: 1, limit: 1000 });
+          const res = await voterAPI.getVotersByBooth(partNumber as string, { page: 1, limit: 1000 });
           if (res?.success && Array.isArray(res.voters)) list = res.voters;
           else if (Array.isArray(res?.data)) list = res.data;
           else if (Array.isArray(res)) list = res as any[];

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -33,26 +34,48 @@ export default function ReportsScreen() {
   const loadReportData = async () => {
     try {
       setLoading(true);
-      const boothId = userData?.booth_id || '';
+      let boothId = userData?.booth_id || '';
+      let aciId = userData?.aci_id || '';
       
-      console.log('Reports - Loading for booth_id:', boothId);
+      // Fallback: Load from AsyncStorage if userData not ready
+      if (!boothId || !aciId) {
+        const savedUserData = await AsyncStorage.getItem('userData');
+        if (savedUserData) {
+          const parsedData = JSON.parse(savedUserData);
+          boothId = parsedData?.booth_id || '';
+          aciId = parsedData?.aci_id || '';
+          console.log('📦 Reports - Loaded from AsyncStorage:', { aciId, boothId });
+        }
+      }
+      
+      console.log('Reports - Loading for:', { aciId, boothId });
       
       let voters: any[] = [];
       let totalVoters = 0;
       let totalFamilies = 0;
       
-      if (boothId) {
+      if (aciId && boothId) {
         try {
-          // First, get the total count from pagination
-          const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
+          // Convert aci_id to number (same as dashboard logic)
+          const aciIdNum = Number(aciId);
+          const boothIdStr = String(boothId);
           
-          console.log('Reports - Initial response:', initialResponse);
+          console.log('Reports - Fetching voters for:', { aciIdNum, boothIdStr });
+          
+          // First, get the total count from pagination
+          const initialResponse = await voterAPI.getVotersByBoothId(String(aciIdNum), boothIdStr, { page: 1, limit: 50 });
+          
+          console.log('Reports - Initial response:', {
+            success: initialResponse?.success,
+            totalVoters: initialResponse?.pagination?.totalVoters,
+            hasVoters: initialResponse?.voters?.length
+          });
           
           if (initialResponse?.success && initialResponse.pagination) {
             totalVoters = initialResponse.pagination.totalVoters || initialResponse.pagination.total || 0;
             
             // Now fetch all voters with the correct limit
-            const votersResponse = await voterAPI.getVotersByBoothId(boothId, { 
+            const votersResponse = await voterAPI.getVotersByBoothId(String(aciIdNum), boothIdStr, { 
               page: 1, 
               limit: totalVoters || 5000 // Use total or a high number as fallback
             });
@@ -100,10 +123,11 @@ export default function ReportsScreen() {
           console.warn('Failed to fetch voters:', error);
         }
       } else {
-        console.warn('Reports - No booth_id found in userData');
+        console.warn('Reports - No aci_id or booth_id found in userData');
       }
 
-      // Calculate voter categories
+      // Calculate voter categories (using the voters array we fetched)
+      console.log('Reports - Calculating categories from voters array, length:', voters.length);
       const verifiedVoters = voters.filter(v => v.verified === true || v.status === 'verified').length;
       const maleVoters = voters.filter(v => {
         const gender = (v.gender || v.Gender || v.Sex || v.sex || '').toLowerCase();
@@ -128,6 +152,8 @@ export default function ReportsScreen() {
 
       console.log('Reports - Stats calculated:', {
         total: voters.length,
+        totalVoters,
+        totalFamilies,
         verified: verifiedVoters,
         male: maleVoters,
         female: femaleVoters,
@@ -136,34 +162,24 @@ export default function ReportsScreen() {
         age80Plus
       });
 
-      // Fetch surveys - count total responses submitted across all survey forms
+      // Fetch surveys - count surveyed voters from voters collection
       let activeSurveys = 0;
       let completedSurveys = 0;
       try {
-        const surveysResponse = await surveyAPI.getAll({ limit: 100 });
+        // Get surveys assigned to this ACI
+        const surveysResponse = await surveyAPI.getAll({ limit: 100, aci_id: String(aciId) } as any);
         if (surveysResponse?.success && Array.isArray(surveysResponse.data)) {
-          console.log('Reports - All surveys:', surveysResponse.data.length);
+          console.log('Reports - All surveys for ACI:', surveysResponse.data.length);
           
-          // Filter surveys for this booth
-          const boothSurveys = boothId 
-            ? surveysResponse.data.filter((s: any) => {
-                const surveyBoothId = s.boothid || s.boothId || s.booth_id || s.booth;
-                return surveyBoothId === boothId;
-              })
-            : surveysResponse.data;
-          
-          console.log('Reports - Booth surveys:', boothSurveys.length);
-          
-          activeSurveys = boothSurveys.filter((s: any) => 
+          // Count active surveys assigned to this ACI
+          activeSurveys = surveysResponse.data.filter((s: any) => 
             s.status === 'Active' || s.status === 'active'
           ).length;
           
-          // Sum up all responseCount from booth surveys
-          completedSurveys = boothSurveys.reduce((total: number, survey: any) => {
-            return total + (survey.responseCount || 0);
-          }, 0);
+          // Count surveyed voters from the voters we already fetched
+          completedSurveys = voters.filter((v: any) => v.surveyed === true).length;
           
-          console.log('Reports - Active surveys:', activeSurveys, 'Completed surveys:', completedSurveys);
+          console.log('Reports - Active surveys:', activeSurveys, 'Surveyed voters:', completedSurveys);
         }
       } catch (error) {
         console.warn('Failed to fetch surveys:', error);
@@ -219,14 +235,7 @@ export default function ReportsScreen() {
             <Icon name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={styles.headerTitle}>
-              {userData?.booth_id ? `Booth ${userData.booth_id}` : 'Booth Report'}
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              {userData?.aci_id && userData?.aci_name 
-                ? `${userData.aci_id} - ${userData.aci_name}`
-                : 'Assembly Constituency'}
-            </Text>
+            <Text style={styles.headerTitle}>Reports</Text>
           </View>
           <View style={{ width: 24 }} />
         </View>

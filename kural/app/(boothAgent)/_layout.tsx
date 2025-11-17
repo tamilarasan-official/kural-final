@@ -24,6 +24,28 @@ export default function BoothAgentLayout() {
           title: 'Notifications' 
         }} 
       />
+      <Stack.Screen 
+        name="drawer/drawerscreen" 
+        options={{ 
+          headerShown: false,
+          title: 'Menu',
+          presentation: 'modal'
+        }} 
+      />
+      <Stack.Screen 
+        name="drawer/my_profile" 
+        options={{ 
+          headerShown: false,
+          title: 'Profile Details'
+        }} 
+      />
+      <Stack.Screen 
+        name="drawer/app_language" 
+        options={{ 
+          headerShown: false,
+          title: 'App Language'
+        }} 
+      />
       {/* Add other booth agent specific screens here */}
     </Stack>
   );

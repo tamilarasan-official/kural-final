@@ -12,7 +12,7 @@
 2. [Voters Management](#voters-management)
 3. [Special Voter Categories](#special-voter-categories)
 4. [Elections Management](#elections-management)
-5. [Cadre Management](#cadre-management)
+5. [Booth Management](#booth-management)
 6. [Surveys Management](#surveys-management)
 7. [Profile Management](#profile-management)
 8. [Settings Management](#settings-management)
@@ -60,7 +60,7 @@ Login with mobile number and password.
 #### 2. Register
 **POST** `/api/v1/auth/register`
 
-Register a new user/cadre.
+Register a new user/booth.
 
 **Request Body:**
 ```json
@@ -406,12 +406,12 @@ Get list of transgender voters.
 
 ---
 
-## Cadre Management
+## Booth Management
 
-### Base Path: `/api/v1/cadres`
+### Base Path: `/api/v1/booths`
 
-#### 1. Get All Cadres
-**GET** `/api/v1/cadres`
+#### 1. Get All Booths
+**GET** `/api/v1/booths`
 
 **Response:**
 ```json
@@ -432,8 +432,8 @@ Get list of transgender voters.
 }
 ```
 
-#### 2. Create Cadre
-**POST** `/api/v1/cadres`
+#### 2. Create Booth
+**POST** `/api/v1/booths`
 
 **Request Body:**
 ```json
@@ -448,17 +448,17 @@ Get list of transgender voters.
 }
 ```
 
-#### 3. Get Cadre by ID
-**GET** `/api/v1/cadres/:id`
+#### 3. Get Booth by ID
+**GET** `/api/v1/booths/:id`
 
-#### 4. Update Cadre
-**PUT** `/api/v1/cadres/:id`
+#### 4. Update Booth
+**PUT** `/api/v1/booths/:id`
 
-#### 5. Delete Cadre
-**DELETE** `/api/v1/cadres/:id`
+#### 5. Delete Booth
+**DELETE** `/api/v1/booths/:id`
 
 #### 6. Login
-**POST** `/api/v1/cadres/login`
+**POST** `/api/v1/booths/login`
 
 **Request Body:**
 ```json
@@ -979,7 +979,7 @@ http://192.168.10.137:5000/api-docs
 ## Database Collections
 
 - `votersdata` - Main voter information
-- `cadres` - Booth agents and coordinators
+- `booths` - Booth agents and coordinators
 - `elections` - Election details
 - `surveys` - Survey definitions
 - `surveyresponses` - Survey responses

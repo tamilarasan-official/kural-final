@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useLanguage } from '../../contexts/LanguageContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRole } from '../contexts/RoleContext';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { voterAPI } from '../../services/api/voter';
 import { surveyAPI } from '../../services/api/survey';
+import * as Location from 'expo-location';
+import { activityAPI } from '../../services/api/activity';
 
 export default function BoothAgentDashboard() {
   const router = useRouter();
-  const { t } = useLanguage();
-  const { userData } = useRole();
-  const [loading, setLoading] = useState(true);
+  const { userData, setUserData } = useRole();
   const [stats, setStats] = useState({
     totalVoters: 0,
     totalFamilies: 0,
@@ -20,52 +20,95 @@ export default function BoothAgentDashboard() {
     visitsPending: 0,
     verifiedVoters: 0
   });
+  const [headerData, setHeaderData] = useState<{booth_id?: string, aci_id?: number, aci_name?: string}>({});
 
+  // Force refresh userData from AsyncStorage on mount to ensure latest data
   useEffect(() => {
-    loadBoothStats();
-  }, [userData]);
+    const refreshUserData = async () => {
+      try {
+        const savedUserData = await AsyncStorage.getItem('userData');
+        if (savedUserData) {
+          const parsedData = JSON.parse(savedUserData);
+          console.log('🔄 DASHBOARD - Force refreshing userData from AsyncStorage:', parsedData);
+          await setUserData(parsedData);
+        }
+      } catch (error) {
+        console.error('Failed to refresh userData:', error);
+      }
+    };
+    refreshUserData();
+  }, []);
 
-  const loadBoothStats = async () => {
+  const loadBoothStats = useCallback(async () => {
     try {
-      setLoading(true);
+      console.log('📊 DASHBOARD - loadBoothStats called');
+      console.log('📊 DASHBOARD - userData from context:', JSON.stringify(userData, null, 2));
       
-      // Get booth ID from user data
-      const boothId = userData?.booth_id || '';
+      // Wait a moment for userData to load if it's not available yet
+      let booth_id = userData?.booth_id || '';
+      let aci_id = userData?.aci_id || '';
       
-      console.log('🔍 Dashboard - Loading stats for booth:', boothId);
-      console.log('🔍 Dashboard - Full userData:', JSON.stringify(userData, null, 2));
+      if (!booth_id || !aci_id) {
+        console.log('⚠️ DASHBOARD - booth_id or aci_id missing from context, checking AsyncStorage...');
+        // Try to load from AsyncStorage directly as fallback
+        const savedUserData = await AsyncStorage.getItem('userData');
+        console.log('📦 DASHBOARD - Raw AsyncStorage userData:', savedUserData);
+        
+        if (savedUserData) {
+          const parsedData = JSON.parse(savedUserData);
+          console.log('📦 DASHBOARD - Parsed AsyncStorage userData:', JSON.stringify(parsedData, null, 2));
+          
+          booth_id = parsedData?.booth_id || '';
+          aci_id = parsedData?.aci_id || '';
+          console.log('📦 DASHBOARD - Loaded from AsyncStorage:', { aci_id, booth_id });
+        }
+      }
+      
+      console.log('🔍 DASHBOARD - Final values for loading stats:', { aci_id, booth_id });
+      console.log('🔍 DASHBOARD - Full userData:', JSON.stringify(userData, null, 2));
       
       let totalVoters = 0;
       let totalFamilies = 0;
       let verifiedVoters = 0;
+      let votersData: any[] = []; // Declare at higher scope for use in survey section
       
-      if (boothId) {
+      if (aci_id && booth_id) {
         try {
-          // First get the total count using booth ID
-          const initialResponse = await voterAPI.getVotersByBoothId(boothId, { page: 1, limit: 50 });
-          console.log('📊 Dashboard - Initial Voters API Response:', initialResponse);
+          // Convert aci_id to number if it's stored as number in DB
+          const aciIdNum = Number(aci_id);
+          const boothIdStr = String(booth_id);
+
+          console.log('🔍 Dashboard - Calling API with:', { aciIdNum, boothIdStr });
+
+          // First get the total count using aci_id and booth_id
+          const initialResponse = await voterAPI.getVotersByBoothId(String(aciIdNum), boothIdStr, { page: 1, limit: 50 });
+          console.log('📊 Dashboard - Initial Voters API Response:', JSON.stringify(initialResponse, null, 2));
           
           if (initialResponse?.success) {
             // Use pagination.totalVoters for accurate total count
             totalVoters = initialResponse.pagination?.totalVoters || 0;
             
             // Now fetch all voters to calculate families accurately
-            const allVotersResponse = await voterAPI.getVotersByBoothId(boothId, { 
+            const allVotersResponse = await voterAPI.getVotersByBoothId(String(aciIdNum), boothIdStr, { 
               page: 1, 
               limit: totalVoters || 5000 
             });
             
             if (allVotersResponse?.success) {
-              const votersData = allVotersResponse.voters || [];
+              votersData = allVotersResponse.voters || [];
+              console.log('✅ Dashboard - Voters loaded:', votersData.length, 'voters');
+              console.log('📊 Dashboard - Sample voter surveyed field:', votersData.slice(0, 3).map((v: any) => ({
+                name: v.name?.english || v.Name,
+                surveyed: v.surveyed
+              })));
               
-              // Calculate verified voters count
+              // Calculate verified voters count (same as reports screen)
               verifiedVoters = votersData.filter((voter: any) => 
                 voter.verified === true || voter.status === 'verified'
               ).length;
               
-              // Calculate unique families based on:
-              // 1. Manually mapped families (familyId field)
-              // 2. Address-based grouping
+              // Calculate families using EXACT same logic as reports screen
+              // Use both familyId and address-based grouping
               const familyIds = new Set();
               const addressBasedFamilies = new Set();
               
@@ -93,8 +136,8 @@ export default function BoothAgentDashboard() {
                 }
               });
               
-              // Total families = manually mapped families + address-based families
               totalFamilies = familyIds.size + addressBasedFamilies.size || Math.ceil(totalVoters / 3);
+              console.log('Dashboard - Families:', familyIds.size, 'manually mapped +', addressBasedFamilies.size, 'address-based =', totalFamilies);
             } else {
               // Fallback if we can't get all voters
               totalFamilies = Math.ceil(totalVoters / 3);
@@ -106,36 +149,34 @@ export default function BoothAgentDashboard() {
           totalFamilies = Math.ceil(totalVoters / 3);
         }
       } else {
-        console.warn('⚠️ Dashboard - No boothId found in userData!');
+        console.warn('⚠️ Dashboard - No aci_id or booth_id found in userData!');
         console.warn('⚠️ Dashboard - userData:', userData);
       }
 
-      // Fetch surveys - count total responses submitted across all survey forms
+      // Fetch surveys - count surveyed voters from voters collection
       let surveysCompleted = 0;
       let activeSurveyFormsCount = 0;
+      
+      console.log('🔍 Dashboard - Before survey section, votersData:', {
+        isArray: Array.isArray(votersData),
+        length: votersData?.length,
+        hasSurveyedField: votersData?.[0]?.hasOwnProperty('surveyed')
+      });
+      
       try {
-        const surveysResponse = await surveyAPI.getAll({ limit: 100 });
+        // Get surveys assigned to this ACI
+        const surveysResponse = await surveyAPI.getAll({ limit: 100, aci_id: String(aci_id) });
         if (surveysResponse?.success && Array.isArray(surveysResponse.data)) {
           console.log('Dashboard - All survey forms:', surveysResponse.data.map((s: any) => ({
-            formId: s.formId,
+            _id: s._id,
             title: s.title,
             responseCount: s.responseCount,
-            boothid: s.boothid,
+            assignedACs: s.assignedACs,
             status: s.status
           })));
           
-          // Filter surveys for this booth
-          const boothSurveys = boothId 
-            ? surveysResponse.data.filter((s: any) => {
-                const surveyBoothId = s.boothid || s.boothId || s.booth_id || s.booth;
-                return surveyBoothId === boothId;
-              })
-            : surveysResponse.data;
-          
-          console.log('Dashboard - Booth surveys:', boothSurveys.length);
-          
-          // Count only active survey forms
-          const activeSurveys = boothSurveys.filter((s: any) => {
+          // Count only active survey forms assigned to this ACI
+          const activeSurveys = surveysResponse.data.filter((s: any) => {
             const status = (s.status || '').toLowerCase();
             return status === 'active';
           });
@@ -143,14 +184,16 @@ export default function BoothAgentDashboard() {
           
           console.log('Dashboard - Active survey forms:', activeSurveyFormsCount);
           
-          // Sum up all responseCount from booth surveys
-          surveysCompleted = boothSurveys.reduce((total: number, survey: any) => {
-            const count = survey.responseCount || 0;
-            console.log(`Survey ${survey.formId}: responseCount = ${count}`);
-            return total + count;
-          }, 0);
+          // Count surveyed voters from the voters we already fetched
+          console.log('Dashboard - votersData available:', Array.isArray(votersData), 'length:', votersData?.length);
+          if (Array.isArray(votersData) && votersData.length > 0) {
+            surveysCompleted = votersData.filter((v: any) => v.surveyed === true).length;
+            console.log('Dashboard - Surveyed voters found:', surveysCompleted);
+          } else {
+            console.warn('Dashboard - votersData not available for counting surveyed');
+          }
           
-          console.log('Dashboard - Total surveysCompleted:', surveysCompleted);
+          console.log('Dashboard - Total surveyed voters:', surveysCompleted);
         }
       } catch (surveyError) {
         console.warn('Failed to fetch surveys:', surveyError);
@@ -179,10 +222,117 @@ export default function BoothAgentDashboard() {
     } catch (error) {
       console.error('Error loading booth stats:', error);
       Alert.alert('Error', 'Failed to load dashboard data');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []); // Empty deps - fetch userData from AsyncStorage inside the function
+
+  // Debug: Log userData when it changes
+  useEffect(() => {
+    console.log('📋 Dashboard - userData updated:', {
+      aci_id: userData?.aci_id,
+      aci_name: userData?.aci_name,
+      booth_id: userData?.booth_id,
+      full: JSON.stringify(userData, null, 2)
+    });
+    
+    // Update header data from userData or AsyncStorage
+    const updateHeaderData = async () => {
+      console.log('📊 Dashboard - updateHeaderData called');
+      console.log('📊 Dashboard - userData from context:', JSON.stringify(userData, null, 2));
+      
+      if (userData?.booth_id && userData?.aci_id) {
+        console.log('📊 Dashboard - Using userData from context');
+        setHeaderData({
+          booth_id: userData.booth_id,
+          aci_id: userData.aci_id,
+          aci_name: userData.aci_name
+        });
+      } else {
+        console.log('📊 Dashboard - Loading from AsyncStorage...');
+        // Fallback: Load from AsyncStorage if userData not ready
+        const savedUserData = await AsyncStorage.getItem('userData');
+        console.log('📊 Dashboard - Raw AsyncStorage data:', savedUserData);
+        
+        if (savedUserData) {
+          const parsed = JSON.parse(savedUserData);
+          console.log('📊 Dashboard - Parsed AsyncStorage data:', JSON.stringify(parsed, null, 2));
+          console.log('📊 Dashboard - booth_id from AsyncStorage:', parsed.booth_id);
+          console.log('📊 Dashboard - aci_id from AsyncStorage:', parsed.aci_id);
+          
+          setHeaderData({
+            booth_id: parsed.booth_id,
+            aci_id: parsed.aci_id,
+            // Handle typo in saved data: check both aci_name and aci_namee
+            aci_name: parsed.aci_name || (parsed as any).aci_namee
+          });
+        }
+      }
+    };
+    
+    updateHeaderData();
+  }, [userData]);
+
+  useEffect(() => {
+    const initializeDashboard = async () => {
+      // Add a small delay to ensure AsyncStorage is loaded
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Load booth stats first - this should work even if userData isn't fully loaded yet
+      await loadBoothStats();
+      
+      // Load userData from AsyncStorage if not available from context
+      let currentUserData = userData;
+      if (!currentUserData?._id) {
+        const savedUserData = await AsyncStorage.getItem('userData');
+        if (savedUserData) {
+          currentUserData = JSON.parse(savedUserData);
+        }
+      }
+      
+      if (currentUserData?._id && currentUserData.aci_id && currentUserData.booth_id) {
+        // Start activity tracking
+        try {
+          await activityAPI.login(currentUserData._id, String(currentUserData.aci_id), currentUserData.booth_id);
+        } catch (error: any) {
+          console.error('Failed to record login activity:', error);
+        }
+
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission denied', 'Location permission is required to track your activity.');
+        } else {
+          const locationSubscription = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.High,
+              timeInterval: 60000, // 1 minute
+              distanceInterval: 10, // 10 meters
+            },
+            (location) => {
+              const { latitude, longitude } = location.coords;
+              activityAPI.updateLocation(currentUserData._id, { latitude, longitude })
+                .catch((error: any) => console.error('Failed to update location:', error));
+            }
+          );
+
+          // Cleanup on component unmount
+          return () => {
+            locationSubscription.remove();
+            activityAPI.logout(currentUserData._id)
+              .catch((error: any) => console.error('Failed to record logout activity:', error));
+          };
+        }
+      }
+    };
+
+    initializeDashboard();
+  }, []); // Run once on mount
+  
+  // Reload stats when booth or assembly changes (e.g., when switching booths)
+  useEffect(() => {
+    if (userData?.aci_id && userData?.booth_id) {
+      console.log('🔄 Dashboard - userData changed, reloading stats...');
+      loadBoothStats();
+    }
+  }, [userData?.aci_id, userData?.booth_id, loadBoothStats]);
 
   return (
     <ScreenWrapper userRole="booth_agent">
@@ -192,18 +342,32 @@ export default function BoothAgentDashboard() {
           <View style={styles.headerLeft}>
             <TouchableOpacity 
               style={styles.menuButton}
-              onPress={() => router.push('/(boothAgent)/profile')}
+              onPress={() => router.push('/(boothAgent)/drawer/drawerscreen')}
             >
               <Icon name="menu" size={24} color="#000" />
             </TouchableOpacity>
             <View>
               <Text style={styles.headerTitle}>
-                {userData?.booth_id ? `Booth ${userData.booth_id}` : 'Booth Agent'}
+                {headerData?.booth_id || userData?.booth_id || 'Loading...'}
               </Text>
-              <Text style={styles.headerSubtitle}>
-                {userData?.aci_id && userData?.aci_name 
-                  ? `${userData.aci_id} - ${userData.aci_name}`
-                  : 'Assembly Constituency'}
+              <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
+                {(() => {
+                  const aciId = headerData?.aci_id || userData?.aci_id;
+                  const aciName = headerData?.aci_name || userData?.aci_name;
+                  const displayText = (() => {
+                    if (!aciId) return 'Loading...';
+                    if (aciName && aciName.trim()) return `${aciId} - ${aciName}`;
+                    return String(aciId);
+                  })();
+                  console.log('🏷️ Header rendering:', { 
+                    aciId, 
+                    aciName, 
+                    displayText,
+                    headerData, 
+                    userData: userData?.aci_name 
+                  });
+                  return displayText;
+                })()}
               </Text>
             </View>
           </View>
@@ -371,9 +535,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 8,
     color: '#6B7280',
     marginTop: 2,
+    flexShrink: 1,
   },
   notificationButton: {
     position: 'relative',
