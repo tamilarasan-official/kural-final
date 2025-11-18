@@ -22,6 +22,7 @@ const modalContentRoutes = require('./routes/modalContentRoutes');
 const boothAgentActivityRoutes = require('./routes/boothAgentActivity');
 const dynamicFieldRoutes = require('./routes/dynamicFieldRoutes');
 const voterFieldRoutes = require('./routes/voterFieldRoutes');
+const masterDataRoutes = require('./routes/masterData');
 
 const app = express();
 
@@ -40,8 +41,7 @@ app.use(helmet({
 // CORS - optimized for production
 const corsOptions = {
     origin: config.NODE_ENV === 'production' ?
-        config.CORS_ORIGIN.split(',') :
-        '*',
+        config.CORS_ORIGIN.split(',') : '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -202,6 +202,7 @@ app.use('/api/v1/modal-content', modalContentRoutes);
 app.use('/api/v1/activity', boothAgentActivityRoutes);
 app.use('/api/v1/dynamic-fields', dynamicFieldRoutes);
 app.use('/api/v1/voter-fields', voterFieldRoutes);
+app.use('/api/v1/master-data', masterDataRoutes);
 
 // 404 handler
 app.use(notFound);
