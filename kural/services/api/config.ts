@@ -6,19 +6,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // For iOS Simulator: use localhost
 
 const getBaseURL = () => {
-  // Default to Physical Device on WiFi (Expo Go)
-  const LOCAL_NETWORK_URL = "http://192.168.31.31:5000/api/v1"; // Your WiFi IP for physical device
+  // Production API URL
+  const PRODUCTION_URL = "https://api.kuralapp.in/api/v1";
+  
+  // Local Development URLs (uncomment when testing locally)
+  // const LOCAL_NETWORK_URL = "http://192.168.31.31:5000/api/v1"; // Your WiFi IP for physical device
   // const EMULATOR_URL = "http://10.0.2.2:5000/api/v1"; // Uncomment for Android Emulator
   
-  // You can manually switch between these based on your testing device
-  // For Physical Device with Expo Go: use LOCAL_NETWORK_URL
-  // For Android Emulator: use EMULATOR_URL
-  
-  return LOCAL_NETWORK_URL; // Currently set for Expo Go on physical device
+  // Switch to LOCAL_NETWORK_URL or EMULATOR_URL for local development
+  return PRODUCTION_URL;
 };
 
 export const API_CONFIG = {
-  // Change this to your actual API domain in production
   BASE_URL: getBaseURL(),
 
   ENDPOINTS: {
@@ -41,6 +40,7 @@ export const API_CONFIG = {
     MODAL_CONTENT: "/modal-content",
     CATALOGUE: "/catalogue",
     SOON_VOTERS: "/soon-voters",
+    MASTER_DATA: "/master-data",
   },
 
   // Get authentication token from storage

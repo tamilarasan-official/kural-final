@@ -764,30 +764,26 @@ export default function VoterDetailScreen() {
         {/* Action Buttons Footer */}
         <View style={styles.footer}>
           <View style={styles.buttonRow}>
-            {/* Print Button - Green when verified, Gray when pending */}
+            {/* Add More Details Button - Always visible */}
             <TouchableOpacity 
-              style={[
-                styles.printButton, 
-                !isVerified && styles.printButtonDisabledGray,
-                printing && styles.printButtonDisabled
-              ]}
-              onPress={handlePrintSlip}
-              disabled={printing || !isVerified}
+              style={styles.addDetailsButton}
+              onPress={() => {
+                const voterDisplayName = voter?.name?.english || voter?.Name || 'Voter';
+                router.push({
+                  pathname: '/(boothAgent)/master-data',
+                  params: {
+                    voterId: voter._id || voter.Number,
+                    voterName: voterDisplayName,
+                  },
+                });
+              }}
             >
-              {printing ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Icon name="print" size={20} color="#fff" />
-                  <Text style={styles.printButtonText}>
-                    {isVerified ? 'Print Slip' : 'Verify to Print'}
-                  </Text>
-                </>
-              )}
+              <Icon name="add-circle" size={20} color="#fff" />
+              <Text style={styles.addDetailsButtonText}>Add More Details</Text>
             </TouchableOpacity>
 
-            {/* Mark as Verified Button - Only show if not verified */}
-            {!isVerified && (
+            {/* Verify / Print Slip Button */}
+            {!isVerified ? (
               <TouchableOpacity 
                 style={[styles.verifyButton, verifying && styles.verifyButtonDisabled]}
                 onPress={handleMarkAsVerified}
@@ -799,6 +795,21 @@ export default function VoterDetailScreen() {
                   <>
                     <Icon name="check-circle" size={20} color="#fff" />
                     <Text style={styles.verifyButtonText}>Verify</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.printSlipButton, printing && styles.printButtonDisabled]}
+                onPress={handlePrintSlip}
+                disabled={printing}
+              >
+                {printing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Icon name="print" size={20} color="#fff" />
+                    <Text style={styles.printSlipButtonText}>Print Slip</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -1072,9 +1083,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  printButton: {
+  addDetailsButton: {
     flex: 1,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#FF9800',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1082,13 +1093,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  printButtonDisabled: {
-    backgroundColor: '#A5D6A7',
-  },
-  printButtonDisabledGray: {
-    backgroundColor: '#9E9E9E',
-  },
-  printButtonText: {
+  addDetailsButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
@@ -1107,6 +1112,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#90CAF9',
   },
   verifyButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  printSlipButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  printButtonDisabled: {
+    backgroundColor: '#A5D6A7',
+  },
+  printSlipButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
