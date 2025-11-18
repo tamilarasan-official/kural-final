@@ -49,9 +49,9 @@ const validateLogin = (req, res, next) => {
         'object.or': 'Either email or phone is required'
     });
 
-    const { error, value } = schema.validate(req.body, { 
+    const { error, value } = schema.validate(req.body, {
         abortEarly: false,
-        allowUnknown: false 
+        allowUnknown: false
     });
 
     if (error) {
