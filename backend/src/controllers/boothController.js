@@ -27,13 +27,15 @@ const getAllBooths = asyncHandler(async(req, res) => {
         ];
     }
 
-    const booths = await User.find(filter)
+    const [total, booths] = await Promise.all([
+        User.countDocuments(filter),
+        User.find(filter)
         .select('-password')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit));
-
-    const total = await User.countDocuments(filter);
+        .limit(parseInt(limit))
+        .lean()
+    ]);
 
     res.status(200).json({
         success: true,
@@ -158,39 +160,21 @@ const loginBooth = asyncHandler(async(req, res) => {
         return res.status(400).json({ success: false, message: 'Please provide phone number and password' });
     }
 
-    console.log('🏢 Booth login attempt:', phoneField);
-
-    // Convert phone to number if it's a string of digits
     const phoneAsNumber = phoneField && /^\d+$/.test(phoneField) ? Number(phoneField) : phoneField;
 
-    console.log('📞 Phone details:', {
-        original: phoneField,
-        asNumber: phoneAsNumber,
-        originalType: typeof phoneField,
-        asNumberType: typeof phoneAsNumber
-    });
-
-    // IMPORTANT: First check User collection for Booth Agents (production data)
     const User = require('../models/User');
     const userBoothAgent = await User.findOne({
         $or: [
             { phone: phoneField },
             { phone: phoneAsNumber }
         ],
-        role: 'Booth Agent' // Only find Booth Agent users
+        role: 'Booth Agent'
     }).select('+password');
 
     if (userBoothAgent) {
-        console.log('✅ Found Booth Agent in User collection');
-        console.log('   - Name:', userBoothAgent.name);
-        console.log('   - Phone:', userBoothAgent.phone);
-        console.log('   - Booth ID:', userBoothAgent.booth_id);
-        console.log('   - ACI ID:', userBoothAgent.aci_id);
-
         const isMatch = await userBoothAgent.matchPassword(password);
 
         if (!isMatch) {
-            console.log('❌ Password mismatch');
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
@@ -199,34 +183,25 @@ const loginBooth = asyncHandler(async(req, res) => {
         userBoothAgent.isActive = true;
         await userBoothAgent.save();
 
-        // Create token
         const token = userBoothAgent.getSignedJwtToken();
-
-        console.log('✅ Booth Agent login successful');
-
-        const responseData = {
-            _id: userBoothAgent._id,
-            name: userBoothAgent.name,
-            phone: userBoothAgent.phone,
-            role: userBoothAgent.role,
-            aci_id: userBoothAgent.aci_id,
-            aci_name: userBoothAgent.aci_name,
-            booth_id: userBoothAgent.booth_id,
-            boothAllocation: userBoothAgent.boothAllocation || userBoothAgent.activeElection,
-            isActive: userBoothAgent.isActive
-        };
-
-        console.log('📤 Response data:', JSON.stringify(responseData, null, 2));
 
         return res.status(200).json({
             success: true,
             token,
-            data: responseData
+            data: {
+                _id: userBoothAgent._id,
+                name: userBoothAgent.name,
+                phone: userBoothAgent.phone,
+                role: userBoothAgent.role,
+                aci_id: userBoothAgent.aci_id,
+                aci_name: userBoothAgent.aci_name,
+                booth_id: userBoothAgent.booth_id,
+                boothAllocation: userBoothAgent.boothAllocation || userBoothAgent.activeElection,
+                isActive: userBoothAgent.isActive
+            }
         });
     }
 
-    // If not found in User collection
-    console.log('❌ Booth Agent not found');
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
 });
 

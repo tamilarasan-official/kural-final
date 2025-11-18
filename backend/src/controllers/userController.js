@@ -27,13 +27,15 @@ exports.getUsers = asyncHandler(async(req, res, next) => {
         filter.status = req.query.status;
     }
 
-    const users = await User.find(filter)
+    const [total, users] = await Promise.all([
+        User.countDocuments(filter),
+        User.find(filter)
         .select('-password')
         .skip(startIndex)
         .limit(limit)
-        .sort({ booth_id: 1, createdAt: -1 });
-
-    const total = await User.countDocuments(filter);
+        .sort({ booth_id: 1, createdAt: -1 })
+        .lean()
+    ]);
 
     res.status(200).json({
         success: true,

@@ -160,19 +160,23 @@ const surveySchema = new mongoose.Schema({
     collection: 'surveys'
 });
 
-// Index for better query performance
-// formNumber index is automatically created by unique: true
+// ===== PERFORMANCE INDEXES =====
+// Single field indexes
 surveySchema.index({ status: 1 });
-surveySchema.index({ activeElection: 1 });
 surveySchema.index({ createdBy: 1 });
 surveySchema.index({ isPublished: 1 });
 surveySchema.index({ assignedACs: 1 });
-surveySchema.index({ acid: 1 });
-surveySchema.index({ boothid: 1 });
+surveySchema.index({ createdAt: -1 });
+
+// Compound indexes for common query patterns
+surveySchema.index({ status: 1, isPublished: 1 });
+surveySchema.index({ activeElection: 1, status: 1 });
+surveySchema.index({ acid: 1, boothid: 1 });
+surveySchema.index({ status: 1, createdAt: -1 });
 
 // Virtual for response count
 surveySchema.virtual('responseCount').get(function() {
-    return this.responses.length;
+    return this.responses ? this.responses.length : 0;
 });
 
 // Method to get public survey data (without responses)
@@ -180,6 +184,27 @@ surveySchema.methods.getPublicData = function() {
     const survey = this.toObject();
     delete survey.responses;
     return survey;
+};
+
+// Static method for finding active surveys
+surveySchema.statics.findActive = function(filters = {}) {
+    return this.find({...filters, status: 'Active', isPublished: true })
+        .select('-responses')
+        .lean()
+        .exec();
+};
+
+// Static method for finding surveys by booth
+surveySchema.statics.findByBooth = function(aciId, boothId, options = {}) {
+    const { includeResponses = false } = options;
+
+    let query = this.find({ acid: aciId, boothid: boothId, status: 'Active' });
+
+    if (!includeResponses) {
+        query = query.select('-responses');
+    }
+
+    return query.lean().exec();
 };
 
 module.exports = mongoose.model('Survey', surveySchema);

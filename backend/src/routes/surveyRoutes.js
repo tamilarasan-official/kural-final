@@ -9,7 +9,8 @@ const {
     getSurveyStats,
     submitSurveyResponse,
     getSurveyProgress,
-    getCompletedVoters
+    getCompletedVoters,
+    getBoothSurveyStats
 } = require('../controllers/surveyController');
 const { protect } = require('../middleware/auth');
 
@@ -28,6 +29,9 @@ router.route('/stats')
 
 router.route('/progress')
     .get(getSurveyProgress);
+
+router.route('/booth-stats')
+    .get(getBoothSurveyStats);
 
 router.route('/:id')
     .get(getSurveyById)

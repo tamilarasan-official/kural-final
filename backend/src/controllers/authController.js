@@ -15,7 +15,8 @@ exports.register = asyncHandler(async(req, res, next) => {
             { phone: phone },
             { email: email }
         ]
-    });
+    }).select('_id').lean();
+
     if (existingUser) {
         return res.status(400).json({
             success: false,
@@ -52,12 +53,8 @@ exports.register = asyncHandler(async(req, res, next) => {
 exports.login = asyncHandler(async(req, res, next) => {
     const { email, phone, password } = req.body;
 
-    // Support both phone and email login
     const loginField = phone || email;
 
-    console.log('🔐 Login attempt:', { phone, email, loginField, passwordLength: password && password.length });
-
-    // Validate credentials
     if (!loginField || !password) {
         return res.status(400).json({
             success: false,
@@ -65,30 +62,16 @@ exports.login = asyncHandler(async(req, res, next) => {
         });
     }
 
-    // Convert phone to number if it's a string of digits
     const phoneAsNumber = loginField && /^\d+$/.test(loginField) ? Number(loginField) : loginField;
 
-    console.log('🔍 Searching for user:', { loginField, phoneAsNumber, type: typeof phoneAsNumber });
-
-    // Build query
-    const query = {
+    // Check for user
+    const user = await User.findOne({
         $or: [
             { phone: loginField },
             { phone: phoneAsNumber },
             { email: loginField }
         ]
-    };
-    console.log('📝 Query object:', JSON.stringify(query, null, 2));
-
-    // DEBUGGING: Try direct collection query first
-    const mongoose = require('mongoose');
-    const directUser = await mongoose.connection.db.collection('users').findOne({ phone: phoneAsNumber });
-    console.log('🔍 Direct collection query result:', directUser ? { phone: directUser.phone, role: directUser.role } : 'NOT FOUND');
-
-    // Check for user (support both phone and email, and phone as both string and number)
-    const user = await User.findOne(query).select('+password');
-
-    console.log('👤 User found:', user ? { id: user._id, phone: user.phone, role: user.role, passwordHash: user.password && user.password.substring(0, 20) + '...' } : 'NO USER FOUND');
+    }).select('+password');
 
     if (!user) {
         return res.status(401).json({
@@ -97,17 +80,14 @@ exports.login = asyncHandler(async(req, res, next) => {
         });
     }
 
-    // IMPORTANT: Auth endpoint is ONLY for Assembly CI and Admin users
-    // Booth Agents should use /api/v1/booths/login endpoint
+    // Auth endpoint is ONLY for Assembly CI and Admin users
     if (user.role !== 'Assembly CI' && user.role !== 'AssemblyIncharge' && user.role !== 'admin') {
-        console.log('❌ User role not authorized for this endpoint:', user.role);
         return res.status(401).json({
             success: false,
-            error: 'Invalid credentials' // Don't reveal the reason
+            error: 'Invalid credentials'
         });
     }
 
-    // Check if account is locked
     if (user.isLocked) {
         return res.status(423).json({
             success: false,
@@ -115,10 +95,7 @@ exports.login = asyncHandler(async(req, res, next) => {
         });
     }
 
-    console.log('🔑 Checking password match...');
-    // Check if password matches
     const isMatch = await user.matchPassword(password);
-    console.log('✅ Password match result:', isMatch);
 
     if (!isMatch) {
         // Increment login attempts
@@ -164,7 +141,7 @@ exports.logout = asyncHandler(async(req, res, next) => {
 // @route   GET /api/v1/auth/me
 // @access  Private
 exports.getMe = asyncHandler(async(req, res, next) => {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('-password').lean();
 
     res.status(200).json({
         success: true,

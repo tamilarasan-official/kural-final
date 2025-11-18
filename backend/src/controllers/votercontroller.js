@@ -16,24 +16,31 @@ const searchVoters = asyncHandler(async(req, res) => {
         relationFirstName,
         relationLastName,
         page = 1,
-        limit = 10
+        limit = 50
     } = req.body;
 
-    // Build search query
+    // Limit max results to 50 for performance
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 50);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build optimized search query
     const searchQuery = {};
+    const orConditions = [];
 
-    // Add search conditions based on provided parameters
+    // Mobile search
     if (mobileNo && mobileNo.trim()) {
-        searchQuery.$or = searchQuery.$or || [];
-        searchQuery.$or.push({ 'Mobile No': { $regex: mobileNo.trim(), $options: 'i' } }, { 'mobile': { $regex: mobileNo.trim(), $options: 'i' } });
+        const mobileTrimmed = mobileNo.trim();
+        orConditions.push({ 'Mobile No': { $regex: mobileTrimmed, $options: 'i' } }, { mobile: { $regex: mobileTrimmed, $options: 'i' } });
     }
 
+    // EPIC ID search (use text index if exact match)
     if (epicId && epicId.trim()) {
-        // Support both legacy 'Number' field and new 'voterID' field
-        searchQuery.$or = searchQuery.$or || [];
-        searchQuery.$or.push({ Number: { $regex: epicId.trim(), $options: 'i' } }, { voterID: { $regex: epicId.trim(), $options: 'i' } });
+        const epicTrimmed = epicId.trim();
+        orConditions.push({ Number: epicTrimmed }, { voterID: epicTrimmed }, { Number: { $regex: epicTrimmed, $options: 'i' } }, { voterID: { $regex: epicTrimmed, $options: 'i' } });
     }
 
+    // Age exact match
     if (age && age.trim()) {
         const ageNum = parseInt(age.trim());
         if (!isNaN(ageNum)) {
@@ -41,15 +48,16 @@ const searchVoters = asyncHandler(async(req, res) => {
         }
     }
 
+    // Part number exact match
     if (partNo) {
         const partNum = parseInt(partNo.toString());
         if (!isNaN(partNum)) {
-            // Support both field variants in DB: 'Part_no' and 'boothno'
             searchQuery.$or = searchQuery.$or || [];
             searchQuery.$or.push({ Part_no: partNum }, { boothno: partNum });
         }
     }
 
+    // Serial number exact match
     if (serialNo && serialNo.trim()) {
         const serialNum = parseInt(serialNo.trim());
         if (!isNaN(serialNum)) {
@@ -57,43 +65,32 @@ const searchVoters = asyncHandler(async(req, res) => {
         }
     }
 
+    // Name search
     if (voterFirstName && voterFirstName.trim()) {
-        // Support both legacy 'Name' field and new 'name.english'/'name.tamil' fields
-        searchQuery.$or = searchQuery.$or || [];
-        searchQuery.$or.push({ Name: { $regex: voterFirstName.trim(), $options: 'i' } }, { 'name.english': { $regex: voterFirstName.trim(), $options: 'i' } }, { 'name.tamil': { $regex: voterFirstName.trim(), $options: 'i' } });
+        const nameTrimmed = voterFirstName.trim();
+        const fullName = voterLastName && voterLastName.trim() ?
+            `${nameTrimmed} ${voterLastName.trim()}` :
+            nameTrimmed;
+
+        orConditions.push({ Name: { $regex: fullName, $options: 'i' } }, { 'name.english': { $regex: fullName, $options: 'i' } }, { 'name.tamil': { $regex: fullName, $options: 'i' } });
     }
 
-    if (voterLastName && voterLastName.trim()) {
-        // If we have both first and last name, combine them
-        if (voterFirstName && voterFirstName.trim()) {
-            const fullName = `${voterFirstName.trim()} ${voterLastName.trim()}`;
-            searchQuery.$or = searchQuery.$or || [];
-            searchQuery.$or.push({ Name: { $regex: fullName, $options: 'i' } }, { 'name.english': { $regex: fullName, $options: 'i' } }, { 'name.tamil': { $regex: fullName, $options: 'i' } });
-        } else {
-            searchQuery.$or = searchQuery.$or || [];
-            searchQuery.$or.push({ Name: { $regex: voterLastName.trim(), $options: 'i' } }, { 'name.english': { $regex: voterLastName.trim(), $options: 'i' } }, { 'name.tamil': { $regex: voterLastName.trim(), $options: 'i' } });
-        }
-    }
-
+    // Relation/Father name search
     if (relationFirstName && relationFirstName.trim()) {
-        // Support both legacy 'Father Name' field and new 'fathername' field
-        searchQuery.$or = searchQuery.$or || [];
-        searchQuery.$or.push({ 'Father Name': { $regex: relationFirstName.trim(), $options: 'i' } }, { 'fathername': { $regex: relationFirstName.trim(), $options: 'i' } });
+        const relationTrimmed = relationFirstName.trim();
+        const fullRelation = relationLastName && relationLastName.trim() ?
+            `${relationTrimmed} ${relationLastName.trim()}` :
+            relationTrimmed;
+
+        orConditions.push({ 'Father Name': { $regex: fullRelation, $options: 'i' } }, { fathername: { $regex: fullRelation, $options: 'i' } });
     }
 
-    if (relationLastName && relationLastName.trim()) {
-        // If we have both relation first and last name, combine them
-        if (relationFirstName && relationFirstName.trim()) {
-            const fullRelationName = `${relationFirstName.trim()} ${relationLastName.trim()}`;
-            searchQuery.$or = searchQuery.$or || [];
-            searchQuery.$or.push({ 'Father Name': { $regex: fullRelationName, $options: 'i' } }, { 'fathername': { $regex: fullRelationName, $options: 'i' } });
-        } else {
-            searchQuery.$or = searchQuery.$or || [];
-            searchQuery.$or.push({ 'Father Name': { $regex: relationLastName.trim(), $options: 'i' } }, { 'fathername': { $regex: relationLastName.trim(), $options: 'i' } });
-        }
+    // Add OR conditions if any exist
+    if (orConditions.length > 0) {
+        searchQuery.$or = orConditions;
     }
 
-    // If no search parameters provided, return empty result
+    // Validate query
     if (Object.keys(searchQuery).length === 0) {
         return res.status(400).json({
             success: false,
@@ -102,25 +99,18 @@ const searchVoters = asyncHandler(async(req, res) => {
     }
 
     try {
-        // Calculate pagination
-        const skip = (page - 1) * limit;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-
-        // Get total count for pagination
-        const totalCount = await Voter.countDocuments(searchQuery);
-
-        // Search voters with pagination
-        const voters = await Voter.find(searchQuery)
-            .sort({ sr: 1 }) // Sort by serial number
+        // Execute count and find in parallel
+        const [totalCount, voters] = await Promise.all([
+            Voter.countDocuments(searchQuery),
+            Voter.find(searchQuery)
+            .select('sr name Name voterID Number age gender sex mobile booth_id aci_id')
+            .sort({ sr: 1 })
             .skip(skip)
             .limit(limitNum)
-            .lean(); // Use lean() for better performance
+            .lean()
+        ]);
 
-        // Calculate pagination info
         const totalPages = Math.ceil(totalCount / limitNum);
-        const hasNext = pageNum < totalPages;
-        const hasPrev = pageNum > 1;
 
         res.status(200).json({
             success: true,
@@ -129,8 +119,8 @@ const searchVoters = asyncHandler(async(req, res) => {
                 currentPage: pageNum,
                 totalPages,
                 totalCount,
-                hasNext,
-                hasPrev,
+                hasNext: pageNum < totalPages,
+                hasPrev: pageNum > 1,
                 limit: limitNum
             },
             message: `Found ${totalCount} voters matching your search criteria`
@@ -150,7 +140,7 @@ const searchVoters = asyncHandler(async(req, res) => {
 // @route   GET /api/v1/voters/:id
 // @access  Private
 const getVoterById = asyncHandler(async(req, res) => {
-    const voter = await Voter.findById(req.params.id);
+    const voter = await Voter.findById(req.params.id).lean();
 
     if (!voter) {
         return res.status(404).json({
@@ -169,20 +159,24 @@ const getVoterById = asyncHandler(async(req, res) => {
 
     // Normalize voter name
     let voterName = 'Unknown';
+    let voterNameTamil = '';
+
     if (voter.name) {
         // Check for nested structure: name.value.english
         if (voter.name.value && typeof voter.name.value === 'object' && voter.name.value.english) {
             voterName = voter.name.value.english;
+            voterNameTamil = voter.name.value.tamil || '';
         }
         // Check for direct object: name.english
         else if (typeof voter.name === 'object' && voter.name.english) {
             voterName = voter.name.english;
+            voterNameTamil = voter.name.tamil || '';
         }
         // Check for plain string
         else if (typeof voter.name === 'string') {
             voterName = voter.name;
         }
-    } 
+    }
     // Fallback to uppercase Name field
     else if (voter.Name) {
         voterName = extractValue(voter.Name);
@@ -190,8 +184,11 @@ const getVoterById = asyncHandler(async(req, res) => {
 
     // Normalize voter data
     const normalizedVoter = {
-        ...voter.toObject(),
-        name: voterName,
+        ...voter,
+        name: {
+            english: voterName,
+            tamil: voterNameTamil
+        },
         voterID: extractValue(voter.voterID) || extractValue(voter.Number) || '',
         age: extractValue(voter.age) || 0,
         gender: extractValue(voter.gender) || extractValue(voter.sex) || '',
@@ -221,24 +218,20 @@ const getVoterById = asyncHandler(async(req, res) => {
 const getVotersByPart = asyncHandler(async(req, res) => {
     const { partNumber } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 50);
+    const skip = (page - 1) * limit;
 
     try {
         let query = {};
 
-        // Check if partNumber contains "All" (e.g., "119 -All")
+        // Check if partNumber contains "All"
         if (partNumber.includes('All') || partNumber.toLowerCase() === 'all') {
-            // Return all voters without part number filter
-            console.log(`[getVotersByPart] Fetching all voters (no part filter)`);
-            query = {}; // Empty query to get all voters
+            query = {};
         } else {
-            // Parse part number - handle both "119 -001" and "001" formats
-            // If hyphen exists, extract the number after it, otherwise use the whole number
             const parts = partNumber.toString().split('-');
             const partNum = parseInt(parts.length > 1 ? parts[1] : parts[0]);
 
             if (isNaN(partNum)) {
-                console.error(`[getVotersByPart] Invalid part number: ${partNumber}`);
                 return res.status(400).json({
                     success: false,
                     error: 'Invalid part number format',
@@ -246,18 +239,19 @@ const getVotersByPart = asyncHandler(async(req, res) => {
                 });
             }
 
-            console.log(`[getVotersByPart] Searching for part number: ${partNumber} -> parsed as: ${partNum}`);
             query = { $or: [{ Part_no: partNum }, { boothno: partNum }] };
         }
 
-        const voters = await Voter.find(query)
+        // Execute count and find in parallel
+        const [total, voters] = await Promise.all([
+            Voter.countDocuments(query),
+            Voter.find(query)
+            .select('sr name Name voterID Number age gender sex mobile booth_id aci_id Part_no boothno')
             .sort({ sr: 1 })
-            .limit(limit * 1)
-            .skip((page - 1) * limit);
-
-        const total = await Voter.countDocuments(query);
-
-        console.log(`[getVotersByPart] Found ${total} voters, returning ${voters.length} voters for page ${page}`);
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        ]);
 
         res.json({
             success: true,
@@ -282,7 +276,7 @@ const getVotersByPart = asyncHandler(async(req, res) => {
 const getVotersByBoothId = asyncHandler(async(req, res) => {
     const { boothId, aciId } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 100;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const skip = (page - 1) * limit;
 
     if (!aciId || !boothId) {
@@ -293,40 +287,24 @@ const getVotersByBoothId = asyncHandler(async(req, res) => {
     }
 
     try {
-        console.log(`[getVotersByBoothId] Fetching voters for aci_id: ${aciId}, booth_id: ${boothId}, page: ${page}, limit: ${limit}`);
-
-        // Convert aci_id to number for DB query (it's stored as Number in schema)
         const aciIdNumber = Number(aciId);
 
-        // Query voters where both aci_id and booth_id match
-        // Try both number and string for aci_id in case of data inconsistency
+        // Optimized query - prefer number type
         const query = {
-            $or: [
-                { aci_id: aciIdNumber, booth_id: boothId },
-                { aci_id: aciId, booth_id: boothId }
-            ]
+            aci_id: aciIdNumber,
+            booth_id: boothId
         };
 
-        console.log(`[getVotersByBoothId] Query:`, JSON.stringify(query, null, 2));
-
-        const [voters, totalCount] = await Promise.all([
+        // Execute count and find in parallel
+        const [totalCount, voters] = await Promise.all([
+            Voter.countDocuments(query),
             Voter.find(query)
-            .select('sr name Name voterID DOB address emailid aadhar PAN religion caste subcaste boothno booth_id aci_id aci_name age gender mobile sex Part_no verified status verifiedAt verifiedBy surveyed Door_No doornumber fathername Number')
+            .select('sr name Name voterID Number DOB address emailid aadhar PAN religion caste subcaste boothno booth_id aci_id aci_name age gender mobile sex Part_no verified status verifiedAt verifiedBy surveyed Door_No doornumber fathername guardian fatherless specialCategories')
             .sort({ sr: 1 })
             .skip(skip)
             .limit(limit)
-            .lean(),
-            Voter.countDocuments(query)
+            .lean()
         ]);
-
-        console.log(`[getVotersByBoothId] Found ${voters.length} voters out of ${totalCount} total for aci_id ${aciId}, booth_id ${boothId}`);
-
-        // Debug: Log first voter raw data to see actual field names
-        if (voters.length > 0) {
-            console.log('[getVotersByBoothId] First voter raw data:', JSON.stringify(voters[0], null, 2));
-            console.log('[getVotersByBoothId] First voter name field:', voters[0].name);
-            console.log('[getVotersByBoothId] First voter Name field:', voters[0].Name);
-        }
 
         // Helper to extract value from object or return primitive
         const extractValue = (field) => {
@@ -337,23 +315,27 @@ const getVotersByBoothId = asyncHandler(async(req, res) => {
         };
 
         // Normalize voter data
-        const normalizedVoters = voters.map(voter => {
-            // Handle name nested object structure {value: {english, tamil}, visible}
+        const normalizedVoters = voters.map((voter) => {
+            // Handle name nested object structure
             let voterName = 'Unknown';
+            let voterNameTamil = '';
+
             if (voter.name) {
                 // Check for nested structure: name.value.english
                 if (voter.name.value && typeof voter.name.value === 'object' && voter.name.value.english) {
                     voterName = voter.name.value.english;
+                    voterNameTamil = voter.name.value.tamil || '';
                 }
                 // Check for direct object: name.english
                 else if (typeof voter.name === 'object' && voter.name.english) {
                     voterName = voter.name.english;
+                    voterNameTamil = voter.name.tamil || '';
                 }
                 // Check for plain string
                 else if (typeof voter.name === 'string') {
                     voterName = voter.name;
                 }
-            } 
+            }
             // Fallback to uppercase Name field
             else if (voter.Name) {
                 voterName = extractValue(voter.Name);
@@ -362,7 +344,10 @@ const getVotersByBoothId = asyncHandler(async(req, res) => {
             return {
                 ...voter,
                 sr: voter.sr || 0,
-                name: voterName,
+                name: {
+                    english: voterName,
+                    tamil: voterNameTamil
+                },
                 voterID: extractValue(voter.voterID) || extractValue(voter.Number) || '',
                 DOB: extractValue(voter.DOB) || '',
                 address: extractValue(voter.address) || '',
@@ -417,12 +402,7 @@ const getPartGenderStats = asyncHandler(async(req, res) => {
     try {
         let matchStage = {};
 
-        // Check if partNumber contains "All"
-        if (partNumber.includes('All') || partNumber.toLowerCase() === 'all') {
-            // Get stats for all voters
-            console.log(`[getPartGenderStats] Fetching stats for all voters`);
-            matchStage = {}; // Empty match to get all voters
-        } else {
+        if (!(partNumber.includes('All') || partNumber.toLowerCase() === 'all')) {
             const partNum = parseInt(partNumber);
             if (isNaN(partNum)) {
                 return res.status(400).json({
@@ -433,29 +413,33 @@ const getPartGenderStats = asyncHandler(async(req, res) => {
             matchStage = { $or: [{ Part_no: partNum }, { boothno: partNum }] };
         }
 
-        const stats = await Voter.aggregate([
+        const pipeline = [
             { $match: matchStage },
             {
                 $group: {
                     _id: null,
                     total: { $sum: 1 },
-                    male: { $sum: { $cond: [{ $eq: ['$sex', 'Male'] }, 1, 0] } },
-                    female: { $sum: { $cond: [{ $eq: ['$sex', 'Female'] }, 1, 0] } },
-                    other: { $sum: { $cond: [{ $not: { $in: ['$sex', ['Male', 'Female']] } }, 1, 0] } }
+                    male: { $sum: { $cond: [{ $in: ['$sex', ['Male', 'male', 'M']] }, 1, 0] } },
+                    female: { $sum: { $cond: [{ $in: ['$sex', ['Female', 'female', 'F']] }, 1, 0] } },
+                    other: {
+                        $sum: {
+                            $cond: [{
+                                $and: [
+                                    { $ne: ['$sex', null] },
+                                    { $not: { $in: ['$sex', ['Male', 'male', 'M', 'Female', 'female', 'F']] } }
+                                ]
+                            }, 1, 0]
+                        }
+                    }
                 }
             }
-        ]);
+        ];
 
-        if (stats.length === 0) {
-            return res.json({
-                success: true,
-                stats: { total: 0, male: 0, female: 0, other: 0 }
-            });
-        }
+        const stats = await Voter.aggregate(pipeline).exec();
 
         res.json({
             success: true,
-            stats: stats[0]
+            stats: stats.length > 0 ? stats[0] : { total: 0, male: 0, female: 0, other: 0 }
         });
     } catch (error) {
         console.error('[getPartGenderStats] Error:', error);
@@ -517,19 +501,21 @@ const getVotersByAgeRange = asyncHandler(async(req, res) => {
     const minAge = parseInt(req.query.minAge) || 60;
     const maxAge = parseInt(req.query.maxAge) || 120;
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 100;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const skip = (page - 1) * limit;
 
     try {
-        console.log('[getVotersByAgeRange] params', { minAge, maxAge, page, limit });
         const query = { age: { $gte: minAge, $lte: maxAge } };
-        const total = await Voter.countDocuments(query);
-        const voters = await Voter.find(query)
-            .sort({ sr: 1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .lean();
 
-        console.log('[getVotersByAgeRange] total found', total, 'returning', voters.length);
+        const [total, voters] = await Promise.all([
+            Voter.countDocuments(query),
+            Voter.find(query)
+            .select('sr name Name voterID Number age gender sex mobile booth_id aci_id')
+            .sort({ age: -1, sr: 1 })
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        ]);
 
         res.status(200).json({
             success: true,
@@ -541,7 +527,8 @@ const getVotersByAgeRange = asyncHandler(async(req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: 'Failed to fetch voters by age range'
+            error: 'Failed to fetch voters by age range',
+            message: error.message
         });
     }
 });
@@ -550,7 +537,6 @@ const getVotersByAgeRange = asyncHandler(async(req, res) => {
 // @route   POST /api/v1/voters
 // @access  Private
 const createVoter = asyncHandler(async(req, res) => {
-    console.log('📥 Creating voter with body:', JSON.stringify(req.body, null, 2));
 
     const {
         voterId,
@@ -603,13 +589,24 @@ const createVoter = asyncHandler(async(req, res) => {
     }
 
     try {
-        // Check if voter with this ID already exists
-        const existingVoter = await Voter.findOne({
-            $or: [
-                { Number: finalVoterId },
-                { voterID: finalVoterId }
-            ]
-        });
+        const boothNumeric = parseInt(finalBoothId.replace(/[^0-9]/g, '')) || parseInt(finalBoothId) || 0;
+
+        // Check duplicates and get serial number in parallel
+        const [existingVoter, lastVoter] = await Promise.all([
+            Voter.findOne({
+                $or: [
+                    { Number: finalVoterId },
+                    { voterID: finalVoterId }
+                ]
+            }).select('_id').lean(),
+            Voter.findOne({
+                $or: [
+                    { Part_no: boothNumeric },
+                    { boothno: boothNumeric },
+                    { booth_id: finalBoothId }
+                ]
+            }).select('sr').sort({ sr: -1 }).limit(1).lean()
+        ]);
 
         if (existingVoter) {
             return res.status(400).json({
@@ -618,19 +615,24 @@ const createVoter = asyncHandler(async(req, res) => {
             });
         }
 
-        // Get the highest serial number in this booth to assign a new one
-        // Extract numeric part from booth ID for querying
-        const boothNumeric = parseInt(finalBoothId.replace(/[^0-9]/g, '')) || parseInt(finalBoothId) || 0;
-
-        const lastVoter = await Voter.findOne({
-            $or: [
-                { Part_no: boothNumeric },
-                { boothno: boothNumeric },
-                { booth_id: finalBoothId }
-            ]
-        }).sort({ sr: -1 }).limit(1);
-
         const newSerialNumber = lastVoter ? (lastVoter.sr || 0) + 1 : 1;
+
+        // Extract known static fields
+        const staticFieldNames = [
+            'voterId', 'nameEnglish', 'nameTamil', 'dob', 'address', 'fatherName',
+            'doorNumber', 'fatherless', 'guardian', 'age', 'gender', 'mobile', 'email',
+            'aadhar', 'pan', 'religion', 'caste', 'subcaste', 'booth_id', 'boothname',
+            'boothno', 'aci_id', 'aci_name', 'fullName', 'phoneNumber', 'familyId',
+            'specialCategories', 'partNumber', 'boothId'
+        ];
+
+        // Extract dynamic fields (anything not in staticFieldNames)
+        const dynamicFields = {};
+        Object.keys(req.body).forEach(key => {
+            if (!staticFieldNames.includes(key)) {
+                dynamicFields[key] = req.body[key];
+            }
+        });
 
         // Create voter object with all fields
         const voterData = {
@@ -698,7 +700,10 @@ const createVoter = asyncHandler(async(req, res) => {
 
             // Status
             verified: false,
-            status: 'pending'
+            status: 'pending',
+
+            // Add all dynamic fields
+            ...dynamicFields
         };
 
         const voter = await Voter.create(voterData);
@@ -726,14 +731,27 @@ const markVoterAsVerified = asyncHandler(async(req, res) => {
     const { id } = req.params;
 
     try {
-        // Find voter by ID or EPIC number
+        // Prepare update data
+        const updateData = {
+            verified: true,
+            status: 'verified',
+            verifiedAt: new Date()
+        };
+
+        if (req.user && req.user._id) {
+            updateData.verifiedBy = req.user._id;
+        }
+
+        // Find and update voter by ID or EPIC number
         let voter;
         if (id.match(/^[0-9a-fA-F]{24}$/)) {
-            // It's a MongoDB ObjectId
-            voter = await Voter.findById(id);
+            // It's a MongoDB ObjectId - use direct update to bypass validation
+            voter = await Voter.findByIdAndUpdate(
+                id, { $set: updateData }, { new: true, runValidators: false }
+            ).lean();
         } else {
             // It's an EPIC number
-            voter = await Voter.findOne({ Number: id });
+            voter = await Voter.findOneAndUpdate({ Number: id }, { $set: updateData }, { new: true, runValidators: false }).lean();
         }
 
         if (!voter) {
@@ -742,16 +760,6 @@ const markVoterAsVerified = asyncHandler(async(req, res) => {
                 message: 'Voter not found'
             });
         }
-
-        // Update verification status
-        voter.verified = true;
-        voter.status = 'verified';
-        voter.verifiedAt = new Date();
-        if (req.user && req.user._id) {
-            voter.verifiedBy = req.user._id;
-        }
-
-        await voter.save();
 
         res.status(200).json({
             success: true,
@@ -807,14 +815,21 @@ const updateVoterInfo = asyncHandler(async(req, res) => {
     const updateData = req.body;
 
     try {
-        // Find voter by ID or EPIC number
+        // If updating voterID, also update Number field for backward compatibility
+        if (updateData.voterID) {
+            updateData.Number = updateData.voterID;
+        }
+
+        // Find and update voter by ID or EPIC number
         let voter;
         if (id.match(/^[0-9a-fA-F]{24}$/)) {
-            // It's a MongoDB ObjectId
-            voter = await Voter.findById(id);
+            // It's a MongoDB ObjectId - use direct update to bypass validation
+            voter = await Voter.findByIdAndUpdate(
+                id, { $set: updateData }, { new: true, runValidators: false, strict: false }
+            ).lean();
         } else {
             // It's an EPIC number
-            voter = await Voter.findOne({ Number: id });
+            voter = await Voter.findOneAndUpdate({ Number: id }, { $set: updateData }, { new: true, runValidators: false }).lean();
         }
 
         if (!voter) {
@@ -823,19 +838,6 @@ const updateVoterInfo = asyncHandler(async(req, res) => {
                 message: 'Voter not found'
             });
         }
-
-        // Update voter information
-        Object.keys(updateData).forEach(key => {
-            if (updateData[key] !== undefined && updateData[key] !== null) {
-                voter[key] = updateData[key];
-                // If updating voterID, also update Number field for backward compatibility
-                if (key === 'voterID') {
-                    voter.Number = updateData[key];
-                }
-            }
-        });
-
-        await voter.save();
 
         res.status(200).json({
             success: true,

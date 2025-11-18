@@ -57,18 +57,56 @@ const surveyResponseSchema = new mongoose.Schema({
     ipAddress: String,
     userAgent: String
 }, {
-    timestamps: true
+    timestamps: true,
+    collection: 'surveyresponses'
 });
 
-// Index for better performance
-surveyResponseSchema.index({ formId: 1 });
-surveyResponseSchema.index({ respondentId: 1 });
-surveyResponseSchema.index({ submittedAt: -1 });
+// ===== PERFORMANCE INDEXES =====
+// Compound indexes for common query patterns
+surveyResponseSchema.index({ formId: 1, submittedAt: -1 });
+surveyResponseSchema.index({ respondentId: 1, formId: 1 });
+surveyResponseSchema.index({ formId: 1, isComplete: 1 });
+surveyResponseSchema.index({ respondentVoterId: 1 });
+surveyResponseSchema.index({ createdAt: -1 });
+
+// Text index for searching responses
+surveyResponseSchema.index({ respondentName: 'text', respondentVoterId: 'text' });
 
 // Virtual for public data
 surveyResponseSchema.virtual('publicData').get(function() {
     const { __v, ipAddress, userAgent, ...publicData } = this.toObject();
     return publicData;
 });
+
+// Static method for finding responses by form
+surveyResponseSchema.statics.findByForm = function(formId, options = {}) {
+    const { page = 1, limit = 50, complete = null } = options;
+    const skip = (page - 1) * limit;
+
+    const query = { formId };
+    if (complete !== null) {
+        query.isComplete = complete;
+    }
+
+    return this.find(query)
+        .sort({ submittedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+};
+
+// Static method for counting responses by form
+surveyResponseSchema.statics.countByForm = function(formId) {
+    return this.countDocuments({ formId }).exec();
+};
+
+// Static method for finding by respondent
+surveyResponseSchema.statics.findByRespondent = function(respondentId) {
+    return this.find({ respondentId })
+        .sort({ submittedAt: -1 })
+        .lean()
+        .exec();
+};
 
 module.exports = mongoose.model('SurveyResponse', surveyResponseSchema);

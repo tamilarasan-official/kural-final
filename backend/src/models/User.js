@@ -9,17 +9,19 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a name'],
         trim: true,
-        maxlength: [50, 'Name cannot be more than 50 characters']
+        maxlength: [50, 'Name cannot be more than 50 characters'],
+        index: true
     },
     phone: {
-        type: mongoose.Schema.Types.Mixed, // Allow both String and Number
+        type: mongoose.Schema.Types.Mixed,
         required: [true, 'Please add a phone number'],
-        unique: true
+        unique: true,
+        index: true
     },
     email: {
         type: String,
         unique: true,
-        sparse: true, // Allow multiple null values
+        sparse: true,
         lowercase: true,
         trim: true,
         match: [
@@ -36,11 +38,13 @@ const UserSchema = new mongoose.Schema({
     role: {
         type: String,
         enum: ['user', 'admin', 'Booth Agent', 'Assembly CI', 'AssemblyIncharge', 'Polling Officer', 'Supervisor', 'Coordinator'],
-        default: 'user'
+        default: 'user',
+        index: true
     },
     aci_id: {
         type: String,
-        trim: true
+        trim: true,
+        index: true
     },
     aci_name: {
         type: String,
@@ -48,11 +52,13 @@ const UserSchema = new mongoose.Schema({
     },
     booth_id: {
         type: String,
-        trim: true
+        trim: true,
+        index: true
     },
     isActive: {
         type: Boolean,
-        default: true
+        default: true,
+        index: true
     },
     avatar: {
         type: String,
@@ -80,22 +86,24 @@ const UserSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
+// ===== INDEXES FOR PERFORMANCE =====
+UserSchema.index({ createdAt: -1 });
+UserSchema.index({ role: 1, isActive: 1 });
+UserSchema.index({ aci_id: 1, booth_id: 1 });
+
 // Virtual for account lock status
 UserSchema.virtual('isLocked').get(function() {
     return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
-// Index for better query performance
-UserSchema.index({ createdAt: -1 });
-
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function(next) {
     if (!this.isModified('password')) {
-        next();
+        return next();
     }
-
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
 });
 
 // Sign JWT and return
@@ -107,44 +115,25 @@ UserSchema.methods.getSignedJwtToken = function() {
 
 // Match user entered password to hashed password in database
 UserSchema.methods.matchPassword = async function(enteredPassword) {
-    console.log('🔐 matchPassword called');
-    console.log('  - Entered password:', enteredPassword);
-    console.log('  - Stored hash:', this.password);
-    console.log('  - Hash length:', this.password && this.password.length);
-    console.log('  - Starts with $2a$:', this.password && this.password.startsWith('$2a$'));
-    console.log('  - Starts with $2b$:', this.password && this.password.startsWith('$2b$'));
-
-    // Check if password is bcrypt format (starts with $2a$ or $2b$)
+    // Check if password is bcrypt format
     if (this.password && (this.password.startsWith('$2a$') || this.password.startsWith('$2b$'))) {
-        console.log('  - Using bcrypt comparison');
-        // Use bcrypt comparison for bcrypt hashed passwords
-        const result = await bcrypt.compare(enteredPassword, this.password);
-        console.log('  - Bcrypt result:', result);
-        return result;
+        return await bcrypt.compare(enteredPassword, this.password);
     }
 
-    // Otherwise, assume it's SHA-256 hash (64 character hex string)
-    // For SHA-256, hash the entered password and compare
-    const crypto = require('crypto');
+    // Fallback to SHA-256 for legacy passwords
     const hashedInput = crypto.createHash('sha256').update(enteredPassword).digest('hex');
-    console.log('  - Using SHA-256 comparison');
-    console.log('  - Hashed input:', hashedInput);
-    console.log('  - Match:', hashedInput === this.password);
     return hashedInput === this.password;
 };
 
 // Generate and hash password token
 UserSchema.methods.getResetPasswordToken = function() {
-    // Generate token
     const resetToken = crypto.randomBytes(20).toString('hex');
 
-    // Hash token and set to resetPasswordToken field
     this.passwordResetToken = crypto
         .createHash('sha256')
         .update(resetToken)
         .digest('hex');
 
-    // Set expire
     this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     return resetToken;
@@ -164,7 +153,6 @@ UserSchema.methods.generateEmailVerificationToken = function() {
 
 // Handle failed login attempts
 UserSchema.methods.incLoginAttempts = function() {
-    // If we have a previous lock that has expired, restart at 1
     if (this.lockUntil && this.lockUntil < Date.now()) {
         return this.updateOne({
             $unset: { lockUntil: 1 },
@@ -176,10 +164,15 @@ UserSchema.methods.incLoginAttempts = function() {
 
     // Lock account after 5 failed attempts for 2 hours
     if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-        updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours
+        updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
     }
 
     return this.updateOne(updates);
+};
+
+// Static method for finding active users
+UserSchema.statics.findActive = function(filters = {}) {
+    return this.find({...filters, isActive: true }).lean().exec();
 };
 
 module.exports = mongoose.model('User', UserSchema);

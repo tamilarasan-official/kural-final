@@ -12,14 +12,6 @@ const logger = require('./utils/logger');
 const config = require('../config/config');
 const { swaggerUi, specs } = require('../swagger');
 
-// Import models to ensure they're connected
-require('./models/User');
-require('./models/Voter');
-require('./models/Survey');
-require('./models/SurveyResponse');
-require('./models/ModalContent');
-require('./models/BoothAgentActivity');
-
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -28,79 +20,176 @@ const boothRoutes = require('./routes/boothRoutes');
 const surveyRoutes = require('./routes/surveyRoutes');
 const modalContentRoutes = require('./routes/modalContentRoutes');
 const boothAgentActivityRoutes = require('./routes/boothAgentActivity');
+const dynamicFieldRoutes = require('./routes/dynamicFieldRoutes');
+const voterFieldRoutes = require('./routes/voterFieldRoutes');
 
 const app = express();
 
-// Trust proxy
+// Trust proxy for rate limiting behind load balancer
 app.set('trust proxy', 1);
-// Disable ETag to avoid 304 Not Modified responses for API consumers that expect bodies
-app.set('etag', false);
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
-    origin: '*', // Allow all origins for development
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+// Disable x-powered-by header
+app.disable('x-powered-by');
+
+// Security middleware - helmet with optimized settings
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
 }));
 
-console.log('✓ CORS enabled for all origins');
+// CORS - optimized for production
+const corsOptions = {
+    origin: config.NODE_ENV === 'production' ?
+        config.CORS_ORIGIN.split(',') :
+        '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Per-Page'],
+    maxAge: 86400 // 24 hours
+};
+app.use(cors(corsOptions));
 
-
-// Rate limiting - DISABLED for both development and production (unlimited requests)
-const limiter = rateLimit({
+// Rate limiting - optimized for production
+const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100000, // Unlimited (100k requests per 15 minutes)
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    skip: () => true, // Skip rate limiting for all requests (unlimited)
+    max: config.NODE_ENV === 'production' ? 1000 : 100000,
+    message: {
+        success: false,
+        message: 'Too many requests, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => config.NODE_ENV === 'development',
+    handler: (req, res) => {
+        logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
+        res.status(429).json({
+            success: false,
+            message: 'Too many requests, please try again later.'
+        });
+    }
 });
 
-// Rate limiting disabled - Unlimited requests for development and production
-console.log('✓ Rate limiting disabled - Unlimited API requests allowed');
+// Apply rate limiter to API routes only
+app.use('/api/', apiLimiter);
 
-// Body parsing middleware
+// Body parsing middleware with limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Disable caching for API responses
-app.use((req, res, next) => {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    next();
-});
-
-// Data sanitization
+// Data sanitization against NoSQL injection
 app.use(mongoSanitize());
-app.use(hpp()); // Prevent HTTP Parameter Pollution
 
-// Compression middleware
-app.use(compression());
+// Prevent HTTP Parameter Pollution
+app.use(hpp({
+    whitelist: ['page', 'limit', 'sort', 'fields', 'aci_id', 'booth_id']
+}));
 
-// Logging middleware
-app.use(morgan('combined', { stream: logger.stream }));
+// Compression middleware - gzip responses
+app.use(compression({
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) return false;
+        return compression.filter(req, res);
+    },
+    level: 6
+}));
 
-// Add detailed request logging for debugging
+// HTTP request logging
+if (config.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+} else {
+    app.use(morgan('combined', {
+        stream: logger.stream,
+        skip: (req) => req.url === '/health'
+    }));
+}
+
+// Cache control headers
 app.use((req, res, next) => {
-    console.log(`📥 ${req.method} ${req.path} from ${req.ip}`);
+    // Don't cache API responses
+    if (req.path.startsWith('/api/')) {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+    }
     next();
 });
 
+// Request ID middleware for tracking
+app.use((req, res, next) => {
+    req.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    res.setHeader('X-Request-Id', req.id);
+    next();
+});
 
 // Health check route
 app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'OK',
+    const mongoose = require('mongoose');
+    const dbState = mongoose.connection.readyState;
+    const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+
+    res.status(dbState === 1 ? 200 : 503).json({
+        status: dbState === 1 ? 'healthy' : 'unhealthy',
         timestamp: new Date().toISOString(),
         environment: config.NODE_ENV,
-        version: process.env.npm_package_version || '1.0.0'
+        database: dbStatus,
+        uptime: process.uptime(),
+        memory: {
+            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+        },
+        pid: process.pid
     });
 });
 
-// Swagger documentation route
+// Detailed health check
+app.get('/health/detailed', async(req, res) => {
+    const mongoose = require('mongoose');
+    const checks = {
+        timestamp: new Date().toISOString(),
+        status: 'healthy',
+        checks: {}
+    };
+
+    // Database check
+    try {
+        const dbState = mongoose.connection.readyState;
+        checks.checks.database = {
+            status: dbState === 1 ? 'pass' : 'fail',
+            responseTime: 0
+        };
+
+        if (dbState === 1) {
+            const start = Date.now();
+            await mongoose.connection.db.admin().ping();
+            checks.checks.database.responseTime = Date.now() - start;
+        }
+    } catch (err) {
+        checks.checks.database = { status: 'fail', error: err.message };
+        checks.status = 'unhealthy';
+    }
+
+    // Redis check (if available)
+    try {
+        const cache = require('./utils/cache');
+        if (cache && cache.ping) {
+            const start = Date.now();
+            await cache.ping();
+            checks.checks.redis = {
+                status: 'pass',
+                responseTime: Date.now() - start
+            };
+        }
+    } catch (err) {
+        checks.checks.redis = { status: 'fail', error: err.message };
+    }
+
+    const statusCode = checks.status === 'healthy' ? 200 : 503;
+    res.status(statusCode).json(checks);
+});
+
+// API documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // API routes
@@ -111,6 +200,8 @@ app.use('/api/v1/booths', boothRoutes);
 app.use('/api/v1/surveys', surveyRoutes);
 app.use('/api/v1/modal-content', modalContentRoutes);
 app.use('/api/v1/activity', boothAgentActivityRoutes);
+app.use('/api/v1/dynamic-fields', dynamicFieldRoutes);
+app.use('/api/v1/voter-fields', voterFieldRoutes);
 
 // 404 handler
 app.use(notFound);

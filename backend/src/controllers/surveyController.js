@@ -45,15 +45,18 @@ const getAllSurveys = asyncHandler(async(req, res) => {
         filter.$and = andConditions;
     }
 
-    console.log('📋 Survey filter:', JSON.stringify(filter, null, 2));
-    const surveys = await Survey.find(filter)
+    // Execute count and find in parallel
+    const [total, surveys] = await Promise.all([
+        Survey.countDocuments(filter),
+        Survey.find(filter)
         .select('-responses')
         .sort({ formNumber: 1 })
         .skip(skip)
         .limit(parseInt(limit))
-        .lean();
+        .lean()
+    ]);
 
-    // Get response counts for each survey from surveyresponses collection
+    // Get response counts for each survey
     const surveysWithCounts = await Promise.all(surveys.map(async(survey) => {
         const formId = survey.formId || survey.formid || survey._id.toString();
         const responseCount = await SurveyResponse.countDocuments({
@@ -62,11 +65,9 @@ const getAllSurveys = asyncHandler(async(req, res) => {
         });
         return {
             ...survey,
-            responseCount: responseCount
+            responseCount
         };
     }));
-
-    const total = await Survey.countDocuments(filter);
 
     res.status(200).json({
         success: true,
@@ -86,36 +87,17 @@ const getAllSurveys = asyncHandler(async(req, res) => {
 // @access  Private
 const getSurveyById = asyncHandler(async(req, res) => {
     const { id } = req.params;
-    let survey;
 
-    console.log('\n📋 GET SURVEY BY ID:', id);
-
-    // Check if the id looks like a MongoDB ObjectId (24 hex characters)
-    if (id.match(/^[0-9a-fA-F]{24}$/)) {
-        survey = await Survey.findById(id).select('-responses').lean();
-    } else {
-        // Otherwise, treat it as a formId
-        survey = await Survey.findOne({ formId: id }).select('-responses').lean();
-    }
+    // Check if the id looks like a MongoDB ObjectId
+    const survey = id.match(/^[0-9a-fA-F]{24}$/) ?
+        await Survey.findById(id).select('-responses').lean() :
+        await Survey.findOne({ formId: id }).select('-responses').lean();
 
     if (!survey) {
-        console.log('❌ Survey not found');
         return res.status(404).json({
             success: false,
             message: 'Survey not found'
         });
-    }
-
-    console.log('✅ Survey found:');
-    console.log('   - _id:', survey._id);
-    console.log('   - formId:', survey.formId);
-    console.log('   - title:', survey.title);
-    console.log('   - has questions field:', !!survey.questions);
-    console.log('   - questions length:', survey.questions ? survey.questions.length : 0);
-    console.log('   - has questionA field:', !!survey.questionA);
-    console.log('   - questionA length:', survey.questionA ? survey.questionA.length : 0);
-    if (survey.questionA && survey.questionA.length > 0) {
-        console.log('   - First question from questionA:', JSON.stringify(survey.questionA[0], null, 2));
     }
 
     res.status(200).json({
@@ -142,7 +124,7 @@ const createSurvey = asyncHandler(async(req, res) => {
     } = req.body;
 
     // Check if form number already exists
-    const existingSurvey = await Survey.findOne({ formNumber });
+    const existingSurvey = await Survey.findOne({ formNumber }).select('_id').lean();
     if (existingSurvey) {
         return res.status(400).json({
             success: false,
@@ -315,49 +297,36 @@ const submitSurveyResponse = asyncHandler(async(req, res) => {
 
     const SurveyResponse = require('../models/SurveyResponse');
 
-    // Use answers if responses is not provided (frontend sends 'answers')
     const surveyAnswers = answers || responses || [];
 
-    console.log('\n📝 SUBMIT SURVEY RESPONSE');
-    console.log('Survey ID:', req.params.id);
-    console.log('Respondent:', { respondentId, respondentName, respondentVoterId });
-    console.log('Answers count:', surveyAnswers.length);
-
-    // Get survey using lean() to get raw document
-    const survey = await Survey.findById(req.params.id).lean();
+    // Get survey
+    const survey = await Survey.findById(req.params.id).select('status formId formid').lean();
 
     if (!survey) {
-        console.log('❌ Survey not found');
         return res.status(404).json({
             success: false,
             message: 'Survey not found'
         });
     }
 
-    console.log('Survey status:', survey.status);
-
-    // Accept both 'Active' and 'active' status
-    const surveyStatus = (survey.status || '').toLowerCase();
-    if (surveyStatus !== 'active') {
-        console.log('❌ Survey is not active, status:', survey.status);
+    // Check survey status
+    if ((survey.status || '').toLowerCase() !== 'active') {
         return res.status(400).json({
             success: false,
             message: 'Survey is not active'
         });
     }
 
-    // Use formId or _id for the response
     const formId = survey.formId || survey.formid || req.params.id;
 
-    // Check if respondent already submitted using voterId
+    // Check if respondent already submitted
     if (respondentVoterId) {
         const existingResponse = await SurveyResponse.findOne({
-            formId: formId,
-            respondentVoterId: respondentVoterId
-        });
+            formId,
+            respondentVoterId
+        }).select('_id').lean();
 
         if (existingResponse) {
-            console.log('❌ Response already submitted by this voter');
             return res.status(400).json({
                 success: false,
                 message: 'Response already submitted for this survey'
@@ -384,33 +353,9 @@ const submitSurveyResponse = asyncHandler(async(req, res) => {
         submittedAt: new Date()
     });
 
-    console.log('✅ Survey response created:', surveyResponse._id);
-
-    // Update voter's surveyed field to true
+    // Update voter's surveyed field
     if (respondentVoterId) {
-        console.log('🔍 Updating voter surveyed status for voterID:', respondentVoterId);
-        console.log('🔍 Query:', { voterID: respondentVoterId });
-        const updateResult = await Voter.updateOne({ voterID: respondentVoterId }, { $set: { surveyed: true } });
-        console.log('✅ Update result:', JSON.stringify(updateResult, null, 2));
-        console.log('   - matchedCount:', updateResult.matchedCount);
-        console.log('   - modifiedCount:', updateResult.modifiedCount);
-
-        // Verify the update
-        const voter = await Voter.findOne({ voterID: respondentVoterId });
-        if (voter) {
-            const voterName = (voter.name && voter.name.english) ? voter.name.english : voter.Name;
-            console.log('✅ Voter found:', voterName);
-            console.log('   - voterID:', voter.voterID);
-            console.log('   - booth_id:', voter.booth_id);
-            console.log('   - surveyed status:', voter.surveyed);
-        } else {
-            console.log('⚠️ Voter not found with voterID:', respondentVoterId);
-            // Try to find what voterID values exist in database
-            const sampleVoters = await Voter.find({}).limit(3).select('voterID name');
-            console.log('   Sample voterIDs in database:', sampleVoters.map(v => v.voterID));
-        }
-    } else {
-        console.log('⚠️ No respondentVoterId provided in request!');
+        await Voter.updateOne({ voterID: respondentVoterId }, { $set: { surveyed: true, surveyedAt: new Date() } });
     }
 
     res.status(201).json({
@@ -546,6 +491,69 @@ const getCompletedVoters = asyncHandler(async(req, res) => {
     });
 });
 
+// @desc    Get booth survey statistics
+// @route   GET /api/v1/surveys/booth-stats?aci_id={id}&booth_id={id}
+// @access  Private
+const getBoothSurveyStats = asyncHandler(async(req, res) => {
+    const { aci_id, booth_id } = req.query;
+    const SurveyResponse = require('../models/SurveyResponse');
+
+    if (!aci_id || !booth_id) {
+        return res.status(400).json({
+            success: false,
+            message: 'aci_id and booth_id are required'
+        });
+    }
+
+    const aciIdNumber = Number(aci_id);
+
+    // Get all voter IDs for this specific booth
+    const votersInBooth = await Voter.find({
+        aci_id: aciIdNumber,
+        booth_id: booth_id
+    }).select('voterID Number').lean();
+
+    // Extract voter IDs (check both voterID and Number fields)
+    const voterIds = votersInBooth.map(v => v.voterID || v.Number).filter(Boolean);
+
+    // Get active surveys for this ACI
+    const surveys = await Survey.find({
+        $or: [
+            { assignedACs: aciIdNumber },
+            { assignedACs: { $exists: false } },
+            { assignedACs: { $size: 0 } }
+        ],
+        status: { $regex: /^active$/i }
+    }).select('formId formid title _id').lean();
+
+    // Get response counts filtered by booth voters
+    const surveyDetails = await Promise.all(surveys.map(async(survey) => {
+        const formId = survey.formId || survey.formid || survey._id.toString();
+        const responseCount = await SurveyResponse.countDocuments({
+            formId,
+            isComplete: true,
+            respondentVoterId: { $in: voterIds }
+        });
+        return {
+            surveyId: survey._id,
+            surveyTitle: survey.title,
+            formId,
+            responseCount
+        };
+    }));
+
+    const totalResponses = surveyDetails.reduce((sum, s) => sum + s.responseCount, 0);
+
+    res.status(200).json({
+        success: true,
+        data: {
+            activeSurveys: surveys.length,
+            totalResponses: totalResponses,
+            surveys: surveyDetails
+        }
+    });
+});
+
 module.exports = {
     getAllSurveys,
     getSurveyById,
@@ -556,5 +564,6 @@ module.exports = {
     getSurveyStats,
     submitSurveyResponse,
     getSurveyProgress,
-    getCompletedVoters
+    getCompletedVoters,
+    getBoothSurveyStats
 };
