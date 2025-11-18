@@ -1,0 +1,39 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches:
+      - new-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy to VPS
+        env:
+          SSH_PASS: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@178.16.137.247 "
+            echo '📥 Pulling latest code...'
+            cd /root/tamilarasan/kural-backend &&
+            git stash --include-untracked && git pull origin new-backend &&
+
+            echo '📦 Installing ROOT dependencies...'
+            npm install --production &&
+
+            echo '📦 Installing BACKEND dependencies...'
+            cd backend &&
+            npm install --production &&
+
+            echo '🚀 Restarting PM2 service...'
+            pm2 restart kuralapp-backend &&
+
+            echo '✅ Deployment Completed Successfully!'
+          "
