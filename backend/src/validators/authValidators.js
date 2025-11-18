@@ -32,25 +32,31 @@ const validateRegister = (req, res, next) => {
 
 const validateLogin = (req, res, next) => {
     const schema = Joi.object({
-        email: Joi.string().email().optional().messages({
+        email: Joi.string().email().messages({
             'string.email': 'Please provide a valid email address'
         }),
         phone: Joi.alternatives().try(
-            Joi.string().pattern(/^[0-9]{10}$/),
+            Joi.string().pattern(/^[0-9]{10,15}$/),
             Joi.number()
-        ).optional().messages({
-            'string.pattern.base': 'Phone must be a 10-digit number'
+        ).messages({
+            'string.pattern.base': 'Phone must be a valid number'
         }),
         password: Joi.string().required().messages({
             'any.required': 'Password is required'
         })
     }).or('email', 'phone').messages({
-        'object.missing': 'Either email or phone is required'
+        'object.missing': 'Either email or phone is required',
+        'object.or': 'Either email or phone is required'
     });
 
-    const { error } = schema.validate(req.body);
+    const { error, value } = schema.validate(req.body, { 
+        abortEarly: false,
+        allowUnknown: false 
+    });
 
     if (error) {
+        console.log('Validation error:', error.details);
+        console.log('Request body:', req.body);
         return res.status(400).json({
             success: false,
             error: error.details[0].message
