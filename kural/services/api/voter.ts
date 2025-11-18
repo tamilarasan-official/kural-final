@@ -487,6 +487,7 @@ export const voterAPI = {
     aci_name?: string;
   }) => {
     const token = await API_CONFIG.getToken();
+    console.log('🔵 Sending voter creation request:', JSON.stringify(voterData, null, 2));
     const response = await fetch(`${BASE_URL}`, {
       method: 'POST',
       headers: {
@@ -496,12 +497,21 @@ export const voterAPI = {
       body: JSON.stringify(voterData),
     });
 
+    console.log('🔵 Response status:', response.status);
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.log('❌ Backend error response:', errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      } catch (e) {
+        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      }
     }
 
     const data = await response.json();
+    console.log('✅ Voter created successfully:', data);
     return data;
   },
 };

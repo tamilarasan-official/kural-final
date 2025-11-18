@@ -161,8 +161,9 @@ export default function SurveysScreen() {
             </View>
           ) : (
             surveys.map((survey) => {
-              // Use booth-specific surveyed count instead of global responseCount
-              const progress = surveyedVotersCount;
+              // Use survey-specific response count from backend (already provided in survey.responseCount)
+              // Each survey tracks its own completion via SurveyResponse collection
+              const progress = survey.responseCount || 0;
               // Use actual booth voters count instead of hardcoded value
               const total = totalVoters || survey.targetCount || survey.total || 0;
               const percentage = getProgressPercentage(progress, total);

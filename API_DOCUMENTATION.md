@@ -92,7 +92,7 @@ Authorization: Bearer {token}
 **Request Body:**
 ```json
 {
-  "voterId": "TND119 0007",
+  "voterId": "TND111001",
   "fullName": "John Doe",
   "age": "35",
   "gender": "Male",
@@ -100,7 +100,7 @@ Authorization: Bearer {token}
   "address": "123 Main Street, Locality",
   "familyId": "F001",
   "specialCategories": ["Age 60+"],
-  "partNumber": "119 "
+  "partNumber": "111"
 }
 ```
 
@@ -112,15 +112,15 @@ Authorization: Bearer {token}
     "_id": "6543210abcdef",
     "sr": 1234,
     "Name": "John Doe",
-    "Number": "TND119 0007",
+    "Number": "TND111001",
     "sex": "Male",
     "age": 35,
-    "Part_no": 119 ,
+    "Part_no": 111,
     "Mobile No": "+91 9876543210",
     "address": "123 Main Street, Locality",
     "familyId": "F001",
     "specialCategories": ["Age 60+"],
-    "createdAt": "2025-10-28T10:30:00.000Z"
+    "createdAt": "2025-11-18T10:30:00.000Z"
   },
   "message": "Voter created successfully"
 }
@@ -141,9 +141,9 @@ Advanced search for voters with multiple parameters.
 {
   "Name": "John",
   "mobileNo": "9876543210",
-  "Number": "TND119 0007",
+  "Number": "TND111001",
   "age": "35",
-  "partNo": "119 ",
+  "partNo": "111",
   "serialNo": "123",
   "Father Name": "Doe Sr",
   "page": 1,
@@ -159,10 +159,10 @@ Advanced search for voters with multiple parameters.
     {
       "_id": "6543210abcdef",
       "Name": "John Doe",
-      "Number": "TND119 0007",
+      "Number": "TND111001",
       "age": 35,
       "sex": "Male",
-      "Part_no": 119 ,
+      "Part_no": 111,
       "Mobile No": "9876543210"
     }
   ],
@@ -189,27 +189,40 @@ Get detailed information about a specific voter.
   "success": true,
   "data": {
     "_id": "6543210abcdef",
-    "Name": "John Doe",
-    "Number": "TND119 0007",
+    "name": {
+      "english": "John Doe",
+      "tamil": "ஜான் டோ"
+    },
+    "voterID": "TND111001",
     "age": 35,
-    "sex": "Male",
-    "Part_no": 119 ,
-    "Mobile No": "9876543210",
-    "Father Name": "Doe Sr",
-    "Address-House no": "123",
-    "Address-Street": "Main Street"
+    "gender": "Male",
+    "mobile": "9876543210",
+    "address": "123 Main Street",
+    "booth_id": "BOOTH001",
+    "aci_id": 111,
+    "verified": false,
+    "surveyed": false
   }
 }
 ```
 
-#### 4. Get Voters by Part Number
-**GET** `/api/v1/voters/by-part/:partNumber?page=1&limit=50`
+#### 4. Get Voters by Booth ID ✨ UPDATED
+**GET** `/api/v1/voters/by-booth/:aciId/:boothId?page=1&limit=50`
 
-Get all voters in a specific booth/part.
+Get all voters in a specific booth filtered by ACI ID and Booth ID.
+
+**Path Parameters:**
+- `aciId` (required): ACI ID (Assembly Constituency In-charge ID)
+- `boothId` (required): Booth ID
 
 **Query Parameters:**
 - `page` (optional): Page number (default: 1)
-- `limit` (optional): Items per page (default: 50)
+- `limit` (optional): Items per page (default: 50, max: 100)
+
+**Example:**
+```
+GET /api/v1/voters/by-booth/111/BOOTH001?page=1&limit=50
+```
 
 **Response:**
 ```json
@@ -218,10 +231,61 @@ Get all voters in a specific booth/part.
   "voters": [
     {
       "_id": "6543210abcdef",
-      "Name": "John Doe",
-      "Number": "TND119 0007",
+      "sr": 1,
+      "name": {
+        "english": "John Doe",
+        "tamil": "ஜான் டோ"
+      },
+      "voterID": "TND111001",
       "age": 35,
-      "Part_no": 119 
+      "gender": "Male",
+      "mobile": "9876543210",
+      "booth_id": "BOOTH001",
+      "aci_id": 111,
+      "aci_name": "METTUPALAYAM",
+      "verified": false,
+      "surveyed": false
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalVoters": 103,
+    "limit": 50
+  }
+}
+```
+
+**Notes:**
+- Both `aciId` and `boothId` are required parameters
+- Voters are sorted by serial number (`sr`) in ascending order
+- Name field is normalized with English and Tamil versions
+- All voter fields are extracted from nested objects if present
+
+**Error Responses:**
+- `400` - Both aciId and boothId are required
+- `500` - Failed to fetch voters by booth ID
+
+#### 5. Get Voters by Part Number
+**GET** `/api/v1/voters/by-part/:partNumber?page=1&limit=50`
+
+Get all voters in a specific booth/part.
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 50, max: 50)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "6543210abcdef",
+      "Name": "John Doe",
+      "Number": "TND111001",
+      "age": 35,
+      "Part_no": 111
     }
   ],
   "pagination": {
@@ -232,7 +296,7 @@ Get all voters in a specific booth/part.
 }
 ```
 
-#### 5. Get Part Names
+#### 6. Get Part Names
 **GET** `/api/v1/voters/part-names`
 
 Get list of all unique part numbers with names.
@@ -243,16 +307,16 @@ Get list of all unique part numbers with names.
   "success": true,
   "data": [
     {
-      "partNumber": 119 ,
-      "partName": "Booth 119 ",
-      "partNameTamil": "பூத் 119 "
+      "partNumber": 111,
+      "partName": "Booth 111",
+      "partNameTamil": "பூத் 111"
     }
   ],
   "count": 150
 }
 ```
 
-#### 6. Get Voter Statistics
+#### 7. Get Voter Statistics
 **GET** `/api/v1/voters/stats/:partNumber`
 
 Get gender statistics for a specific part.
@@ -270,7 +334,7 @@ Get gender statistics for a specific part.
 }
 ```
 
-#### 7. Get Voters by Age Range
+#### 8. Get Voters by Age Range
 **GET** `/api/v1/voters/age-range?minAge=60&maxAge=120&page=1&limit=100`
 
 Get voters within a specific age range.
@@ -284,7 +348,7 @@ Get voters within a specific age range.
       "_id": "6543210abcdef",
       "Name": "Senior Citizen",
       "age": 65,
-      "Part_no": 119 
+      "Part_no": 111
     }
   ],
   "total": 45,
@@ -592,7 +656,16 @@ Get list of voter IDs who have completed this survey.
 ### Base Path: `/api/v1/surveys`
 
 #### 1. Get All Surveys
-**GET** `/api/v1/surveys?limit=100`
+**GET** `/api/v1/surveys?page=1&limit=100&status=active&search=keyword&aci_id=111`
+
+Get paginated list of surveys with optional filters.
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 10, max: 100)
+- `status` (optional): Filter by status ('active', 'inactive', 'completed', 'all')
+- `search` (optional): Search in title, tamilTitle, or description
+- `aci_id` (optional): Filter surveys assigned to specific ACI (for booth agents)
 
 **Response:**
 ```json
@@ -601,61 +674,334 @@ Get list of voter IDs who have completed this survey.
   "data": [
     {
       "_id": "6543210abcdef",
+      "formId": "survey-001",
+      "formNumber": 1,
       "title": "Voter Opinion Survey",
+      "tamilTitle": "வாக்காளர் கருத்துக் கணக்கெடுப்பு",
       "description": "Collect voter opinions",
-      "questionsCount": 10,
-      "deadline": "2025-11-01",
       "status": "active",
-      "responsesCount": 45,
-      "targetCount": 100
+      "isPublished": true,
+      "assignedACs": [111, 119],
+      "createdAt": "2025-11-18T10:30:00.000Z",
+      "responseCount": 45
     }
-  ]
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalCount": 45,
+    "hasNext": true,
+    "hasPrev": false
+  }
 }
 ```
 
 #### 2. Create Survey
 **POST** `/api/v1/surveys`
 
+Create a new survey form.
+
 **Request Body:**
 ```json
 {
+  "formId": "survey-001",
+  "formNumber": 1,
   "title": "Voter Opinion Survey",
-  "description": "Collect voter opinions",
+  "tamilTitle": "வாக்காளர் கருத்துக் கணக்கெடுப்பு",
+  "description": "Collect voter opinions on key issues",
+  "status": "active",
+  "isPublished": true,
+  "assignedACs": [111, 119],
   "questions": [
     {
-      "question": "What is your primary concern?",
-      "type": "multiple_choice",
-      "options": ["Education", "Healthcare", "Employment"]
+      "questionId": "q1",
+      "questionText": "What is your primary concern?",
+      "questionTextTamil": "உங்கள் முக்கிய கவலை என்ன?",
+      "questionType": "single_choice",
+      "options": [
+        {
+          "optionId": "o1",
+          "optionText": "Education",
+          "optionTextTamil": "கல்வி",
+          "optionValue": "education"
+        },
+        {
+          "optionId": "o2",
+          "optionText": "Healthcare",
+          "optionTextTamil": "சுகாதாரம்",
+          "optionValue": "healthcare"
+        }
+      ],
+      "required": true,
+      "order": 1
     }
-  ],
-  "deadline": "2025-11-01"
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "6543210abcdef",
+    "formId": "survey-001",
+    "title": "Voter Opinion Survey",
+    "status": "active",
+    "createdAt": "2025-11-18T10:30:00.000Z"
+  },
+  "message": "Survey created successfully"
 }
 ```
 
 #### 3. Get Survey by ID
 **GET** `/api/v1/surveys/:id`
 
+Get detailed information about a specific survey.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "6543210abcdef",
+    "formId": "survey-001",
+    "title": "Voter Opinion Survey",
+    "tamilTitle": "வாக்காளர் கருத்துக் கணக்கெடுப்பு",
+    "description": "Survey description",
+    "status": "active",
+    "questions": [...],
+    "assignedACs": [111, 119],
+    "responseCount": 45
+  }
+}
+```
+
 #### 4. Update Survey
 **PUT** `/api/v1/surveys/:id`
 
-#### 5. Delete Survey
-**DELETE** `/api/v1/surveys/:id`
-
-#### 6. Submit Survey Response
-**POST** `/api/v1/surveys/:id/responses`
+Update survey details.
 
 **Request Body:**
 ```json
 {
-  "voterId": "TND119 0007",
-  "responses": [
+  "title": "Updated Survey Title",
+  "description": "Updated description",
+  "status": "active",
+  "questions": [...]
+}
+```
+
+#### 5. Update Survey Status
+**PUT** `/api/v1/surveys/:id/status`
+
+Update only the survey status.
+
+**Request Body:**
+```json
+{
+  "status": "inactive"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "6543210abcdef",
+    "status": "inactive",
+    "updatedAt": "2025-11-18T10:30:00.000Z"
+  },
+  "message": "Survey status updated successfully"
+}
+```
+
+#### 6. Delete Survey
+**DELETE** `/api/v1/surveys/:id`
+
+Soft delete a survey (marks as deleted, doesn't remove from database).
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Survey deleted successfully"
+}
+```
+
+#### 7. Get Survey Statistics
+**GET** `/api/v1/surveys/stats`
+
+Get overall survey statistics across all surveys.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalSurveys": 10,
+    "activeSurveys": 3,
+    "completedSurveys": 7,
+    "totalResponses": 450,
+    "averageResponseRate": 75.5
+  }
+}
+```
+
+#### 8. Get Survey Progress by ACI
+**GET** `/api/v1/surveys/progress?aci_id=111`
+
+Get survey completion progress for a specific ACI.
+
+**Query Parameters:**
+- `aci_id` (required): ACI ID to get progress for
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "aciId": 111,
+    "totalBoothAgents": 98,
+    "completedSurveys": 45,
+    "pendingSurveys": 53,
+    "completionRate": 45.92,
+    "boothProgress": [
+      {
+        "boothId": "BOOTH001",
+        "agentName": "Agent_001",
+        "completed": 5,
+        "pending": 98,
+        "lastUpdated": "2025-11-18T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+#### 9. Get Booth Survey Statistics ✨ NEW
+**GET** `/api/v1/surveys/booth-stats?aci_id=111&booth_id=BOOTH001`
+
+Get survey statistics for a specific booth. Shows active surveys and response counts filtered by booth voters only.
+
+**Query Parameters:**
+- `aci_id` (required): ACI ID of the booth
+- `booth_id` (required): Booth ID to get statistics for
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "activeSurveys": 3,
+    "totalResponses": 5,
+    "surveys": [
+      {
+        "surveyId": "691b7344f94d177a777a7cc4",
+        "surveyTitle": "test",
+        "formId": "691b7344f94d177a777a7cc4",
+        "responseCount": 2
+      },
+      {
+        "surveyId": "691ba41f230ad96b0b1a947e",
+        "surveyTitle": "jello-123456",
+        "formId": "691ba41f230ad96b0b1a947e",
+        "responseCount": 2
+      },
+      {
+        "surveyId": "691c2c656f3088adc3e582e8",
+        "surveyTitle": "Test survey",
+        "formId": "691c2c656f3088adc3e582e8",
+        "responseCount": 1
+      }
+    ]
+  }
+}
+```
+
+**Notes:**
+- Only counts responses from voters registered in the specified booth
+- Filters by both `aci_id` and `booth_id` to ensure booth-specific statistics
+- Only includes surveys with status "active"
+- Response count is specific to voters in that booth only
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "aci_id and booth_id are required"
+}
+```
+
+#### 10. Get Completed Voters for Survey
+**GET** `/api/v1/surveys/:id/completed-voters`
+
+Get list of voters who have completed a specific survey.
+
+**Response:**
+```json
+{
+  "success": true,
+  "voterIds": ["TND111001", "TND111002", "TND111003"],
+  "count": 3,
+  "data": [
     {
-      "questionId": "q1",
-      "answer": "Education"
+      "respondentId": "voter123",
+      "respondentVoterId": "TND111001",
+      "respondentName": "Rajesh Kumar",
+      "submittedAt": "2025-11-18T10:30:00.000Z"
     }
   ]
 }
 ```
+
+#### 11. Submit Survey Response
+**POST** `/api/v1/surveys/:id/responses`
+
+Submit a survey response for a voter.
+
+**Request Body:**
+```json
+{
+  "respondentId": "voter123",
+  "respondentName": "Rajesh Kumar",
+  "respondentVoterId": "TND111001",
+  "respondentMobile": "+91 9876543210",
+  "respondentAge": 45,
+  "answers": [
+    {
+      "questionId": "q1",
+      "answer": "Education"
+    },
+    {
+      "questionId": "q2",
+      "answer": ["Healthcare", "Infrastructure"]
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "response123",
+    "formId": "survey-001",
+    "respondentName": "Rajesh Kumar",
+    "respondentVoterId": "TND111001",
+    "isComplete": true,
+    "submittedAt": "2025-11-18T10:30:00.000Z"
+  },
+  "message": "Survey response submitted successfully"
+}
+```
+
+**Error Responses:**
+- `404` - Survey not found
+- `400` - Survey is not active
+- `400` - Response already submitted for this voter
 
 ---
 
@@ -1039,6 +1385,43 @@ const createVoter = async (voterData) => {
 
 ---
 
-**Last Updated:** October 28, 2025  
+**Last Updated:** November 18, 2025  
 **API Version:** 1.0.0  
 **Contact:** Kural Development Team
+
+---
+
+## Recent Updates (November 18, 2025)
+
+### ✨ New Features & Fixes
+
+1. **Booth-Specific Survey Statistics** (`/api/v1/surveys/booth-stats`)
+   - Added new endpoint to get survey statistics filtered by booth
+   - Properly filters survey responses by `aci_id` AND `booth_id`
+   - Each booth now shows accurate survey completion counts for its own voters only
+   - Fixed issue where all booths under same ACI showed identical statistics
+
+2. **Voter Endpoint Route Fix** (`/api/v1/voters`)
+   - Fixed route mounting from `/api/v1/voter` (singular) to `/api/v1/voters` (plural)
+   - Now matches frontend API expectations
+   - Resolved 404 errors when fetching voters by booth
+
+3. **Enhanced Get Voters by Booth** (`/api/v1/voters/by-booth/:aciId/:boothId`)
+   - Updated to require both `aciId` and `boothId` path parameters
+   - Improved data normalization for voter names (English/Tamil)
+   - Better field extraction from nested objects
+   - Proper pagination support with booth-specific totals
+
+### 🐛 Bug Fixes
+
+- Fixed syntax errors in optional chaining operators (`?.`)
+- Improved error handling for booth statistics
+- Added proper validation for required parameters
+- Fixed duplicate index warnings in Mongoose schemas
+
+### 🔧 Performance Improvements
+
+- Optimized database queries with `.lean()` for faster response times
+- Parallel query execution for count and find operations
+- Efficient voter ID extraction for booth-specific filtering
+- Background index creation for better performance

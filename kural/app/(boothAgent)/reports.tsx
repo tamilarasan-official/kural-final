@@ -26,6 +26,11 @@ export default function ReportsScreen() {
     age60Plus: 0,
     age80Plus: 0,
   });
+  const [activityStats, setActivityStats] = useState({
+    verifiedToday: 0,
+    surveysThisWeek: 0,
+    activeSurveys: 0
+  });
 
   useEffect(() => {
     loadReportData();
@@ -129,6 +134,25 @@ export default function ReportsScreen() {
       // Calculate voter categories (using the voters array we fetched)
       console.log('Reports - Calculating categories from voters array, length:', voters.length);
       const verifiedVoters = voters.filter(v => v.verified === true || v.status === 'verified').length;
+      
+      // Calculate activity stats based on actual verification dates
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      let verifiedToday = 0;
+      
+      voters.forEach((voter: any) => {
+        if (voter.verified === true || voter.status === 'verified') {
+          if (voter.verifiedAt) {
+            const verifiedDate = new Date(voter.verifiedAt);
+            if (verifiedDate >= todayStart) {
+              verifiedToday++;
+            }
+          }
+        }
+      });
+      
       const maleVoters = voters.filter(v => {
         const gender = (v.gender || v.Gender || v.Sex || v.sex || '').toLowerCase();
         return gender === 'male' || gender === 'm';
@@ -162,28 +186,39 @@ export default function ReportsScreen() {
         age80Plus
       });
 
-      // Fetch surveys - count surveyed voters from voters collection
+      // Fetch surveys - get total survey responses across all surveys
       let activeSurveys = 0;
       let completedSurveys = 0;
+      let surveysThisWeek = 0;
+      
       try {
-        // Get surveys assigned to this ACI
-        const surveysResponse = await surveyAPI.getAll({ limit: 100, aci_id: String(aciId) } as any);
-        if (surveysResponse?.success && Array.isArray(surveysResponse.data)) {
-          console.log('Reports - All surveys for ACI:', surveysResponse.data.length);
+        if (aciId && boothId) {
+          // Get booth survey statistics from new API
+          const surveyStatsResponse = await surveyAPI.getBoothStats(String(aciId), String(boothId));
+          console.log('Reports - Survey stats response:', surveyStatsResponse);
           
-          // Count active surveys assigned to this ACI
-          activeSurveys = surveysResponse.data.filter((s: any) => 
-            s.status === 'Active' || s.status === 'active'
-          ).length;
-          
-          // Count surveyed voters from the voters we already fetched
-          completedSurveys = voters.filter((v: any) => v.surveyed === true).length;
-          
-          console.log('Reports - Active surveys:', activeSurveys, 'Surveyed voters:', completedSurveys);
+          if (surveyStatsResponse?.success) {
+            activeSurveys = surveyStatsResponse.data?.activeSurveys || 0;
+            completedSurveys = surveyStatsResponse.data?.totalResponses || 0;
+            surveysThisWeek = completedSurveys; // TODO: Add date filtering to API
+            
+            console.log('Reports - Survey stats:', {
+              activeSurveys,
+              totalResponses: completedSurveys,
+              surveys: surveyStatsResponse.data?.surveys
+            });
+          }
         }
       } catch (error) {
         console.warn('Failed to fetch surveys:', error);
       }
+
+      // Update activity stats
+      setActivityStats({
+        verifiedToday: verifiedToday || 0,
+        surveysThisWeek: surveysThisWeek || completedSurveys,
+        activeSurveys: activeSurveys
+      });
 
       setStats({
         totalVoters,
@@ -259,19 +294,19 @@ export default function ReportsScreen() {
             <View style={styles.miniStatCard}>
               <Icon name="home" size={32} color="#7B1FA2" />
               <Text style={styles.miniStatValue}>{stats.totalFamilies}</Text>
-              <Text style={styles.miniStatLabel}>Families</Text>
+              <Text style={styles.miniStatLabel}>Total Families</Text>
             </View>
 
             <View style={styles.miniStatCard}>
               <Icon name="check-circle" size={32} color="#388E3C" />
               <Text style={styles.miniStatValue}>{stats.verifiedVoters}</Text>
-              <Text style={styles.miniStatLabel}>Verified</Text>
+              <Text style={styles.miniStatLabel}>Verified Voters</Text>
             </View>
 
             <View style={styles.miniStatCard}>
               <Icon name="trending-up" size={32} color="#1976D2" />
-              <Text style={styles.miniStatValue}>{stats.activeSurveys} Active</Text>
-              <Text style={styles.miniStatLabel}>Surveys</Text>
+              <Text style={styles.miniStatValue}>{stats.activeSurveys}</Text>
+              <Text style={styles.miniStatLabel}>Active Survey</Text>
             </View>
           </View>
         </View>
@@ -381,7 +416,9 @@ export default function ReportsScreen() {
             <View style={styles.activityItem}>
               <View style={[styles.activityDot, { backgroundColor: '#4CAF50' }]} />
               <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>{stats.verifiedVoters} voters verified</Text>
+                <Text style={styles.activityTitle}>
+                  {activityStats.verifiedToday} voter{activityStats.verifiedToday !== 1 ? 's' : ''} verified
+                </Text>
                 <Text style={styles.activityTime}>Today</Text>
               </View>
             </View>
@@ -389,15 +426,19 @@ export default function ReportsScreen() {
             <View style={styles.activityItem}>
               <View style={[styles.activityDot, { backgroundColor: '#4CAF50' }]} />
               <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>{stats.completedSurveys} surveys completed</Text>
-                <Text style={styles.activityTime}>Today</Text>
+                <Text style={styles.activityTitle}>
+                  {activityStats.surveysThisWeek} survey{activityStats.surveysThisWeek !== 1 ? 's' : ''} completed
+                </Text>
+                <Text style={styles.activityTime}>This week</Text>
               </View>
             </View>
 
             <View style={styles.activityItem}>
               <View style={[styles.activityDot, { backgroundColor: '#2196F3' }]} />
               <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>{stats.activeSurveys} active surveys</Text>
+                <Text style={styles.activityTitle}>
+                  {activityStats.activeSurveys} active survey{activityStats.activeSurveys !== 1 ? 's' : ''}
+                </Text>
                 <Text style={styles.activityTime}>Ongoing</Text>
               </View>
             </View>
@@ -470,6 +511,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     alignItems: 'center',
+    minHeight: 130,
+    justifyContent: 'center',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -486,6 +529,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 4,
+    textAlign: 'center',
+    width: '100%',
   },
   card: {
     backgroundColor: '#fff',

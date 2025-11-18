@@ -208,20 +208,48 @@ export default function FamiliesScreen() {
   const openMapFamilyModal = async () => {
     try {
       setMapFamilyModalVisible(true);
+      setAllVoters([]); // Clear previous data
+      
       // Load all voters for selection
-      const boothId = userData?.booth_id || '';
-      const aciId = userData?.aci_id || '';
+      let boothId = userData?.booth_id || '';
+      let aciId = userData?.aci_id || '';
+      
+      // Fallback to AsyncStorage
+      if (!boothId || !aciId) {
+        const savedUserData = await AsyncStorage.getItem('userData');
+        if (savedUserData) {
+          const parsed = JSON.parse(savedUserData);
+          boothId = parsed.booth_id || '';
+          aciId = parsed.aci_id || '';
+        }
+      }
+      
+      console.log('Map Family Modal - Loading voters for:', { aciId, boothId });
+      
       if (aciId && boothId) {
         const aciIdStr = String(aciId);
         const boothIdStr = String(boothId);
         const response = await voterAPI.getVotersByBoothId(aciIdStr, boothIdStr, { page: 1, limit: 5000 });
+        
+        console.log('Map Family Modal - API Response:', {
+          success: response?.success,
+          votersCount: response?.voters?.length,
+          hasVoters: Array.isArray(response?.voters)
+        });
+        
         if (response?.success && Array.isArray(response.voters)) {
+          console.log('Map Family Modal - Setting voters:', response.voters.length);
           setAllVoters(response.voters);
+        } else {
+          console.warn('Map Family Modal - No voters found in response');
+          Alert.alert('Info', 'No voters found for this booth');
         }
+      } else {
+        Alert.alert('Error', 'Booth information not available. Please login again.');
       }
     } catch (error) {
       console.error('Failed to load voters:', error);
-      Alert.alert('Error', 'Failed to load voters');
+      Alert.alert('Error', 'Failed to load voters. Please try again.');
     }
   };
 
@@ -596,36 +624,50 @@ export default function FamiliesScreen() {
 
                 {/* Voters List */}
                 <ScrollView style={styles.votersListContainer} showsVerticalScrollIndicator={false}>
-                  {filteredVotersForMapping.length === 0 ? (
+                  {allVoters.length === 0 && !voterSearchQuery ? (
+                    <View style={styles.emptyVotersList}>
+                      <ActivityIndicator size="large" color="#1976D2" />
+                      <Text style={styles.emptyVotersText}>Loading voters...</Text>
+                    </View>
+                  ) : filteredVotersForMapping.length === 0 ? (
                     <View style={styles.emptyVotersList}>
                       <Icon name="people-outline" size={48} color="#ccc" />
                       <Text style={styles.emptyVotersText}>
-                        {voterSearchQuery ? 'No voters found' : 'Loading voters...'}
+                        {voterSearchQuery ? 'No voters found matching your search' : 'No voters available'}
+                      </Text>
+                      <Text style={styles.emptyVotersSubtext}>
+                        {allVoters.length > 0 ? 'Try a different search term' : 'Please check your connection'}
                       </Text>
                     </View>
                   ) : (
-                    filteredVotersForMapping.map((voter) => (
-                      <TouchableOpacity
-                        key={voter._id}
-                        style={styles.voterItem}
-                        onPress={() => toggleVoterSelection(voter._id)}
-                      >
-                        <View style={styles.radioButton}>
-                          {selectedVoters.includes(voter._id) && (
-                            <View style={styles.radioButtonInner} />
-                          )}
-                        </View>
-                        <View style={styles.voterItemInfo}>
-                          <Text style={styles.voterName}>{voter.Name}</Text>
-                          <Text style={styles.voterDetails}>
-                            {voter['EPIC No'] || voter.Number} • {voter.Age || voter.age}y • {voter.sex}
-                          </Text>
-                          <Text style={styles.voterAddress}>
-                            {voter.Door_No}, {voter.Anubhag_name}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))
+                    <>
+                      <Text style={styles.votersCountText}>
+                        Showing {filteredVotersForMapping.length} voter{filteredVotersForMapping.length !== 1 ? 's' : ''}
+                        {voterSearchQuery && ` matching "${voterSearchQuery}"`}
+                      </Text>
+                      {filteredVotersForMapping.map((voter) => (
+                        <TouchableOpacity
+                          key={voter._id}
+                          style={styles.voterItem}
+                          onPress={() => toggleVoterSelection(voter._id)}
+                        >
+                          <View style={styles.radioButton}>
+                            {selectedVoters.includes(voter._id) && (
+                              <View style={styles.radioButtonInner} />
+                            )}
+                          </View>
+                          <View style={styles.voterItemInfo}>
+                            <Text style={styles.voterName}>{voter.Name || 'Unknown'}</Text>
+                            <Text style={styles.voterDetails}>
+                              {voter['EPIC No'] || voter.Number || 'N/A'} • {voter.Age || voter.age || '?'}y • {voter.sex || '?'}
+                            </Text>
+                            <Text style={styles.voterAddress}>
+                              {voter.Door_No || ''}{voter.Door_No && voter.Anubhag_name ? ', ' : ''}{voter.Anubhag_name || voter.address || 'No address'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </>
                   )}
                 </ScrollView>
               </View>
@@ -1111,6 +1153,18 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#999',
+  },
+  emptyVotersSubtext: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#BBB',
+    textAlign: 'center',
+  },
+  votersCountText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '500',
   },
   modalActions: {
     flexDirection: 'row',

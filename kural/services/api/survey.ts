@@ -180,4 +180,25 @@ export const surveyAPI = {
 
     return await response.json();
   },
+
+  // Get booth survey statistics
+  getBoothStats: async (aciId: string, boothId: string) => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('aci_id', aciId);
+    queryParams.append('booth_id', boothId);
+
+    const response = await fetch(`${BASE_URL}/booth-stats?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  },
 };

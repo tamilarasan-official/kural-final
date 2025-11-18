@@ -63,14 +63,24 @@ export default function SurveyVoterSelectionScreen() {
           console.log('Survey Voter Selection - Voters loaded:', votersData.length);
           setVoters(Array.isArray(votersData) ? votersData : []);
           
-          // Mark voters as completed based on their 'surveyed' field
-          const surveyedVoterIds = votersData
-            .filter((v: any) => v.surveyed === true)
-            .map((v: any) => v.voterID || v.Number);
-          
-          console.log('Survey Voter Selection - Surveyed voters in booth:', surveyedVoterIds.length);
-          console.log('Survey Voter Selection - Surveyed voter IDs:', surveyedVoterIds);
-          setCompletedVoters(new Set(surveyedVoterIds));
+          // Get voters who completed THIS specific survey (not just any survey)
+          if (surveyId) {
+            try {
+              const completedResponse = await surveyAPI.getCompletedVoters(surveyId);
+              console.log('Survey Voter Selection - Completed voters response:', completedResponse);
+              
+              if (completedResponse?.success) {
+                const completedIds = completedResponse.data?.completedVoterIds || [];
+                console.log('Survey Voter Selection - Voters who completed THIS survey:', completedIds.length);
+                console.log('Survey Voter Selection - Completed voter IDs:', completedIds);
+                setCompletedVoters(new Set(completedIds));
+              }
+            } catch (error) {
+              console.error('Survey Voter Selection - Failed to load completed voters:', error);
+              // Set empty set on error
+              setCompletedVoters(new Set());
+            }
+          }
         }
       } else {
         console.error('Survey Voter Selection - No booth_id or aci_id found!');
@@ -86,13 +96,14 @@ export default function SurveyVoterSelectionScreen() {
   };
 
   const filteredVoters = voters.filter(voter => {
-    const voterName = voter.name?.english || voter.Name || '';
-    const voterId = voter.voterID || voter.Number || voter['EPIC No'] || '';
-    const mobile = voter.mobile || voter['Mobile No'] || '';
+    const voterName = String(voter.name?.english || voter.Name || '');
+    const voterId = String(voter.voterID || voter.Number || voter['EPIC No'] || '');
+    const mobile = String(voter.mobile || voter['Mobile No'] || '');
     
-    return voterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           voterId.includes(searchQuery) ||
-           mobile.includes(searchQuery);
+    const query = searchQuery.toLowerCase();
+    return voterName.toLowerCase().includes(query) ||
+           voterId.toLowerCase().includes(query) ||
+           mobile.toLowerCase().includes(query);
   });
 
   const handleSelectVoter = (voter: any) => {

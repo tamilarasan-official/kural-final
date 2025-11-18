@@ -20,6 +20,12 @@ export default function BoothAgentDashboard() {
     visitsPending: 0,
     verifiedVoters: 0
   });
+  const [activityStats, setActivityStats] = useState({
+    verifiedToday: 0,
+    surveysThisWeek: 0,
+    visitsPending: 0,
+    activeSurveys: 0
+  });
   const [headerData, setHeaderData] = useState<{booth_id?: string, aci_id?: number, aci_name?: string}>({});
 
   // Force refresh userData from AsyncStorage on mount to ensure latest data
@@ -70,6 +76,7 @@ export default function BoothAgentDashboard() {
       let totalVoters = 0;
       let totalFamilies = 0;
       let verifiedVoters = 0;
+      let verifiedToday = 0;
       let votersData: any[] = []; // Declare at higher scope for use in survey section
       
       if (aci_id && booth_id) {
@@ -106,6 +113,29 @@ export default function BoothAgentDashboard() {
               verifiedVoters = votersData.filter((voter: any) => 
                 voter.verified === true || voter.status === 'verified'
               ).length;
+              
+              // Calculate activity stats based on actual verification dates
+              const now = new Date();
+              const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              
+              verifiedToday = 0;
+              
+              votersData.forEach((voter: any) => {
+                if (voter.verified === true || voter.status === 'verified') {
+                  if (voter.verifiedAt) {
+                    const verifiedDate = new Date(voter.verifiedAt);
+                    if (verifiedDate >= todayStart) {
+                      verifiedToday++;
+                    }
+                  }
+                }
+              });
+              
+              console.log('Dashboard - Activity stats:', {
+                verifiedToday,
+                totalVerified: verifiedVoters
+              });
               
               // Calculate families using EXACT same logic as reports screen
               // Use both familyId and address-based grouping
@@ -153,50 +183,31 @@ export default function BoothAgentDashboard() {
         console.warn('⚠️ Dashboard - userData:', userData);
       }
 
-      // Fetch surveys - count surveyed voters from voters collection
+      // Fetch surveys - get total survey responses across all surveys
       let surveysCompleted = 0;
       let activeSurveyFormsCount = 0;
       
-      console.log('🔍 Dashboard - Before survey section, votersData:', {
-        isArray: Array.isArray(votersData),
-        length: votersData?.length,
-        hasSurveyedField: votersData?.[0]?.hasOwnProperty('surveyed')
-      });
+      console.log('🔍 Dashboard - Fetching survey stats for booth');
       
       try {
-        // Get surveys assigned to this ACI
-        const surveysResponse = await surveyAPI.getAll({ limit: 100, aci_id: String(aci_id) });
-        if (surveysResponse?.success && Array.isArray(surveysResponse.data)) {
-          console.log('Dashboard - All survey forms:', surveysResponse.data.map((s: any) => ({
-            _id: s._id,
-            title: s.title,
-            responseCount: s.responseCount,
-            assignedACs: s.assignedACs,
-            status: s.status
-          })));
+        if (aci_id && booth_id) {
+          // Get booth survey statistics from new API
+          const surveyStatsResponse = await surveyAPI.getBoothStats(String(aci_id), String(booth_id));
+          console.log('Dashboard - Survey stats response:', surveyStatsResponse);
           
-          // Count only active survey forms assigned to this ACI
-          const activeSurveys = surveysResponse.data.filter((s: any) => {
-            const status = (s.status || '').toLowerCase();
-            return status === 'active';
-          });
-          activeSurveyFormsCount = activeSurveys.length;
-          
-          console.log('Dashboard - Active survey forms:', activeSurveyFormsCount);
-          
-          // Count surveyed voters from the voters we already fetched
-          console.log('Dashboard - votersData available:', Array.isArray(votersData), 'length:', votersData?.length);
-          if (Array.isArray(votersData) && votersData.length > 0) {
-            surveysCompleted = votersData.filter((v: any) => v.surveyed === true).length;
-            console.log('Dashboard - Surveyed voters found:', surveysCompleted);
-          } else {
-            console.warn('Dashboard - votersData not available for counting surveyed');
+          if (surveyStatsResponse?.success) {
+            activeSurveyFormsCount = surveyStatsResponse.data?.activeSurveys || 0;
+            surveysCompleted = surveyStatsResponse.data?.totalResponses || 0;
+            
+            console.log('Dashboard - Survey stats:', {
+              activeSurveys: activeSurveyFormsCount,
+              totalResponses: surveysCompleted,
+              surveys: surveyStatsResponse.data?.surveys
+            });
           }
-          
-          console.log('Dashboard - Total surveyed voters:', surveysCompleted);
         }
       } catch (surveyError) {
-        console.warn('Failed to fetch surveys:', surveyError);
+        console.warn('Failed to fetch survey stats:', surveyError);
       }
 
       // Calculate visits pending using Option 2 logic:
@@ -204,12 +215,26 @@ export default function BoothAgentDashboard() {
       const totalResponsesNeeded = totalVoters * activeSurveyFormsCount;
       const visitsPending = Math.max(0, totalResponsesNeeded - surveysCompleted);
       
+      // For "surveys this week", we'll use the surveysCompleted count
+      // since we don't have date filtering in the booth-stats endpoint yet
+      // In future, we can add date range filtering to the API
+      const surveysThisWeek = surveysCompleted; // TODO: Add date filtering to API
+      
       console.log('Dashboard - Calculation:');
       console.log('  Total voters:', totalVoters);
       console.log('  Active survey forms:', activeSurveyFormsCount);
       console.log('  Total responses needed:', totalResponsesNeeded);
       console.log('  Surveys completed:', surveysCompleted);
+      console.log('  Surveys this week:', surveysThisWeek);
       console.log('  Visits pending:', visitsPending);
+
+      // Update activity stats
+      setActivityStats({
+        verifiedToday: verifiedToday || 0,
+        surveysThisWeek: surveysThisWeek || surveysCompleted, // Fallback to total if no date info
+        visitsPending: visitsPending,
+        activeSurveys: activeSurveyFormsCount
+      });
 
       setStats({
         totalVoters,
@@ -392,6 +417,13 @@ export default function BoothAgentDashboard() {
               <Text style={styles.statValue}>{stats.totalVoters}</Text>
             </View>
 
+            {/* Verified Voters */}
+            <View style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}>
+              <Icon name="verified" size={32} color="#4CAF50" />
+              <Text style={styles.statLabel}>Verified Voters</Text>
+              <Text style={styles.statValue}>{stats.verifiedVoters}</Text>
+            </View>
+
             {/* Total Families */}
             <View style={[styles.statCard, { backgroundColor: '#F3E5F5' }]}>
               <Icon name="home" size={32} color="#7B1FA2" />
@@ -400,8 +432,8 @@ export default function BoothAgentDashboard() {
             </View>
 
             {/* Surveys Completed */}
-            <View style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}>
-              <Icon name="assignment-turned-in" size={32} color="#388E3C" />
+            <View style={[styles.statCard, { backgroundColor: '#FFF3E0' }]}>
+              <Icon name="assignment-turned-in" size={32} color="#F57C00" />
               <Text style={styles.statLabel}>Surveys Completed</Text>
               <Text style={styles.statValue}>{stats.surveysCompleted}</Text>
             </View>
@@ -411,6 +443,13 @@ export default function BoothAgentDashboard() {
               <Icon name="trending-up" size={32} color="#D32F2F" />
               <Text style={styles.statLabel}>Visits Pending</Text>
               <Text style={styles.statValue}>{stats.visitsPending}</Text>
+            </View>
+
+            {/* Active Survey */}
+            <View style={[styles.statCard, { backgroundColor: '#E1F5FE' }]}>
+              <Icon name="assignment" size={32} color="#0288D1" />
+              <Text style={styles.statLabel}>Active Survey</Text>
+              <Text style={styles.statValue}>{activityStats.activeSurveys || 0}</Text>
             </View>
           </View>
         </View>
@@ -466,27 +505,33 @@ export default function BoothAgentDashboard() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           
-          <View style={styles.activityCard}>
+          <View style={styles.card}>
             <View style={styles.activityItem}>
-              <View style={styles.activityDot} />
+              <View style={[styles.activityDot, { backgroundColor: '#4CAF50' }]} />
               <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>{stats.verifiedVoters} voters verified</Text>
+                <Text style={styles.activityTitle}>
+                  {activityStats.verifiedToday} voter{activityStats.verifiedToday !== 1 ? 's' : ''} verified
+                </Text>
                 <Text style={styles.activityTime}>Today</Text>
               </View>
             </View>
 
             <View style={styles.activityItem}>
-              <View style={styles.activityDot} />
+              <View style={[styles.activityDot, { backgroundColor: '#4CAF50' }]} />
               <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>{stats.surveysCompleted} surveys completed</Text>
+                <Text style={styles.activityTitle}>
+                  {activityStats.surveysThisWeek} survey{activityStats.surveysThisWeek !== 1 ? 's' : ''} completed
+                </Text>
                 <Text style={styles.activityTime}>This week</Text>
               </View>
             </View>
 
             <View style={styles.activityItem}>
-              <View style={styles.activityDot} />
+              <View style={[styles.activityDot, { backgroundColor: '#2196F3' }]} />
               <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>{stats.visitsPending} visits pending</Text>
+                <Text style={styles.activityTitle}>
+                  {activityStats.visitsPending} visit{activityStats.visitsPending !== 1 ? 's' : ''} pending
+                </Text>
                 <Text style={styles.activityTime}>Ongoing</Text>
               </View>
             </View>
@@ -626,28 +671,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  activityCard: {
+  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 16,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: '#F0F2F5',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   activityItem: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   activityDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#1976D2',
-    marginTop: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 6,
     marginRight: 12,
   },
   activityContent: {
@@ -657,7 +699,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1A1A1A',
     marginBottom: 4,
-    fontWeight: '500',
   },
   activityTime: {
     fontSize: 12,

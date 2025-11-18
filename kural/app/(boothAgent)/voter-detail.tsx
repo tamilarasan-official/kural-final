@@ -7,6 +7,7 @@ import { voterAPI } from '../../services/api/voter';
 import { VoterSlipTemplate } from '../../components/VoterSlipTemplate';
 import { TamilHeaderForPrint } from '../../components/TamilHeaderForPrint';
 import { PrintService } from '../../services/PrintService';
+import { voterFieldAPI } from '../../services/api/voterField';
 
 export default function VoterDetailScreen() {
   const router = useRouter();
@@ -20,14 +21,19 @@ export default function VoterDetailScreen() {
   const headerRef = useRef<View>(null); // Separate ref for Tamil header
   
   // Editable fields
+  const [voterId, setVoterId] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [familyId, setFamilyId] = useState('');
+  const [dob, setDob] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [aadhar, setAadhar] = useState('');
-  const [pan, setPan] = useState('');
-  const [religion, setReligion] = useState('');
-  const [caste, setCaste] = useState('');
-  const [subCaste, setSubCaste] = useState('');
+  
+  // Dynamic voter fields state
+  const [voterFields, setVoterFields] = useState<any[]>([]);
+  const [voterFieldsLoading, setVoterFieldsLoading] = useState(false);
+  const [dynamicFieldValues, setDynamicFieldValues] = useState<Record<string, any>>({});
 
   const loadVoterDetails = async () => {
     try {
@@ -54,14 +60,74 @@ export default function VoterDetailScreen() {
         setVoter(voterData);
         
         // Populate editable fields
+        setVoterId(voterData.voterID || voterData['EPIC No'] || voterData.Number || '');
+        setAge(String(voterData.age || voterData.Age || ''));
+        setGender(voterData.gender || voterData.sex || voterData.Sex || voterData.Gender || '');
+        setFamilyId(voterData.familyId || voterData.FamilyId || '');
+        setDob(voterData.DOB ? new Date(voterData.DOB).toLocaleDateString() : '');
         setMobileNumber(voterData.mobile || voterData.mobileNumber || voterData['Mobile No'] || '');
         setEmail(voterData.emailid || voterData.email || '');
         setAddress(voterData.address || voterData.Address || '');
-        setAadhar(voterData.aadhar || voterData.aadharNumber || '');
-        setPan(voterData.PAN || voterData.panNumber || '');
-        setReligion(voterData.religion || '');
-        setCaste(voterData.caste || '');
-        setSubCaste(voterData.subcaste || voterData.subCaste || '');
+
+        // Extract dynamic field values from voter data (including aadhar, pan, religion, caste, etc.)
+        // Map field names to match voterFields collection names
+        const dynamicValues: Record<string, any> = {};
+        
+        // Handle direct mappings for common fields (with fallbacks for different naming)
+        // Extract value from nested {value, visible} structure if present
+        dynamicValues.aadhar = (
+          typeof voterData.aadhar === 'object' && voterData.aadhar?.value !== undefined 
+            ? voterData.aadhar.value 
+            : voterData.aadhar || voterData.aadharNumber || ''
+        );
+        dynamicValues.pan = (
+          typeof voterData.pan === 'object' && voterData.pan?.value !== undefined
+            ? voterData.pan.value
+            : voterData.pan || voterData.PAN || voterData.TAN || voterData.panNumber || ''
+        );
+        dynamicValues.religion = (
+          typeof voterData.religion === 'object' && voterData.religion?.value !== undefined
+            ? voterData.religion.value
+            : voterData.religion || ''
+        );
+        dynamicValues.caste = (
+          typeof voterData.caste === 'object' && voterData.caste?.value !== undefined
+            ? voterData.caste.value
+            : voterData.caste || ''
+        );
+        dynamicValues.subcaste = (
+          typeof voterData.subcaste === 'object' && voterData.subcaste?.value !== undefined
+            ? voterData.subcaste.value
+            : voterData.subcaste || voterData.subCaste || ''
+        );
+        dynamicValues.bloodgroup = (
+          typeof voterData.bloodgroup === 'object' && voterData.bloodgroup?.value !== undefined
+            ? voterData.bloodgroup.value
+            : voterData.bloodgroup || ''
+        );
+        
+        // Extract other dynamic fields from voter data
+        Object.keys(voterData).forEach(key => {
+          // Skip known static fields and already processed fields
+          const staticFields = ['_id', 'voterID', 'EPIC No', 'Number', 'age', 'Age', 'gender', 'sex', 'Sex', 'Gender', 
+            'familyId', 'FamilyId', 'DOB', 'mobile', 'mobileNumber', 'Mobile No', 'emailid', 'email', 
+            'address', 'Address', 'aadhar', 'aadharNumber', 'PAN', 'TAN', 'panNumber', 'religion', 'caste', 
+            'subcaste', 'subCaste', 'nameEnglish', 'nameTamil', 'createdAt', 'updatedAt', '__v', 
+            'booth_id', 'boothname', 'boothno', 'aci_id', 'aci_name', 'verified', 'status', 
+            'fatherName', 'doorNumber', 'fatherless', 'guardian', 'bloodgroup', 'rtvui'];
+          
+          if (!staticFields.includes(key)) {
+            // Check if the value is an object with 'value' property (nested structure)
+            const fieldValue = voterData[key];
+            if (fieldValue && typeof fieldValue === 'object' && 'value' in fieldValue) {
+              dynamicValues[key] = fieldValue.value;
+            } else {
+              dynamicValues[key] = fieldValue;
+            }
+          }
+        });
+        console.log('📝 Extracted dynamic field values:', dynamicValues);
+        setDynamicFieldValues(dynamicValues);
       } else {
         Alert.alert('Error', 'Failed to load voter details');
         router.back();
@@ -77,8 +143,33 @@ export default function VoterDetailScreen() {
 
   useEffect(() => {
     loadVoterDetails();
+    loadVoterFields(); // Load dynamic fields
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Load dynamic voter fields from backend
+   * Only fetches fields where visible === true
+   */
+  const loadVoterFields = async () => {
+    try {
+      setVoterFieldsLoading(true);
+      const response = await voterFieldAPI.getAllVisibleFields();
+      
+      if (response.success && Array.isArray(response.data)) {
+        console.log('✅ Loaded voter fields:', response.data);
+        setVoterFields(response.data);
+      } else {
+        console.log('⚠️ No voter fields returned or invalid response:', response);
+        setVoterFields([]);
+      }
+    } catch (error) {
+      console.error('Error loading voter fields:', error);
+      setVoterFields([]);
+    } finally {
+      setVoterFieldsLoading(false);
+    }
+  };
 
   const handleMarkAsVerified = async () => {
     try {
@@ -110,43 +201,60 @@ export default function VoterDetailScreen() {
 
   const handleSave = async () => {
     try {
-      const voterId = voter._id || voter.Number;
+      // Use MongoDB _id for API call (identifier)
+      const voterDbId = voter._id || voter.Number;
       
-      if (!voterId) {
+      if (!voterDbId) {
         Alert.alert('Error', 'Voter ID not found');
         return;
       }
 
-      // Prepare update data
+      // Prepare update data using STATE variables (the edited values)
       const updateData = {
+        voterID: voterId,  // Use the edited voterId from state, NOT the DB _id
+        age: age,
+        gender: gender,
+        familyId: familyId,
+        DOB: dob,
         mobile: mobileNumber,
         emailid: email,
         address: address,
-        aadhar: aadhar,
-        PAN: pan,
-        religion: religion,
-        caste: caste,
-        subcaste: subCaste,
+        // Reset verification if voter was previously verified
+        verified: false,
+        status: 'pending',
+        // Include ALL dynamic field values (aadhar, pan, religion, caste, etc.)
+        ...dynamicFieldValues,
       };
 
-      // Call API to update voter info
-      const response = await voterAPI.updateVoterInfo(voterId, updateData);
+      console.log('📤 Sending update data:', JSON.stringify(updateData, null, 2));
+      console.log('📋 Dynamic field values:', JSON.stringify(dynamicFieldValues, null, 2));
+      console.log('🩸 Bloodgroup specifically:', dynamicFieldValues.bloodgroup, '| Type:', typeof dynamicFieldValues.bloodgroup);
+      console.log('🆔 Voter DB ID for update:', voterDbId);
+
+      // Call API to update voter info (use DB _id as identifier)
+      const response = await voterAPI.updateVoterInfo(voterDbId, updateData);
+      
+      console.log('✅ API Response:', JSON.stringify(response, null, 2));
       
       if (response?.success) {
-        // Update local state
+        // Update local state with edited values
         setVoter({ 
-          ...voter, 
+          ...voter,
+          voterID: voterId,  // Update with edited voter ID
+          Number: voterId,   // Also update Number field for consistency
+          age: age,
+          gender: gender,
+          familyId: familyId,
+          DOB: dob,
           mobile: mobileNumber,
           emailid: email,
           address: address,
-          aadhar: aadhar,
-          PAN: pan,
-          religion: religion,
-          caste: caste,
-          subcaste: subCaste
+          ...dynamicFieldValues, // Include all dynamic fields (aadhar, pan, religion, etc.)
+          verified: false,    // Reset verification status
+          status: 'pending',  // Reset to pending
         });
         setIsEditing(false);
-        Alert.alert('Success', 'Voter information updated successfully');
+        Alert.alert('Success', 'Voter information updated successfully. Verification status has been reset.');
         
         // Reload details to get latest data
         await loadVoterDetails();
@@ -201,7 +309,7 @@ export default function VoterDetailScreen() {
       // Prepare voter data for printing
       const voterData = {
         voterID: voter.voterID || voter['EPIC No'] || voter.Number || 'N/A',
-        name: voter.name?.english || voter.Name || 'Unknown',
+        name: typeof voter.name === 'string' ? voter.name : (voter.name?.english || voter.Name || 'Unknown'),
         nameTamil: voter.name?.tamil || '',
         fathername: voter.fathername || voter.fatherName || voter['Father Name'] || '',
         fatherNameTamil: voter.fatherNameTamil || '',
@@ -253,9 +361,9 @@ export default function VoterDetailScreen() {
     );
   }
 
-  const age = parseInt(voter.age || voter.Age) || 0;
-  const isSenior60 = age >= 60 && age < 80;
-  const isSenior80 = age >= 80;
+  const voterAge = parseInt(voter.age || voter.Age) || 0;
+  const isSenior60 = voterAge >= 60 && voterAge < 80;
+  const isSenior80 = voterAge >= 80;
   const isVerified = voter.verified === true || voter.status === 'verified';
 
   return (
@@ -304,9 +412,9 @@ export default function VoterDetailScreen() {
           {/* Voter Name Card */}
           <View style={styles.card}>
             <Text style={styles.voterName}>
-              {voter.name?.english || voter.Name || 'Unknown'}
+              {typeof voter.name === 'string' ? voter.name : (voter.name?.english || voter.Name || 'Unknown')}
             </Text>
-            {voter.name?.tamil && (
+            {(typeof voter.name === 'object' && voter.name?.tamil) && (
               <Text style={styles.voterNameTamil}>
                 {voter.name.tamil}
               </Text>
@@ -317,28 +425,79 @@ export default function VoterDetailScreen() {
           <View style={styles.card}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Voter ID</Text>
-              <Text style={styles.infoValue}>{voter.voterID || voter['EPIC No'] || voter.Number || 'N/A'}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={[styles.infoValue, styles.editableInput]}
+                  value={voterId}
+                  onChangeText={setVoterId}
+                  placeholder="Enter voter ID"
+                  placeholderTextColor="#999"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{voterId || 'N/A'}</Text>
+              )}
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Age</Text>
-              <Text style={styles.infoValue}>{voter.age || voter.Age || 'N/A'}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={[styles.infoValue, styles.editableInput]}
+                  value={age}
+                  onChangeText={setAge}
+                  keyboardType="numeric"
+                  placeholder="Enter age"
+                  placeholderTextColor="#999"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{age || 'N/A'}</Text>
+              )}
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Gender</Text>
-              <Text style={styles.infoValue}>{voter.gender || voter.sex || voter.Sex || voter.Gender || 'N/A'}</Text>
+              {isEditing ? (
+                <TouchableOpacity
+                  style={[styles.infoValue, styles.editableInput]}
+                  onPress={() => {
+                    Alert.alert(
+                      'Select Gender',
+                      '',
+                      [
+                        { text: 'Male', onPress: () => setGender('Male') },
+                        { text: 'Female', onPress: () => setGender('Female') },
+                        { text: 'Transgender', onPress: () => setGender('Transgender') },
+                        { text: 'Cancel', style: 'cancel' }
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.infoValue}>{gender || 'Select gender'}</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.infoValue}>{gender || 'N/A'}</Text>
+              )}
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Family ID</Text>
-              <Text style={styles.infoValue}>{voter.familyId || voter.FamilyId || 'N/A'}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={[styles.infoValue, styles.editableInput]}
+                  value={familyId}
+                  onChangeText={setFamilyId}
+                  placeholder="Enter family ID"
+                  placeholderTextColor="#999"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{familyId || 'N/A'}</Text>
+              )}
             </View>
           </View>
 
@@ -352,15 +511,23 @@ export default function VoterDetailScreen() {
             <View style={styles.divider} />
 
             {/* Date of Birth */}
-            {voter.DOB && (
-              <>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Date of Birth</Text>
-                  <Text style={styles.infoValue}>{new Date(voter.DOB).toLocaleDateString()}</Text>
-                </View>
-                <View style={styles.divider} />
-              </>
-            )}
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>DOB</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.infoValue, styles.editableInput]}
+                    value={dob}
+                    onChangeText={setDob}
+                    placeholder="DD/MM/YYYY"
+                    placeholderTextColor="#999"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{dob || 'N/A'}</Text>
+                )}
+              </View>
+              <View style={styles.divider} />
+            </>
 
             {/* Mobile Number */}
             <>
@@ -428,113 +595,92 @@ export default function VoterDetailScreen() {
             </>
           </View>
 
-          {/* Additional Information Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Icon name="info" size={20} color="#1976D2" />
-              <Text style={styles.cardTitle}>Additional Information</Text>
+          {/* Dynamic Additional Information Card */}
+          {voterFieldsLoading ? (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Icon name="info" size={20} color="#1976D2" />
+                <Text style={styles.cardTitle}>Additional Information</Text>
+              </View>
+              <View style={styles.divider} />
+              <Text style={styles.infoLabel}>Loading...</Text>
             </View>
-
-            <View style={styles.divider} />
-
-            {/* Aadhar Number */}
-            <>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Aadhar Number</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.infoValue, styles.editableInput]}
-                    value={aadhar}
-                    onChangeText={setAadhar}
-                    keyboardType="numeric"
-                    maxLength={12}
-                    placeholder="Enter Aadhar number"
-                    placeholderTextColor="#999"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{aadhar || 'N/A'}</Text>
-                )}
+          ) : voterFields.filter(f => ['documents', 'community', 'health', 'personal'].includes(f.category)).length > 0 ? (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Icon name="info" size={20} color="#1976D2" />
+                <Text style={styles.cardTitle}>Additional Information</Text>
               </View>
+              
               <View style={styles.divider} />
-            </>
 
-            {/* PAN Number */}
-            <>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>PAN Number</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.infoValue, styles.editableInput]}
-                    value={pan}
-                    onChangeText={(text) => setPan(text.toUpperCase())}
-                    autoCapitalize="characters"
-                    maxLength={10}
-                    placeholder="Enter PAN number"
-                    placeholderTextColor="#999"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{pan || 'N/A'}</Text>
-                )}
-              </View>
-              <View style={styles.divider} />
-            </>
-
-            {/* Religion */}
-            <>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Religion</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.infoValue, styles.editableInput]}
-                    value={religion}
-                    onChangeText={setReligion}
-                    placeholder="Enter religion"
-                    placeholderTextColor="#999"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{religion || 'N/A'}</Text>
-                )}
-              </View>
-              <View style={styles.divider} />
-            </>
-
-            {/* Caste */}
-            <>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Caste</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.infoValue, styles.editableInput]}
-                    value={caste}
-                    onChangeText={setCaste}
-                    placeholder="Enter caste"
-                    placeholderTextColor="#999"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{caste || 'N/A'}</Text>
-                )}
-              </View>
-              <View style={styles.divider} />
-            </>
-
-            {/* Sub-Caste */}
-            <>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Sub-Caste</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.infoValue, styles.editableInput]}
-                    value={subCaste}
-                    onChangeText={setSubCaste}
-                    placeholder="Enter sub-caste"
-                    placeholderTextColor="#999"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{subCaste || 'N/A'}</Text>
-                )}
-              </View>
-            </>
-          </View>
+              {voterFields
+                .filter(field => ['documents', 'community', 'health', 'personal'].includes(field.category))
+                .map((field, index, array) => {
+                  const fieldValue = dynamicFieldValues[field.name];
+                  
+                  return (
+                    <React.Fragment key={field._id}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>{field.label}</Text>
+                        {isEditing ? (
+                          field.type === 'Boolean' ? (
+                            <View style={styles.chipContainer}>
+                              <TouchableOpacity
+                                style={[
+                                  styles.chip,
+                                  fieldValue === true && styles.chipSelected
+                                ]}
+                                onPress={() => setDynamicFieldValues(prev => ({ ...prev, [field.name]: true }))}
+                              >
+                                <Text style={[
+                                  styles.chipText,
+                                  fieldValue === true && styles.chipTextSelected
+                                ]}>Yes</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  styles.chip,
+                                  fieldValue === false && styles.chipSelected
+                                ]}
+                                onPress={() => setDynamicFieldValues(prev => ({ ...prev, [field.name]: false }))}
+                              >
+                                <Text style={[
+                                  styles.chipText,
+                                  fieldValue === false && styles.chipTextSelected
+                                ]}>No</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TextInput
+                              style={[styles.infoValue, styles.editableInput]}
+                              value={String(fieldValue || '')}
+                              onChangeText={(text) => setDynamicFieldValues(prev => ({ ...prev, [field.name]: text }))}
+                              placeholder={`Enter ${field.label.toLowerCase()}`}
+                              placeholderTextColor="#999"
+                              keyboardType={field.type === 'Number' ? 'numeric' : 'default'}
+                              autoCapitalize={field.name === 'pan' ? 'characters' : 'none'}
+                              maxLength={field.name === 'aadhar' ? 12 : field.name === 'pan' ? 10 : undefined}
+                            />
+                          )
+                        ) : (
+                          <Text style={styles.infoValue}>
+                            {field.type === 'Boolean' 
+                              ? (fieldValue === true ? 'Yes' : fieldValue === false ? 'No' : 'N/A')
+                              : (typeof fieldValue === 'object' && fieldValue !== null 
+                                  ? (fieldValue.value !== undefined ? String(fieldValue.value || 'N/A') : 'N/A')
+                                  : (fieldValue || 'N/A')
+                                )
+                            }
+                          </Text>
+                        )}
+                      </View>
+                      {index < array.length - 1 && <View style={styles.divider} />}
+                    </React.Fragment>
+                  );
+                })}
+            </View>
+          ) : null}
 
           {/* Special Categories */}
           {(isSenior60 || isSenior80 || (voter.specialCategories && voter.specialCategories.length > 0)) && (
@@ -592,7 +738,7 @@ export default function VoterDetailScreen() {
             <VoterSlipTemplate
               data={{
                 voterID: voter.voterID || voter['EPIC No'] || voter.Number || 'N/A',
-                name: voter.name?.english || voter.Name || 'Unknown',
+                name: typeof voter.name === 'string' ? voter.name : (voter.name?.english || voter.Name || 'Unknown'),
                 nameTamil: voter.name?.tamil || '',
                 fatherName: voter.fatherName || voter['Father Name'] || '',
                 fatherNameTamil: voter.fatherNameTamil || '',
@@ -964,5 +1110,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+  },
+  // Dynamic fields chip styles
+  chipContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#F0F0F0',
+    borderWidth: 1,
+    borderColor: '#D0D0D0',
+  },
+  chipSelected: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
+  },
+  chipText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  chipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });

@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import LottieView from 'lottie-react-native';
 
 interface IntroAnimationProps {
   onFinish: () => void;
 }
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function IntroAnimation({ onFinish }: IntroAnimationProps) {
   return (
@@ -15,7 +17,7 @@ export default function IntroAnimation({ onFinish }: IntroAnimationProps) {
         loop={false}
         onAnimationFinish={onFinish}
         style={styles.animation}
-        resizeMode="contain"
+        resizeMode="cover"
       />
     </View>
   );
@@ -24,12 +26,12 @@ export default function IntroAnimation({ onFinish }: IntroAnimationProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F8F8',
     justifyContent: 'center',
     alignItems: 'center',
   },
   animation: {
-    width: 400,
-    height: 400,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
 });
