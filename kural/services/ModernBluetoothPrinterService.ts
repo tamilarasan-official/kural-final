@@ -9,8 +9,12 @@
  */
 
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
+// Temporarily disabled - library has dependency issues
 // @ts-ignore - Library doesn't have TypeScript definitions
-import { BLEPrinter } from '@conodene/react-native-thermal-receipt-printer-image-qr';
+// import { BLEPrinter } from '@conodene/react-native-thermal-receipt-printer-image-qr';
+
+// Using fallback printer service
+const BLEPrinter = null;
 
 export interface PrinterDevice {
   device_name: string;

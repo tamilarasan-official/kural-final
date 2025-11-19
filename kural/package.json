@@ -12,7 +12,6 @@
         "lint": "expo lint"
     },
     "dependencies": {
-        "@conodene/react-native-thermal-receipt-printer-image-qr": "^0.2.0",
         "@expo/vector-icons": "^15.0.2",
         "@ptomasroos/react-native-multi-slider": "^2.2.2",
         "@react-native-async-storage/async-storage": "^1.24.0",
@@ -43,7 +42,6 @@
         "expo-web-browser": "~15.0.8",
         "firebase": "^12.3.0",
         "lottie-react-native": "^7.3.4",
-        "ping-react-native": "^1.5.0",
         "react": "19.1.0",
         "react-dom": "19.1.0",
         "react-native": "0.81.5",
