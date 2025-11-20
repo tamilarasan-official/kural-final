@@ -9,12 +9,24 @@
  */
 
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
-// Temporarily disabled - library has dependency issues
-// @ts-ignore - Library doesn't have TypeScript definitions
-// import { BLEPrinter } from '@conodene/react-native-thermal-receipt-printer-image-qr';
 
-// Using fallback printer service
-const BLEPrinter = null;
+// Conditionally import the printer library to avoid native module errors in Expo Go
+let BLEPrinter: any = null;
+try {
+  // @ts-ignore - Library doesn't have TypeScript definitions
+  BLEPrinter = require('@conodene/react-native-thermal-receipt-printer-image-qr').BLEPrinter;
+} catch (error) {
+  console.warn('BLE Printer library not available (native module). Use development build for printer features.');
+  // Create mock implementation for Expo Go
+  BLEPrinter = {
+    init: async () => { throw new Error('Printer not available in Expo Go'); },
+    getDeviceList: async () => [],
+    connectPrinter: async () => { throw new Error('Printer not available in Expo Go'); },
+    printText: async () => { throw new Error('Printer not available in Expo Go'); },
+    printImageBase64: async () => { throw new Error('Printer not available in Expo Go'); },
+    closeConn: async () => {},
+  };
+}
 
 export interface PrinterDevice {
   device_name: string;
@@ -26,10 +38,21 @@ export class ModernBluetoothPrinterService {
   private static readonly PRINTER_NAMES = ['SR588', 'PX58B', 'PSF588', 'Posiflow'];
 
   /**
+   * Check if printer library is available (not running in Expo Go)
+   */
+  static isPrinterAvailable(): boolean {
+    return BLEPrinter && typeof BLEPrinter.init === 'function';
+  }
+
+  /**
    * Initialize BLE Printer
    */
   private static async initPrinter(): Promise<boolean> {
     try {
+      if (!this.isPrinterAvailable()) {
+        console.warn('Printer library not available. Use development build.');
+        return false;
+      }
       await BLEPrinter.init();
       console.log('✅ BLE Printer initialized');
       return true;
@@ -92,6 +115,15 @@ export class ModernBluetoothPrinterService {
    */
   static async scanForPrinters(): Promise<PrinterDevice[]> {
     try {
+      // Check if printer library is available
+      if (!this.isPrinterAvailable()) {
+        Alert.alert(
+          'Printer Not Available',
+          'Bluetooth printer features require a development build. Expo Go does not support native printer modules.'
+        );
+        return [];
+      }
+
       console.log('🔍 Scanning for Bluetooth printers...');
       
       // Request permissions first
@@ -135,6 +167,11 @@ export class ModernBluetoothPrinterService {
    */
   static async connectToPrinter(printer: PrinterDevice): Promise<boolean> {
     try {
+      if (!this.isPrinterAvailable()) {
+        Alert.alert('Printer Not Available', 'Use development build for printer features.');
+        return false;
+      }
+
       console.log(`📡 Connecting to printer: ${printer.device_name} (${printer.inner_mac_address})`);
       
       // Disconnect from any previous device
